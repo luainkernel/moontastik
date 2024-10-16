@@ -22,6 +22,7 @@ Object = {
         elseif cls
           cls[k]
       __call: (...) => obj\new ...
+      __len: => @__len!
     }
 }
 Object.new Object, Object
@@ -30,6 +31,7 @@ subclass = Object.new
 
 Packet = subclass Object, {
   __name: "Packet"
+  __len: => #@skb
   new: (obj) =>
     assert obj.skb, "I need a skb to parse"
     obj.off or= 0
@@ -90,7 +92,7 @@ Packet = subclass Object, {
 
   _get_hexdump: =>
     hex, txt, out = {}, {}, {}
-    mx = #@skb - @off
+    mx = #@ - @off
     char = string.char
     for i = 1, mx
       c = @byte(i-1)

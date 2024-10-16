@@ -38,4 +38,6 @@ subclass IP, {
   _get_data_off: => 4 * @ihl
 
   _get_data_len: => @length - @data_off
+
+  __len: => @length
 }

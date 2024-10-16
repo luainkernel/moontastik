@@ -30,11 +30,14 @@ dump = =>
   print l for l in *@hexdump
 
 if XDP
+  PASS = xdp.action.PASS
   xdp.attach (skb, arg) ->
     off = ntoh16 arg\getuint16 0
     dump IP :skb, :off
+    PASS
 
 if NETFILTER
+  CONTINUE = nf.action.CONTINUE
   for i = 1, #pfs
     register {
       pf: pfs[i],
@@ -42,5 +45,6 @@ if NETFILTER
       priority: nf.ip_priority.FILTER,
       hook: (skb) ->
         dump IP :skb
+        CONTINUE
     }
 
