@@ -56,8 +56,8 @@ Net6 = do  -- 128 bits and IPv6 representation make it a bit more complex
       (
         o.v == @v and o.mask <= @mask and
         (
-          o.mask >= 64 and @bits == o.bits or
-          (@bits[1] >> (64-o.mask) << (64-o.mask)) == o.bits[1]
+          o.mask >= 64 and @bits[1] == o.bits[1] or
+          o.mask < 64 and (@bits[1] >> (64-o.mask) << (64-o.mask)) == o.bits[1]
         ) and
         (@bits[2] >> (128-o.mask) << (128-o.mask)) == o.bits[2]
       )
