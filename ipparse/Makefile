@@ -8,7 +8,7 @@ LUA_MODULE_DIR = /lib/modules/lua
 all:
 	moonc .
 
-install:
+install: all
 	mkdir ${LUA_MODULE_DIR}/${NAME} || true
 	cp --parents `find . -name \*.lua` ${LUA_MODULE_DIR}/${NAME}
 

@@ -40,7 +40,7 @@ Packet = subclass Object, {
       ok, ret = pcall @skb.getbyte, @skb, @off+offset
       ((ret >> (8-n)) & 1) if ok else log @__name, "bit", ret, "#{@off} #{offset} #{#@skb}"
     else
-      (@skb\getbyte(@off+offset) >> n) & 1
+      (@skb\getbyte(@off+offset) >> (8-n)) & 1
 
   nibble: (offset, half = 1) =>
     if DEBUG
@@ -85,7 +85,24 @@ Packet = subclass Object, {
 
   is_empty: => @off >= #@skb
 
+  -- Each subclass has to define data_off or _get_data_off
   _get_data: => skb: @skb, off: @off + @data_off
+
+  _get_hexdump: =>
+    hex, txt, out = {}, {}, {}
+    mx = #@skb - @off
+    char = string.char
+    for i = 1, mx
+      c = @byte(i-1)
+      hex[i] = "%.02x"\format c
+      txt[i] = c > 32 and c < 127 and char(c) or '.'
+    for i = 1, #hex, 8
+      m = i+7
+      out[#out+1] = concat({
+        concat [hex[j] or "  " for j = i, m], " ",
+        concat [txt[j] or " "  for j = i, m]
+      }, "  ") .. "  %.03x"\format m
+    out
 }
 
 
