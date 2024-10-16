@@ -14,11 +14,11 @@ Install [MoonScript](https://moonscript.org):
 sudo apt install luarocks && sudo luarocks install moonscript  # build dependency
 ```
 
-Install [ipparse](https://github.com/luainkernel/mooniak/tree/master/ipparse):
+Install [ipparse](https://github.com/luainkernel/moontastik/tree/master/ipparse):
 
 ```sh
-git clone https://github.com/luainkernel/mooniak
-cd mooniak/ipparse
+git clone https://github.com/luainkernel/moontastik
+cd moontastik/ipparse
 make && sudo make install
 cd ..
 ```

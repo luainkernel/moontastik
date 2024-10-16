@@ -1,4 +1,4 @@
-# Mooniak
+# Moontastik
 
 MoonScript collection for Lunatik
 
