@@ -1,6 +1,12 @@
-:subclass, :Packet = require"ipparse"
+subclass, Packet = do
+  _ = require"ipparse"
+  _.subclass, _.Packet
 Question = require"ipparse.l7.dns.question"
 RR = require"ipparse.l7.dns.rr"
+
+bidirectional = =>
+  @[@[i]] = i for i = 1, #@
+  @
 
 local DNS
 DNS = subclass Packet, {
@@ -8,8 +14,7 @@ DNS = subclass Packet, {
 
   iana_port: 53
 
-  types: do
-    t = {
+  types: bidirectional {
       "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG", "MR", "NULL",
       "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT", "RP", "AFSDB", "X25", "ISDN",
       "RT", "NSAP", "NSAP-PTR", "SIG", "KEY", "PX", "GPOS", "AAAA", "LOC", "NXT",
@@ -20,8 +25,6 @@ DNS = subclass Packet, {
       "AXFR", "MAILB", "MAILA", "ANY", "URI", "CAA", "AVC", "DOA", "AMTRELAY", "TA",
       "DLV"
     }
-    t[t[i]] = i for i = 1, #t
-    t
 
   _get_id: => @short 0
 
@@ -80,7 +83,7 @@ DNS = subclass Packet, {
     ns = @nameservers[#@nameservers]
     DNS.rrs @, ns.off+ns.length, @arcount
 
-data_off: 12
+  data_off: 12
 }
 
 DNS

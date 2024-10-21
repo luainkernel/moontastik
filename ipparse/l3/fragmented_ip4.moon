@@ -1,7 +1,6 @@
 IP4 = require"ipparse.l3.ip4"
 new: data_new = require"data"
 :sort = table
-:max = math
 
 fragmented = {}
 
@@ -9,8 +8,8 @@ collect: =>
   id = @id
   fragments = fragmented[id] or {}
   fragmented[id] = fragments
-  skb: _skb, :off, :data_off, :data_len, :fragmentation_off, :mf = @
-  frag_off = fragmentation_off << 3
+  _skb, off, data_off, data_len, mf = @skb, @off, @data_off, @data_len, @mf
+  frag_off = @fragmentation_off << 3
   total_len = off + frag_off + data_off + data_len
   -- 64KB is the theoretical maximum, 10KB a reasonable max len default
   max_len = total_len > 10240 and 65535 or 10240
@@ -38,6 +37,6 @@ collect: =>
 
   fragmented[id] = nil
   ip = IP4 :skb, :off
-  ip.__len = => total_len
+  ip.__len = -> total_len
   ip
 

@@ -1,11 +1,12 @@
-:subclass = require"ipparse"
+subclass = require"ipparse".subclass
 IP = require"ipparse.l3.ip"
-:concat = table
+range = require"ipparse.fun".range
+concat = table.concat
 
 subclass IP, {
   __name: "IP4"
 
-  get_ip_at: (off) => concat [ "%d"\format(@byte i) for i = off, off+3 ], "."
+  get_ip_at: (off) => concat range(off, off+3)\map((i) -> "%d"\format @byte i)\toarray!, "."
 
   is_fragment: => @mf ~= 0 or @fragmentation_off ~= 0
 

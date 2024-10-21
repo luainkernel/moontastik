@@ -1,4 +1,6 @@
-:subclass, :Packet = require"ipparse"
+subclass, Packet = do
+  _ = require"ipparse"
+  _.subclass, _.Packet
 
 
 subclass Packet, {

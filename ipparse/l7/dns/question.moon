@@ -1,5 +1,8 @@
-:subclass, :Packet = require"ipparse"
-:concat = table
+subclass, Packet = do
+  _ = require"ipparse"
+  _.subclass, _.Packet
+map = require"ipparse.fun".map
+concat = table.concat
 
 subclass Packet, {
   __name: "DNSQuestion"
@@ -7,7 +10,7 @@ subclass Packet, {
   _get_labels_offsets: =>
     offsets = {}
     pos = 0
-    for i = 1, 1000
+    for _ = 1, 1000
       size = @byte pos
       break if size == 0
       pos += 1
@@ -21,21 +24,23 @@ subclass Packet, {
     offsets
 
   _get_labels: =>
-    labels = {}
     offs = @labels_offsets
-    for {o, len, ptr} in *offs
+    map(offs, (lbl) ->
+      o, len, ptr = lbl[1], lbl[2], lbl[3]
       if len == 0
-        for {_o, _len} in *offs
+        for i = 1, #offs
+          _lbl = offs[i]
+          _o, _len = _lbl[1], _lbl[2]
           if _o == ptr
             o, len = _o, _len
             break
-      labels[#labels+1] = @str o, len
-    labels
+      @str o, len
+    )\toarray!
 
   _get_qtype_offset: =>
     offs = @labels_offsets
-    {pos, size} = offs[#offs]
-    pos + size + 1
+    last = offs[#offs]
+    last[1] + last[2] + 1
 
   _get_qtype: => @short @qtype_offset
 

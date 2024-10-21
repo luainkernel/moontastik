@@ -1,4 +1,4 @@
-:subclass = require"ipparse"
+subclass = require"ipparse".subclass
 TLSExtension = require"ipparse.l7.tls.handshake.extension"
 
 subclass TLSExtension, {

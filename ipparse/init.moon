@@ -4,15 +4,18 @@ if path = (...)\match"(.*)%.[^%.]-"  -- Add subdirectory to package.path if appl
   path = package.path\match"^[^%?]+" .. path
   package.path ..= ";"..path.."/?.lua;"..path.."/?/init.lua"
 
-:ntoh16, :ntoh32 = require"linux"
-:concat = table
+concat = table.concat
 log = (...) -> print "IPPARSE: " .. concat {...}, "\t"
+ntoh16, ntoh32 = do
+  _ = require"linux"
+  _.ntoh16, _.ntoh32
+range = require"ipparse.fun".range
 
 
 Object = {
   __name: "Object"
-  new: (obj) =>
-    cls = @ ~= obj and @ or nil
+  new: (cls, obj) ->
+    cls = nil if cls == obj
     setmetatable obj, {
       __index: (k) =>
         if getter = rawget(@, "_get_#{k}") or cls and cls["_get_#{k}"]
@@ -78,7 +81,7 @@ Packet = subclass Object, {
     frag = ""
     if off + length > #@skb
       length = #@skb - off
-      log.warn"Incomplete data. Fragmented packet?."
+      log"Incomplete data. Fragmented packet?"
     if DEBUG
       ok, ret = pcall @skb.getstring, @skb, @off+offset, length
       (ret .. frag) if ok else log @__name, "str", ret, "#{@off} #{offset} #{length} #{#@skb}"
@@ -90,21 +93,20 @@ Packet = subclass Object, {
   -- Each subclass has to define data_off or _get_data_off
   _get_data: => skb: @skb, off: @off + @data_off
 
-  _get_hexdump: =>
-    hex, txt, out = {}, {}, {}
+  hexdump: =>
+    hex, txt = {}, {}
     mx = #@ - @off
     char = string.char
     for i = 1, mx
       c = @byte(i-1)
       hex[i] = "%.02x"\format c
       txt[i] = c > 32 and c < 127 and char(c) or '.'
-    for i = 1, #hex, 8
+    range(1, #hex, 8)\map (i) ->
       m = i+7
-      out[#out+1] = concat({
-        concat [hex[j] or "  " for j = i, m], " ",
-        concat [txt[j] or " "  for j = i, m]
+      concat({
+        concat range(i, m)\map(=> hex[@] or "  ")\toarray!, " "
+        concat range(i, m)\map(=> txt[@] or " ")\toarray!
       }, "  ") .. "  %.03x"\format m
-    out
 }
 
 
