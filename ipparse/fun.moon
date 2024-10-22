@@ -1,5 +1,4 @@
--- Small library for basic functional programming primitives:
--- map, filter, take, reduce
+-- Small library for basic functional programming primitives
 
 
 local iter
