@@ -1,0 +1,22 @@
+name: Main
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt install luarocks && sudo luarocks install moonscript
+      - name: Transpile MoonScript files and create zip
+        run: make zip
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: '*.zip'
+
