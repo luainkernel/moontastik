@@ -4,27 +4,13 @@ subclass, Packet = do
 Question = require"ipparse.l7.dns.question"
 RR = require"ipparse.l7.dns.rr"
 
-bidirectional = =>
-  @[@[i]] = i for i = 1, #@
-  @
-
 local DNS
 DNS = subclass Packet, {
   __name: "DNS"
 
   iana_port: 53
 
-  types: bidirectional {
-      "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG", "MR", "NULL",
-      "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT", "RP", "AFSDB", "X25", "ISDN",
-      "RT", "NSAP", "NSAP-PTR", "SIG", "KEY", "PX", "GPOS", "AAAA", "LOC", "NXT",
-      "EID", "NIMLOC", "SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",
-      "OPT", "APL", "DS", "SSHFP", "IPSECKEY", "RRSIG", "NSEC", "DNSKEY", "DHCID", "NSEC3",
-      "NSEC3PARAM", "TLSA", "SMIMEA", "HIP", "NINFO", "RKEY", "TALINK", "CDS", "CDNSKEY", "OPENPGPKEY",
-      "CSYNC", "ZONEMD", "SVCB", "HTTPS", "SPF", "EUI48", "EUI64", "TKEY", "TSIG", "IXFR",
-      "AXFR", "MAILB", "MAILA", "ANY", "URI", "CAA", "AVC", "DOA", "AMTRELAY", "TA",
-      "DLV"
-    }
+  types: require"ipparse.l7.dns.types"
 
   _get_id: => @short 0
 

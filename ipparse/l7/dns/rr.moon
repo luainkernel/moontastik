@@ -4,6 +4,10 @@ subclass, Packet = do
 map, range = do
   _ = require"ipparse.fun"
   _.map, _.range
+Net6 = require"ipparse.l3.ipcalc".Net6
+A, AAAA = do
+  _ = require"ipparse.l7.dns.types"
+  _.A, _.AAAA
 concat = table.concat
 
 subclass Packet, {
@@ -48,10 +52,28 @@ subclass Packet, {
 
   _get_rdlength: => @short @type_offset+8
 
-  _get_rdata: => range(0, @rdlength-1)\map((off) -> @byte @type_offset+10+off)\toarray!
+  _get_rdoff: => @type_offset + 10
+
+  _get_rdata: =>
+    rdoff = @rdoff
+    range(rdoff, rdoff+@rdlength-1)\map((off) -> @byte off)\toarray!
 
   _get_name: => concat @labels, "."
 
   _get_length: => @type_offset + 10 + @rdlength
+
+  _get_ip4: => concat @rdata, "."
+
+  _get_ip6: =>
+    return nil if @rdlength ~= 16
+    rdoff = @rdoff
+    Net6(concat range(rdoff, rdoff+14, 2)\map((i) -> "%.4x"\format @short i)\toarray!, ":")\ip!
+
+  _get_ip: =>
+    switch @type
+      when AAAA
+        @ip6
+      when A
+        @ip4
 }
 

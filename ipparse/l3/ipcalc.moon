@@ -8,7 +8,8 @@ range, wrap = do
 local Net, Net4, Net6
 
 Net4 = do
-  __tostring = => concat(range(4)\map((i) -> @[i])\toarray!, ".") .. "/#{@mask}"
+  ip4 = => concat range(4)\map((i) -> @[i])\toarray!, "."
+  __tostring = => ip4(@) .. "/#{@mask}"
   mt =
     __index: (k) => @bits >> 8*(4-k) & (1<<8)-1
     __le: (o) =>
@@ -21,11 +22,11 @@ Net4 = do
     mask = tonumber(mask) or 32
     bits = wrap(@gmatch"[^%.]+")\imap((i) => tonumber(@) << 8*(4-i))\reduce (a, b) -> a + b
     bits = bits >> (32-mask) << (32-mask)
-    setmetatable {:bits, :mask, v: 4}, mt
+    setmetatable {:bits, :mask, v: 4, ip: ip4}, mt
 
 
 Net6 = do  -- 128 bits and IPv6 representation make it a bit more complex
-  __repr = =>
+  ip6 = =>
     s = concat range(8)\map((i) -> "%x"\format(@[i]))\toarray!, ":"
     for n = 8, 1, -1
       zeros = ":" .. concat range(n)\map(-> "0")\toarray!, ":"
@@ -33,7 +34,8 @@ Net6 = do  -- 128 bits and IPv6 representation make it a bit more complex
       if r > 0
         s = s\gsub(":::*", "::")\gsub("^0::", "::")\gsub "^::0$", "::"
         break
-    "#{s}/#{@mask}"
+    s
+  __repr = => ip6(@) .. "/#{@mask}"
   mt =
     __index: (k) =>
       @bits[(k-1)//4+1] >> 16*((8-k)%4) & (1<<16)-1
@@ -44,8 +46,8 @@ Net6 = do  -- 128 bits and IPv6 representation make it a bit more complex
       return false if o.mask >= 64 and @bits[1] ~= o.bits[1]
       return false if o.mask < 64 and (@bits[1] >> (64-o.mask) << (64-o.mask)) ~= o.bits[1]
       (@bits[2] >> (128-o.mask) << (128-o.mask)) == o.bits[2]
-    __tostring: __repr, :__repr
-  Net6 = =>
+    __tostring: __repr, :__repr, ip: ip6
+  =>
     @, mask = @match"([^/]*)/?([^/]*)$"
     mask = tonumber(mask) or 128
     address = wrap(@gmatch"([^:]*):?")\toarray!
@@ -68,7 +70,7 @@ Net6 = do  -- 128 bits and IPv6 representation make it a bit more complex
     if mask < 64
       bits[1] = bits[1] >> (64-mask) << (64-mask)
     bits[2] = bits[2] >> (128-mask) << (128-mask)
-    setmetatable {:bits, :mask, v: 6}, mt
+    setmetatable {:bits, :mask, v: 6, ip: ip6}, mt
 
 
 Net = => @match":" and Net6(@) or Net4(@)
