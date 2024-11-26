@@ -13,7 +13,7 @@ collect: =>
   total_len = off + frag_off + data_off + data_len
   -- 64KB is the theoretical maximum, 10KB a reasonable max len default
   max_len = total_len > 10240 and 65535 or 10240
-  return nil, "Invalid size" if max_len > 65535
+  return false, "Invalid size" if max_len > 65535
   skb = fragments.skb
   if skb
     if #skb < max_len  -- Handle the case of a very big jumbo frame
@@ -27,7 +27,9 @@ collect: =>
     skb\setbyte i, _skb\getbyte(i) for i = 0, off + data_off + data_len - 1
   else
     offset = off + data_off
-    skb\setbyte (frag_off + i), _skb\getbyte(i) for i = offset, offset + data_len - 1
+    max_offset = offset + data_len - 1
+    return false, "Invalid data offset" if max_offset > #_skb
+    skb\setbyte (frag_off + i), _skb\getbyte(i) for i = offset, max_offset
   fragments[#fragments+1] = {:frag_off, :off, :data_off, :data_len, :mf}
   sort fragments, (a, b) -> a.frag_off < b.frag_off
   lastfrag = fragments[#fragments]
