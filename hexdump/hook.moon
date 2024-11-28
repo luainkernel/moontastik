@@ -1,6 +1,6 @@
 DEBUG = true
-XDP = true
---NETFILTER = true
+XDP = false
+NETFILTER = not XDP
 
 xdp = require"xdp"
 nf = require"netfilter"
@@ -18,7 +18,7 @@ protocols =
   [UDP.protocol_type]: "UDP"
 
 dump = =>
-  return if not @
+  return nil if not @
   if @is_fragment!
     print"Fragment detected: #{@length}" if DEBUG
     f_ip = collect @
@@ -27,7 +27,7 @@ dump = =>
     @ = f_ip
   pkt = UDP(@data)
   print"\n\n#{@src} #{pkt.sport}    #{@dst} #{pkt.dport}    #{protocols[@protocol] or @protocol}\n"
-  print l for l in *@hexdump
+  print l for l in @hexdump!
 
 if XDP
   PASS = xdp.action.PASS

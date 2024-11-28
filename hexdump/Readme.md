@@ -46,7 +46,7 @@ make xdp.o
 ## Usage
 
 ```sh
-sudo lunatik spawn hexdump/hook                      # runs the Lua kernel script
+sudo lunatik start hexdump/hook false                # runs the Lua kernel script
 sudo xdp-loader load -m skb eth0 xdp.o               # if using XDP: replace eth0 by your interface.
 sudo journalctl -ft kernel                           # or use dmesg
 sudo xdp-loader unload eth0 --all                    # unloads the XDP helper
