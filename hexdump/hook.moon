@@ -26,8 +26,8 @@ dump = =>
     print"Last fragment received" if DEBUG
     @ = f_ip
   pkt = UDP(@data)
-  print"\n\n#{@src} #{pkt.sport}    #{@dst} #{pkt.dport}    #{protocols[@protocol] or @protocol}\n"
-  print l for l in @hexdump!
+  print"hex: --- #{@src} #{pkt.sport}    #{@dst} #{pkt.dport}    #{protocols[@protocol] or @protocol}"
+  print "hex: "..l for l in @hexdump!
 
 if XDP
   PASS = xdp.action.PASS
