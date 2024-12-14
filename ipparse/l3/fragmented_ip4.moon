@@ -18,18 +18,18 @@ collect: =>
   if skb
     if #skb < max_len  -- Handle the case of a very big jumbo frame
       tmp = data_new max_len
-      tmp\setbyte i, skb\getbyte(i) for i = 0, #skb-1
+      tmp\setstring 0, skb\getstring 0
       skb = tmp
   else
     skb = data_new max_len
   fragments.skb = skb
   if frag_off == 0
-    skb\setbyte i, _skb\getbyte(i) for i = 0, off + data_off + data_len - 1
+    skb\setstring 0, _skb\getstring 0, (off + data_off + data_len - 1)
   else
     offset = off + data_off
     max_offset = offset + data_len - 1
     return false, "Invalid data offset" if max_offset > #_skb
-    skb\setbyte (frag_off + i), _skb\getbyte(i) for i = offset, max_offset
+    skb\setstring (frag_off + offset), _skb\getstring offset, max_offset
   fragments[#fragments+1] = {:frag_off, :off, :data_off, :data_len, :mf}
   sort fragments, (a, b) -> a.frag_off < b.frag_off
   lastfrag = fragments[#fragments]

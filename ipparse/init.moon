@@ -10,88 +10,59 @@ ntoh16, ntoh32 = do
   _ = require"linux"
   _.ntoh16, _.ntoh32
 range = require"ipparse.fun".range
+su = string.unpack
 
 
-Object = {
+local Object
+Object =
   __name: "Object"
-  new: (cls, obj) ->
-    cls = nil if cls == obj
-    setmetatable obj, {
-      __index: (k) =>
-        if getter = rawget(@, "_get_#{k}") or cls and cls["_get_#{k}"]
-          v = getter @
-          @[k] = v
-          v
-        elseif cls
-          cls[k]
-      __call: (...) => obj\new ...
-      __len: => @__len!
-    }
-}
-Object.new Object, Object
+  new: (obj) =>
+    local _mt
+    _mt =
+      __call: (obj, ...) =>
+        obj\new ... if obj.new
+        setmetatable obj, __index: @
+      __len: @ and @__len
+    obj[k] or= v for k, v in pairs @
+    obj._parent = @
+    setmetatable obj, _mt
 subclass = Object.new
+subclass {}, Object
 
 
 Packet = subclass Object, {
   __name: "Packet"
-  __len: => #@skb
-  new: (obj) =>
-    assert obj.skb, "I need a skb to parse"
-    obj.off or= 0
-    Object.new @, obj
+  __len: => #@_data - @data_off
+  data_off: 0
 
   bit: (offset, n = 1) =>
-    if DEBUG
-      ok, ret = pcall @skb.getbyte, @skb, @off+offset
-      ((ret >> (8-n)) & 1) if ok else log @__name, "bit", ret, "#{@off} #{offset} #{#@skb}"
-    else
-      (@skb\getbyte(@off+offset) >> (8-n)) & 1
+    (su("B", @_data, @off+offset+1) >> (8-n)) & 1
 
   nibble: (offset, half = 1) =>
-    if DEBUG
-      ok, ret = pcall @skb.getbyte, @skb, @off+offset
-      (half == 1 and ret >> 4 or ret & 0xf) if ok else log @__name, "nibble", "#{@off} #{offset} #{#@skb}"
-    else
-      b = @skb\getbyte @off+offset
-      half == 1 and b >> 4 or b & 0xf
+    b = su "B", @_data, @off+offset+1
+    half == 1 and b >> 4 or b & 0xf
 
   byte: (offset) =>
-    if DEBUG
-      ok, ret = pcall @skb.getbyte, @skb, @off+offset
-      ret if ok else log @__name, "byte", ret, "#{@off} #{offset} #{#@skb}"
-    else
-      @skb\getbyte @off+offset
+    su "B", @_data, @off+offset+1
 
   short: (offset) =>
-    if DEBUG
-      ok, ret = pcall @skb.getuint16, @skb, @off+offset
-      ntoh16(ret) if ok else log @__name, "short", ret, "#{@off} #{offset} #{#@skb}"
-    else
-      ntoh16 @skb\getuint16 @off+offset
+    ntoh16 su "I2", @_data, @off+offset+1
 
   word: (offset) =>
-    if DEBUG
-      ok, ret = pcall @skb.getuint32, @skb, @off+offset
-      ntoh32(ret) if ok else log @__name, "word", ret, "#{@off} #{offset} #{#@skb}"
-    else
-      ntoh32 @skb\getuint32 @off+offset
+    ntoh32 su "I4", @_data, @off+offset+1
 
-  str: (offset=0, length=#@skb-@off) =>
+  str: (offset=0, length) =>
     off = @off + offset
     frag = ""
-    if off + length > #@skb
-      length = #@skb - off
+    if off + length > #@_data
+      length = nil
       log"Incomplete data. Fragmented packet?"
-    if DEBUG
-      ok, ret = pcall @skb.getstring, @skb, @off+offset, length
-      (ret .. frag) if ok else log @__name, "str", ret, "#{@off} #{offset} #{length} #{#@skb}"
-    else
-      @skb\getstring(@off+offset, length) .. frag
+    @_data\sub(off+1, off+length) .. frag
 
-  is_empty: => @off >= #@skb
+  is_empty: => @off >= #@_data
 
-  -- Each subclass has to define data_off or _get_data_off
-  _get_data: => skb: @skb, off: @off + @data_off
+  -- Each subclass has to define data_off
+  payload: => _container: @, _data: @_data, off: @off + @data_off
 
   hexdump: =>
     hex, txt = {}, {}
@@ -109,6 +80,38 @@ Packet = subclass Object, {
       }, "  ") .. "  %.03x"\format m
 }
 
+if DEBUG
+  Packet.bit = (offset, n = 1) =>
+    ok, ret = pcall string.unpack, "B", @_data, @off+offset+1
+    ((ret >> (8-n)) & 1) if ok else log @__name, "bit", ret, "#{@off} #{offset} #{#@_data}"
+  Packet.nibble = (offset, half = 1) =>
+    ok, ret = pcall string.unpack, "B", @_data, @off+offset+1
+    (half == 1 and ret >> 4 or ret & 0xf) if ok else log @__name, "nibble", "#{@off} #{offset} #{#@_data}"
+  Packet.byte = (offset) =>
+    ok, ret = pcall string.unpack, "B", @_data, @off+offset+1
+    ret if ok else log @__name, "byte", ret, @off, offset, #@_data
+  Packet.short = (offset) =>
+    ok, ret = pcall string.unpack, "I2", @_data, @off+offset+1
+    ntoh16(ret) if ok else log @__name, "short", ret, @off, offset, #@_data
+  Packet.word = (offset) =>
+    ok, ret = pcall string.unpack, "I4", @_data, @off+offset+1
+    ntoh32(ret) if ok else log @__name, "word", ret, @off, offset, #@_data
+  Packet.str = (offset=0, length) =>
+    off = @off + offset
+    frag = ""
+    if off + length > #@_data
+      length = nil
+      log"Incomplete data. Fragmented packet?"
+    ok, ret = pcall string.sub, @_data, off+1, off+length
+    (ret .. frag) if ok else log @__name, "str", ret, "#{@off} #{offset} #{length} #{#@_data}"
 
-:Object, :subclass, :Packet
+
+format: sf, rep: sr, unpack: su = string
+hexdump = (off=1, f="%.2x") =>
+  n = #@ - off
+  n = n < 128 and n or 127
+  mask = sr "I1", n
+  sf sr("#{f} ", n), su mask, @, off
+
+:Object, :subclass, :Packet, :hexdump
 

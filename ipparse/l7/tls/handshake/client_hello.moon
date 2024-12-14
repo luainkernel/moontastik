@@ -47,9 +47,9 @@ subclass Packet, {
 
   iter_extensions: => co_wrap ->
     offset = @extensions_offset + 2
-    max_offset = min #@skb-@off-6, offset + @short @extensions_offset
+    max_offset = min #@_data-@off-6, offset + @short @extensions_offset
     while offset < max_offset
-      extension = TLS_extensions[@short offset] skb: @skb, off: @off + offset
+      extension = TLS_extensions[@short offset] _data: @_data, off: @off + offset
       co_yield extension
       offset += extension.length
 }

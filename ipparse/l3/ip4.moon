@@ -1,44 +1,56 @@
 subclass = require"ipparse".subclass
 IP = require"ipparse.l3.ip"
-range = require"ipparse.fun".range
+:ntoh16 = require"linux"
 concat = table.concat
+su = string.unpack
+
+get_ip_at = (off) ->
+  off += 1
+  => su "c4", @_data, off
 
 subclass IP, {
   __name: "IP4"
 
-  get_ip_at: (off) => concat range(off, off+3)\map((i) -> "%d"\format @byte i)\toarray!, "."
+  new: =>
+    @data_off = 4 * @ihl!
 
   is_fragment: => @mf ~= 0 or @fragmentation_off ~= 0
 
-  _get_ihl: => @nibble 0, 2
+  ihl: => su("B", @_data, @off+1) & 0x0f
 
-  _get_tos: => @byte 1
+  tos: => @byte 1
 
-  _get_length: => @short 2
+  length: => @short 2
 
-  _get_id: => @short 4
+  id: => @short 4
 
-  _get_reserved: => @bit 6, 1
+  reserved: => @bit 6, 1
 
-  _get_df: => @bit 6, 2
+  df: => @bit 6, 2
 
-  _get_mf: => @bit 6, 3
+  mf: => @bit 6, 3
 
-  _get_fragmentation_off: => (@bit(6, 4) << 12) | (@nibble(6, 2) << 8) | @byte(7)
+  fragmentation_off: => (@bit(6, 4) << 12) | (@nibble(6, 2) << 8) | @byte(7)
 
-  _get_ttl: => @byte 8
+  ttl: => @byte 8
 
-  _get_protocol: => @byte 9
+  protocol: => @byte 9
 
-  _get_header_checksum: => @short 10
+  header_checksum: => @short 10
 
-  _get_src: => @get_ip_at 12
+  src: get_ip_at 12
 
-  _get_dst: => @get_ip_at 16
+  dst: get_ip_at 16
 
-  _get_data_off: => 4 * @ihl
 
-  _get_data_len: => @length - @data_off
+  data_len: => @length - @data_off
 
   __len: => @length
 }
+
+ip4 = (off) =>
+  v_ihl, tos, len, id, ff, ttl, protocol, header_checksum, src, dst = su "B B I2 I2 B B I2 c4 c4", @, off
+  version, ihl = v_ihl >> 4, v_ihl & 0x0f
+  version, ihl, tos, ntoh16(len), ntoh16(id), ff, ttl, protocol, ntoh16(header_checksum), src, dst, off+4*ihl
+
+:ip4

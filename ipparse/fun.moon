@@ -1,4 +1,40 @@
 -- Small library for basic functional programming primitives
+:sort = table
+unpack or= table.unpack
+
+memo = =>
+  tmp = __mode: "kv"
+  setmetatable tmp, tmp
+  (x) ->
+    return @(x) if not x
+    r = tmp[x] or {@ x}
+    tmp[x] = r if x
+    unpack r
+
+memoN = =>
+  _nil = {}
+  tmp = __mode: "kv"
+  setmetatable tmp, tmp
+  (...) ->
+    t, s = tmp, select "#", ...
+    levels = {s, ...}
+    local ref, r
+    for i = 1, s+1
+      ref = levels[i]
+      ref = _nil if ref == nil
+      r = t[ref]
+      if i <= s
+        r or= setmetatable {}, tmp
+        t[ref] = r
+        t = r
+    if r == nil
+      r = {@ ...}
+      t[ref] = r
+    unpack r
+
+bidirectional = =>
+  @[v] = k for k, v in pairs @
+  @
 
 
 local iter
@@ -10,16 +46,27 @@ wrap = =>
   setmetatable _, _
 
 iter =
-  __call: (t) =>
-    i = 0
+  __call: (t, step=1, i=(step > 0 and step or #t)) =>
+    i -= step
     wrap ->
-      i += 1
+      i += step
       t[i]
+
+  any: (fn) => @getn 1, fn
 
   each: (fn) =>
     while true
       if v = @!
         fn v
+      else break
+
+  getn: (n, fn) =>
+    i = 1
+    while true
+      if v = @!
+        if fn v
+          return v if i == n
+          i += 1
       else break
 
   map: (fn) =>
@@ -40,7 +87,7 @@ iter =
         if v = @!
           if fn v
             return v
-        else return
+        else return nil
 
   take: (n) =>
     i = 0
@@ -65,16 +112,6 @@ iter =
 iter.__index = iter
 setmetatable iter, iter
 
-imap = (fn) => iter(@)\map fn
-
-map = (fn) => iter(@)\map fn
-
-filter = (fn) => iter(@)\filter fn
-
-take = (n) => iter(@)\take n
-
-reduce = (...) => iter(@)\reduce ...
-
 generate = (fn) -> wrap -> fn!
 
 range = (max, step) =>
@@ -85,4 +122,31 @@ range = (max, step) =>
     i += step
     i if i <= max
 
-:iter, :wrap, :imap, :map, :filter, :take, :reduce, :generate, :range
+opairs = =>
+  keys, i = {}, 1
+  for k in pairs @
+    keys[i] = k
+    i += 1
+  sort keys
+  i = 0
+  ->
+    i += 1
+    keys[i], @[keys[i]]
+
+_ = {
+  :bidirectional, :memo, :memoN, :iter, :wrap, :range, :opairs, :generate
+  __index: (_, k) ->
+    -- Importing the names of iter’s methods will return table / iterator wrapper.
+    -- Example:
+    -- > require"fun".map t, => 2*@
+    -- is equivalent to
+    -- > require"fun".iter(t)\map => 2*@
+    fn = (...) =>
+      o = (type(@) == 'table' and iter or wrap) @
+      o[k] o, ...
+    _[k] = fn
+    fn
+}
+
+setmetatable _, _
+

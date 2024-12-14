@@ -76,5 +76,60 @@ Net6 = do  -- 128 bits and IPv6 representation make it a bit more complex
 Net = => @match":" and Net6(@) or Net4(@)
 
 
-:Net, :Net4, :Net6
+format: sf, pack: sp, rep: sr, unpack: su = string
+unpack: tu = table
+
+net4 = =>
+  b1, b2, b3, b4, mask = @match"(%d+)%.(%d+)%.(%d+)%.(%d+)/?(%d+)"
+  sp "B BBBB", (tonumber mask or 32), tonumber(b1), tonumber(b2), tonumber(b3), tonumber(b4)
+
+net6 = =>
+  @, mask = @match"([^/]*)/?([^/]*)$"
+  mask = tonumber(mask) or 128
+  address = wrap(@gmatch"([^:]*):?")\toarray!
+  zeros = 9 - #address
+  for i = 1, 8
+    part = address[i]
+    if part == "" and zeros
+      for _ = 1, zeros
+        insert address, i, 0
+        i += 1
+      zeros = 1
+      remove address, i
+    else
+      address[i] = type(part) == "string" and tonumber(part, 16) or part
+  sp ">B HHHH HHHH", (tonumber mask or 128), tu address
+
+net = => @match":" and net6(@) or net4 @
+
+contains = (subnet) =>
+  return false if #@ ~= #subnet
+  nmask = su "B", @
+  smask = su "B", subnet
+  return false if nmask > smask
+  fmt, shft = "c#{nmask >> (#@ == 17 and 4 or 3)}B", 8 - (nmask & 0x7)
+  nbytes, nbits = su fmt, @, 2
+  sbytes, sbits = su fmt, subnet, 2
+  return true if nbytes == sbytes and (nbits >> shft) == (sbits >> shft)
+  false
+
+contains_ip = (ip) =>
+  return false if #@ ~= #ip+1
+  nmask = su "B", @
+  fmt, shft = "c#{nmask >> (#@ == 17 and 4 or 3)}B", 8 - (nmask & 0x7)
+  nbytes, nbits = su fmt, @, 2
+  sbytes, sbits = su fmt, ip
+  return true if nbytes == sbytes and (nbits >> shft) == (sbits >> shft)
+  false
+
+format_ip4 = =>
+  sf "%d.%d.%d.%d", su "BBBB", @
+
+format_ip6 = =>
+  sf "%x:%x:%x:%x:%x:%x:%x:%x", su ">HHHH HHHH", @
+
+format_ip = =>
+  #@ == 16 and format_ip6(@) or format_ip4(@)
+
+:Net, :Net4, :Net6, :net, :net4, :net6, :contains, :contains_ip, :format_ip4, :format_ip6, :format_ip
 

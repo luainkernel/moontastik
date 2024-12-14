@@ -17,9 +17,15 @@ subclass IP, {
 
   _get_protocol: => @next_header
 
-  _get_src: => @get_ip_at 8
+  _get_src: => @get_ip_at 7
 
   _get_dst: => @get_ip_at 24
 
   data_off: 40
 }
+
+ip6 = (off) =>
+  vtf, payload_len, next_header, hop_limit, src, dst, off = su "c4 I2 I1 I1 c16 c16", @, off
+  vtf, ntoh16(payload_len), next_header, hop_limit, src, dst, off
+
+:ip6

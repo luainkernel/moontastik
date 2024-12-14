@@ -1,20 +1,18 @@
-subclass, Packet = do
-  _ = require"ipparse"
-  _.subclass, _.Packet
-range = require"ipparse.fun".range
-concat = table.concat
+:subclass, :Packet = require"ipparse"
+:bidirectional = require"ipparse.fun"
+format: sf, unpack: su = string
 
-subclass Packet, {
-  __name: "Ethernet"
+ethernet = (off=0) =>
+  -- Returns destination, source, protocol, payload offset
+  dst, src, protocol, off = su "c6 c6 >H", @, off
+  dst, src, protocol, off
 
-  get_mac_at: (off) => concat range(off, off+5)\map((i) -> "%x"\format @byte i)\toarray!, ":"
+format_mac = =>
+  sf "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x", su "BBBBBB", @
 
-  _get_dst: => @get_mac_at 0
+proto =
+  IP6: 0x86DD
+  IP4: 0x800
+proto = bidirectional proto
 
-  _get_src: => @get_mac_at 6
-
-  _get_length: => @short 12
-
-  data_off: 14
-}
-
+:ethernet, :proto, :format_mac

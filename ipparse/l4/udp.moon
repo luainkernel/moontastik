@@ -1,19 +1,4 @@
-subclass, Packet = do
-  _ = require"ipparse"
-  _.subclass, _.Packet
+su = string.unpack
 
-subclass Packet, {
-  __name: "UDP"
+udp: (off) => su ">H H H H", @, off  -- spt, dpt, len, checksum, off
 
-  protocol_type: 0x11
-
-  _get_sport: => @short 0
-
-  _get_dport: => @short 2
-
-  _get_length: => @short 4
-
-  _get_checksum: => @short 6
-
-  data_off: 8
-}
