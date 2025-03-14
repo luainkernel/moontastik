@@ -79,13 +79,7 @@ Net = => @match":" and Net6(@) or Net4(@)
 format: sf, pack: sp, rep: sr, unpack: su = string
 unpack: tu = table
 
-net4 = =>
-  b1, b2, b3, b4, mask = @match"(%d+)%.(%d+)%.(%d+)%.(%d+)/?(%d+)"
-  sp "B BBBB", (tonumber mask or 32), tonumber(b1), tonumber(b2), tonumber(b3), tonumber(b4)
-
-net6 = =>
-  @, mask = @match"([^/]*)/?([^/]*)$"
-  mask = tonumber(mask) or 128
+parse_ip6 = =>
   address = wrap(@gmatch"([^:]*):?")\toarray!
   zeros = 9 - #address
   for i = 1, 8
@@ -98,7 +92,20 @@ net6 = =>
       remove address, i
     else
       address[i] = type(part) == "string" and tonumber(part, 16) or part
-  sp ">B HHHH HHHH", (tonumber mask or 128), tu address
+  address
+
+ip4 = => sp "BBBB", @match"(%d+)%.(%d+)%.(%d+)%.(%d+)"
+
+ip6 = => sp ">HHHH HHHH", tu parse_ip6 @
+
+net4 = =>
+  b1, b2, b3, b4, mask = @match"(%d+)%.(%d+)%.(%d+)%.(%d+)/?(%d+)"
+  sp "B BBBB", (tonumber mask or 32), tonumber(b1), tonumber(b2), tonumber(b3), tonumber(b4)
+
+net6 = =>
+  @, mask = @match"([^/]*)/?([^/]*)$"
+  mask = tonumber(mask) or 128
+  sp ">B HHHH HHHH", (tonumber mask or 128), tu parse_ip6 @
 
 net = => @match":" and net6(@) or net4 @
 
@@ -107,7 +114,7 @@ contains = (subnet) =>
   nmask = su "B", @
   smask = su "B", subnet
   return false if nmask > smask
-  fmt, shft = "c#{nmask >> (#@ == 17 and 4 or 3)}B", 8 - (nmask & 0x7)
+  fmt, shft = "c#{nmask >> 3}", 8 - (nmask & 0x7)
   nbytes, nbits = su fmt, @, 2
   sbytes, sbits = su fmt, subnet, 2
   return true if nbytes == sbytes and (nbits >> shft) == (sbits >> shft)
@@ -116,7 +123,7 @@ contains = (subnet) =>
 contains_ip = (ip) =>
   return false if #@ ~= #ip+1
   nmask = su "B", @
-  fmt, shft = "c#{nmask >> (#@ == 17 and 4 or 3)}B", 8 - (nmask & 0x7)
+  fmt, shft = "c#{nmask >> 3}", 8 - (nmask & 0x7)
   nbytes, nbits = su fmt, @, 2
   sbytes, sbits = su fmt, ip
   return true if nbytes == sbytes and (nbits >> shft) == (sbits >> shft)
@@ -128,8 +135,19 @@ format_ip4 = =>
 format_ip6 = =>
   sf "%x:%x:%x:%x:%x:%x:%x:%x", su ">HHHH HHHH", @
 
-format_ip = =>
-  #@ == 16 and format_ip6(@) or format_ip4(@)
+format_net4 = =>
+  m, a, b, c, d = su "BBBBB", @
+  sf "%d.%d.%d.%d/%d", a, b, c, d, m
 
-:Net, :Net4, :Net6, :net, :net4, :net6, :contains, :contains_ip, :format_ip4, :format_ip6, :format_ip
+format_net6 = =>
+  m, a, b, c, d, e, f, g, h = su ">B HHHH HHHH", @
+  sf "%x:%x:%x:%x:%x:%x:%x:%x/%d", a, b, c, d, e, f, g, h, m
+
+ip = => @match":" and ip6(@) or ip4(@)
+
+format_ip = => #@ == 16 and format_ip6(@) or format_ip4(@)
+
+format_net = => #@ == 17 and format_net6(@) or format_net4(@)
+
+:Net, :Net4, :Net6, :ip, :ip4, :ip6, :net, :net4, :net6, :contains, :contains_ip, :format_ip4, :format_ip6, :format_ip, :format_net
 
