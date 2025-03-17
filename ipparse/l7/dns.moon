@@ -3,17 +3,26 @@
 format: sf, pack: sp, rep: sr, unpack: su = string
 :concat = table
 
-header = (off, is_tcp) =>
-  local size
-  if is_tcp
-    size, off = su ">H", off
-    off += 1
-  id, qr_opcode_aa_tc_rd, ra_z_rcode, qdcount, ancount, nscount, arcount, off = su ">H B B H H H H", @, off
-  id, qr_opcode_aa_tc_rd, ra_z_rcode, qdcount, ancount, nscount, arcount, off, size
+header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns DNS header infos
+  size, off = su ">H", off if is_tcp
+  id, qr_opcode_aa_tc_rd, ra_z_rcode, qdcount, ancount, nscount, arcount, data_off = su ">H B B H H H H", @, off
+  {
+    :id
+    qr: qr_opcode_aa_tc_rd & 0x80
+    opcode: (qr_opcode_aa_tc_rd >> 3) & 0xf
+    aa: qr_opcode_aa_tc_rd & 0x04
+    tc: qr_opcode_aa_tc_rd & 0x02
+    rd: qr_opcode_aa_tc_rd & 0x01
+    ra: ra_z_rcode & 0x80
+    z: (ra_z_rcode >> 4) & 0x07
+    rcode: ra_z_rcode & 0x0f
+    :qdcount, :ancount, :nscount, :arcount
+    :data_off, :size
+  }, data_off
 
 local labels
-label = (off, dns_off=0) =>
-  return if off+2 > #@
+label = (off, l7_off=0) =>
+  return nil if off+2 > #@
   size, pos, _off = su "B B", @, off
   if size == 0
     return nil, off+1
@@ -21,41 +30,47 @@ label = (off, dns_off=0) =>
     su "s1", @, off
   else
     off = ((size & 0x3F) << 8) + pos
-    concat(labels(@, dns_off+off), "."), _off, true
+    concat(labels(@, l7_off+off), "."), _off, true
 
-labels = (off, dns_off) =>
+labels = (off, l7_off) =>
   lbls = {}
   for i = 1, 1024
-    lbl, off, last = label @, off, dns_off
+    lbl, off, last = label @, off, l7_off
     break if last or not lbl
     lbls[i] = lbl
   lbls, off
 
-question = (off, dns_off) =>
-  lbls, off = labels @, off, dns_off
-  qclass, qtype, off = su "H H", @, off
-  concat(lbls, "."), qclass, qtype, off
+question = (off, l7_off) =>
+  lbls, off = labels @, off, l7_off
+  qclass, qtype, off = su ">H H", @, off
+  {qname: concat(lbls, "."), :qtype, :qclass}, off
 
-questions = (off, qdcount, dns_off) =>
-  q = {}
+questions = (off, qdcount, l7_off) =>
+  res = {}
   for i = 1, qdcount
-    qname, qtype, qclass, off = question @, off, dns_off
-    q[i] = {qname, qtype, qclass}
-  q, off
+    q, off = question @, off, l7_off
+    res[i] = q
+  res, off
 
-rr = (off, dns_off) =>
-  lbls, off = labels @, off, dns_off
+rr = (off, l7_off) =>
+  lbls, off = labels @, off, l7_off
   rtype, rclass, ttl, rdata, off = su ">H H I4 s2", @, off
-  concat(lbls, "."), rtype, rclass, ttl, rdata, off
+  {rname: concat(lbls, "."), :rtype, :rclass, :ttl, :rdata}, off
 
-rrs = (off, count, dns_off) =>
-  r = {}
+rrs = (off, count, l7_off) =>
+  res = {}
   for i = 1, count
-    rname, rtype, rclass, ttl, rdata, off = rr @, off, dns_off
-    r[i] = {rname, rtype, rclass, ttl, rdata}
-  r, off
+    r, off = rr @, off, l7_off
+    res[i] = r
+  res, off
 
-:header, :label, :labels, :question, :questions, :rr, :rrs, types: bidirectional {
+classes = bidirectional {"IN", "CS", "CH", "HS", "NONE"}
+
+rcodes = {"FORMERR", "SERVFAIL", "NXDOMAIN", "NOTIMP", "REFUSED"}
+rcodes[0] = "NOERROR"
+rcodes = bidirectional rcodes
+
+types = bidirectional {
   "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG", "MR", "NULL",
   "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT", "RP", "AFSDB", "X25", "ISDN",
   "RT", "NSAP", "NSAP-PTR", "SIG", "KEY", "PX", "GPOS", "AAAA", "LOC", "NXT",
@@ -66,4 +81,6 @@ rrs = (off, count, dns_off) =>
   "AXFR", "MAILB", "MAILA", "ANY", "URI", "CAA", "AVC", "DOA", "AMTRELAY", "TA",
   "DLV"
 }
+
+:header, :label, :labels, :question, :questions, :classes, :rr, :rrs, :rcodes, :types
 

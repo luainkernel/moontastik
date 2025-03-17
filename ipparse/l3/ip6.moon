@@ -1,31 +1,48 @@
-subclass = require"ipparse".subclass
-IP = require"ipparse.l3.ip"
-Net6 = require"ipparse.l3.ipcalc".Net6
-range = require"ipparse.fun".range
-:concat = table
-
-subclass IP, {
-  __name: "IP6"
-
-  get_ip_at: (off) => Net6(concat range(off, off+14, 2)\map((i) -> "%x"\format @short i)\toarray!, ":")\ip!
-
-  is_fragment: ->  -- TODO: IPv6 defragmentation
-
-  _get_length: => @data_off + @short 4
-
-  _get_next_header: => @byte 6
-
-  _get_protocol: => @next_header
-
-  _get_src: => @get_ip_at 7
-
-  _get_dst: => @get_ip_at 24
-
-  data_off: 40
-}
+:format, pack: sp, unpack: su = string
+:insert, :remove, :unpack = table
+:range, :wrap = require"ipparse.fun"
+:ntoh16 = require"linux"
 
 ip6 = (off) =>
-  vtf, payload_len, next_header, hop_limit, src, dst, off = su "c4 I2 I1 I1 c16 c16", @, off
-  vtf, ntoh16(payload_len), next_header, hop_limit, src, dst, off
+  vtf, payload_len, next_header, hop_limit, src, dst, data_off = su ">I4 I2 I1 I1 c16 c16", @, off
+  {
+    version: vtf >> 28, traffic_class: (vtf >> 20) & 0xff, flow_label: vtf & 0xfffff
+    :payload_len
+    :next_header
+    :hop_limit
+    :src, :dst
+    :data_off
+  }, data_off
 
-:ip6
+parse_ip6 = =>
+  address = wrap(@gmatch"([^:]*):?")\toarray!
+  zeros = 9 - #address
+  for i = 1, 8
+    part = address[i]
+    if part == "" and zeros
+      for _ = 1, zeros
+        insert address, i, 0
+        i += 1
+      zeros = 1
+      remove address, i
+    else
+      address[i] = type(part) == "string" and tonumber(part, 16) or part
+  address
+
+ip62s = =>  -- Accepts data string; returns IPv6 address as readable string
+  format "%x:%x:%x:%x:%x:%x:%x:%x", su ">HHHH HHHH", @
+
+s2ip6 = =>  -- Accepts readable string; returns IPv6 address as data string
+  sp ">HHHH HHHH", unpack parse_ip6 @
+
+net62s = =>  -- Accepts data string; returns IPv6 subnet as readable string
+  m, a, b, c, d, e, f, g, h = su ">B HHHH HHHH", @
+  format "%x:%x:%x:%x:%x:%x:%x:%x/%d", a, b, c, d, e, f, g, h, m
+
+s2net6 = =>  -- Accepts readable string; returns IPv6 subnet as data string
+  @, mask = @match"([^/]*)/?([^/]*)$"
+  mask = tonumber(mask) or 128
+  sp ">B HHHH HHHH", (tonumber mask or 128), unpack parse_ip6 @
+
+
+:ip6, :ip62s, :s2ip6, :net62s, :s2net6

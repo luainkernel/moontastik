@@ -1,56 +1,31 @@
-subclass = require"ipparse".subclass
-IP = require"ipparse.l3.ip"
-:ntoh16 = require"linux"
-concat = table.concat
-su = string.unpack
+:format, pack: sp, unpack: su = string
 
-get_ip_at = (off) ->
-  off += 1
-  => su "c4", @_data, off
+has_options = => @data_off > 20
 
-subclass IP, {
-  __name: "IP4"
-
-  new: =>
-    @data_off = 4 * @ihl!
-
-  is_fragment: => @mf ~= 0 or @fragmentation_off ~= 0
-
-  ihl: => su("B", @_data, @off+1) & 0x0f
-
-  tos: => @byte 1
-
-  length: => @short 2
-
-  id: => @short 4
-
-  reserved: => @bit 6, 1
-
-  df: => @bit 6, 2
-
-  mf: => @bit 6, 3
-
-  fragmentation_off: => (@bit(6, 4) << 12) | (@nibble(6, 2) << 8) | @byte(7)
-
-  ttl: => @byte 8
-
-  protocol: => @byte 9
-
-  header_checksum: => @short 10
-
-  src: get_ip_at 12
-
-  dst: get_ip_at 16
-
-
-  data_len: => @length - @data_off
-
-  __len: => @length
-}
-
-ip4 = (off) =>
-  v_ihl, tos, len, id, ff, ttl, protocol, header_checksum, src, dst = su "B B I2 I2 B B I2 c4 c4", @, off
+ip4 = (off) =>  -- Accepts data string; returns IPv4 header informations
+  v_ihl, tos, total_len, id, ff, ttl, protocol, checksum, src, dst, o = su ">BBHHHBBH c4c4", @, off
   version, ihl = v_ihl >> 4, v_ihl & 0x0f
-  version, ihl, tos, ntoh16(len), ntoh16(id), ff, ttl, protocol, ntoh16(header_checksum), src, dst, off+4*ihl
+  payload_off = ihl << 2
+  {
+    :version, :ihl, :payload_off, data_off: off + payload_off
+    :tos, :total_len, :id, :ff, :ttl
+    :protocol, :checksum, :src, :dst
+    :has_options
+  }, o
 
-:ip4
+ip42s = =>  -- Accepts data string; returns IPv4 address as readable string
+ format "%d.%d.%d.%d", su "BBBB", @
+
+s2ip4 = =>  -- Accepts readable string; returns IPv4 address as data string
+  sp "BBBB", @match"(%d+)%.(%d+)%.(%d+)%.(%d+)"
+
+net42s = =>  -- Accepts data string; returns IPv4 address as readable string
+  m, a, b, c, d = su "BBBBB", @
+  format "%d.%d.%d.%d/%d", a, b, c, d, m
+
+s2net4 = =>
+  b1, b2, b3, b4, mask = @match"(%d+)%.(%d+)%.(%d+)%.(%d+)/?(%d+)"
+  sp "B BBBB", (tonumber mask or 32), tonumber(b1), tonumber(b2), tonumber(b3), tonumber(b4)
+
+
+:ip4, :ip42s, :s2ip4, :net42s, :s2net4
