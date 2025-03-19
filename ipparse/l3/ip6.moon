@@ -3,7 +3,7 @@
 :range, :wrap = require"ipparse.fun"
 :ntoh16 = require"linux"
 
-ip6 = (off) =>
+ip6 = (off=0) =>
   vtf, payload_len, next_header, hop_limit, src, dst, data_off = su ">I4 I2 I1 I1 c16 c16", @, off
   {
     version: vtf >> 28, traffic_class: (vtf >> 20) & 0xff, flow_label: vtf & 0xfffff
@@ -11,7 +11,7 @@ ip6 = (off) =>
     :next_header
     :hop_limit
     :src, :dst
-    :data_off
+    :off, :data_off
   }, data_off
 
 parse_ip6 = =>

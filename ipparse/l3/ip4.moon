@@ -2,16 +2,16 @@
 
 has_options = => @data_off > 20
 
-ip4 = (off) =>  -- Accepts data string; returns IPv4 header informations
-  v_ihl, tos, total_len, id, ff, ttl, protocol, checksum, src, dst, o = su ">BBHHHBBH c4c4", @, off
+ip4 = (off=0) =>  -- Accepts data string; returns IPv4 header informations
+  v_ihl, tos, total_len, id, ff, ttl, protocol, checksum, src, dst, _off = su ">BBHHHBBH c4c4", @, off
   version, ihl = v_ihl >> 4, v_ihl & 0x0f
   payload_off = ihl << 2
   {
-    :version, :ihl, :payload_off, data_off: off + payload_off
+    :version, :ihl, :off, :payload_off, data_off: off + payload_off
     :tos, :total_len, :id, :ff, :ttl
     :protocol, :checksum, :src, :dst
     :has_options
-  }, o
+  }, _off
 
 ip42s = =>  -- Accepts data string; returns IPv4 address as readable string
  format "%d.%d.%d.%d", su "BBBB", @

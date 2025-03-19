@@ -17,7 +17,7 @@ header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns D
     z: (ra_z_rcode >> 4) & 0x07
     rcode: ra_z_rcode & 0x0f
     :qdcount, :ancount, :nscount, :arcount
-    :data_off, :size
+    :off, :data_off, :size
   }, data_off
 
 local labels
@@ -41,9 +41,9 @@ labels = (off, l7_off) =>
   lbls, off
 
 question = (off, l7_off) =>
-  lbls, off = labels @, off, l7_off
-  qclass, qtype, off = su ">H H", @, off
-  {qname: concat(lbls, "."), :qtype, :qclass}, off
+  lbls, _off = labels @, off, l7_off
+  qclass, qtype, _off = su ">H H", @, _off
+  {qname: concat(lbls, "."), :qtype, :qclass, :off, end_off: _off-1}, _off
 
 questions = (off, qdcount, l7_off) =>
   res = {}
@@ -54,8 +54,8 @@ questions = (off, qdcount, l7_off) =>
 
 rr = (off, l7_off) =>
   lbls, off = labels @, off, l7_off
-  rtype, rclass, ttl, rdata, off = su ">H H I4 s2", @, off
-  {rname: concat(lbls, "."), :rtype, :rclass, :ttl, :rdata}, off
+  rtype, rclass, ttl, rdata, _off = su ">H H I4 s2", @, off
+  {rname: concat(lbls, "."), :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _off
 
 rrs = (off, count, l7_off) =>
   res = {}
@@ -82,5 +82,34 @@ types = bidirectional {
   "DLV"
 }
 
-:header, :label, :labels, :question, :questions, :classes, :rr, :rrs, :rcodes, :types
+ede_codes = {
+  "Unsupported DNSKEY Algorithm",
+  "Unsupported DS Digest Type",
+  "Stale Answer",
+  "Forged Answer",
+  "DNSSEC Indeterminate",
+  "DNSSEC Bogus",
+  "Signature Expired",
+  "Signature Not Yet Valid",
+  "DNSKEY Missing",
+  "RRSIGs Missing",
+  "No Zone Key Bit Set",
+  "NSEC Missing",
+  "Cached Error",
+  "Not Ready",
+  "Blocked",
+  "Censored",
+  "Filtered",
+  "Prohibited",
+  "Stale NXDOMAIN Answer",
+  "Not Authoritative",
+  "Not Supported",
+  "No Reachable Authority",
+  "Network Error",
+  "Invalid Data"
+}
+ede_codes[0] = "Other"
+ede_codes = bidirectional ede_codes
+
+:header, :label, :labels, :question, :questions, :classes, :rr, :rrs, :rcodes, :types, :ede_codes
 

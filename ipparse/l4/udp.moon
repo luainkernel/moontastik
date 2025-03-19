@@ -1,8 +1,8 @@
 pack: sp, unpack: su = string
 
-udp = (off) =>  -- Accepts data string; returns UDP header infos
+udp = (off=0) =>  -- Accepts data string; returns UDP header infos
   spt, dpt, len, checksum, data_off = su ">H H H H", @, off
-  {:spt, :dpt, :len, :checksum, :data_off}, data_off
+  {:spt, :dpt, :len, :checksum, :off, :data_off}, data_off
 
 checksum = (ip) =>
   :protocol = ip

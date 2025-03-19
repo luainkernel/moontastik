@@ -6,7 +6,7 @@ mac = "BBBBBB"
 
 ethernet = (off=0) =>  -- Accepts data string; returns ethernet header informations
   dst, src, protocol, data_off = su "c6 c6 >H", @, off
-  {:dst, :src, :protocol, :data_off}, data_off
+  {:dst, :src, :protocol, :off, :data_off}, data_off
 
 mac2s = =>  -- Accepts data string; returns mac address as readable string
   format mac_str, su mac, @
