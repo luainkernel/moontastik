@@ -2,7 +2,7 @@
 :IP6, :IP4 = require"ipparse.l2.ethernet".proto
 :ip6, :ip62s, :s2ip6, :net62s, :s2net6 = require"ipparse.l3.ip6"
 :ip4, :ip42s, :s2ip4, :net42s, :s2net4 = require"ipparse.l3.ip4"
-su = string.unpack
+:sub, unpack: su = string
 
 get_version = (off) =>  -- Accepts data string; returns IP version
   su("B", @, off) >> 4
@@ -38,25 +38,23 @@ net2s = =>  -- Accepts data string; returns subnet as readable string.
 s2net = =>  -- Accepts readable string; retuns subnet as data string
   (@match":" and s2net6 or @match"%." and s2net4) @
 
-contains_subnet = (subnet) =>  -- Accepts 2 data strings; checks whether net @ contains subnet
-  return false if #@ ~= #subnet
-  nmask = su "B", @
-  smask = su "B", subnet
-  return false if nmask > smask
-  fmt, shft = "c#{nmask >> 3}", 8 - (nmask & 0x7)
-  nbytes, nbits = su fmt, @, 2
-  sbytes, sbits = su fmt, subnet, 2
-  return true if nbytes == sbytes and (nbits >> shft) == (sbits >> shft)
-  false
-
-contains_ip = (i) =>  -- Accepts 2 data strings; checks whether net @ contains ip
-  return false if #@ ~= #i+1
-  nmask = su "B", @
-  fmt, shft = "c#{nmask >> 3}", 8 - (nmask & 0x7)
+contains_ip = (i, nmask) =>  -- Accepts 2 data strings; checks whether net @ contains ip
+  if not nmask
+    return false if #@ ~= #i+1
+    nmask = su "B", @
+    return sub(@, 2) == i if nmask == 128
+  fmt, shft = "c#{nmask >> 3}B", 8 - (nmask & 0x7)
   nbytes, nbits = su fmt, @, 2
   sbytes, sbits = su fmt, i
   return true if nbytes == sbytes and (nbits >> shft) == (sbits >> shft)
   false
+
+contains_subnet = (subnet) =>  -- Accepts 2 data strings; checks whether net @ contains subnet
+  return false if #@ ~= #subnet
+  nmask, smask = su("B", @), su("B", subnet)
+  return false if nmask > smask
+  return @ == subnet if nmask == smask
+  contains_ip @, sub(subnet, 2), nmask
 
 proto =
   ICMP:   0x01

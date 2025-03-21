@@ -4,7 +4,13 @@ format: sf, pack: sp, rep: sr, unpack: su = string
 :concat = table
 
 header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns DNS header infos
-  size, off = su ">H", off if is_tcp
+  len = #@ - off
+  local size
+  if is_tcp
+    return nil, "No DNS data" if len < 2
+    size, off = su ">H", @, off
+    len -= 2
+  return nil, "No DNS data" if len < 12
   id, qr_opcode_aa_tc_rd, ra_z_rcode, qdcount, ancount, nscount, arcount, data_off = su ">H B B H H H H", @, off
   {
     :id
@@ -83,30 +89,30 @@ types = bidirectional {
 }
 
 ede_codes = {
-  "Unsupported DNSKEY Algorithm",
-  "Unsupported DS Digest Type",
-  "Stale Answer",
-  "Forged Answer",
-  "DNSSEC Indeterminate",
-  "DNSSEC Bogus",
-  "Signature Expired",
-  "Signature Not Yet Valid",
-  "DNSKEY Missing",
-  "RRSIGs Missing",
-  "No Zone Key Bit Set",
-  "NSEC Missing",
-  "Cached Error",
-  "Not Ready",
+  "Unsupported_DNSKEY_Algorithm",
+  "Unsupported_DS_Digest_Type",
+  "Stale_Answer",
+  "Forged_Answer",
+  "DNSSEC_Indeterminate",
+  "DNSSEC_Bogus",
+  "Signature_Expired",
+  "Signature_Not_Yet_Valid",
+  "DNSKEY_Missing",
+  "RRSIGs_Missing",
+  "No_Zone_Key_Bit_Set",
+  "NSEC_Missing",
+  "Cached_Error",
+  "Not_Ready",
   "Blocked",
   "Censored",
   "Filtered",
   "Prohibited",
-  "Stale NXDOMAIN Answer",
-  "Not Authoritative",
-  "Not Supported",
-  "No Reachable Authority",
-  "Network Error",
-  "Invalid Data"
+  "Stale_NXDOMAIN_Answer",
+  "Not_Authoritative",
+  "Not_Supported",
+  "No_Reachable_Authority",
+  "Network_Error",
+  "Invalid_Data"
 }
 ede_codes[0] = "Other"
 ede_codes = bidirectional ede_codes

@@ -24,8 +24,8 @@ net42s = =>  -- Accepts data string; returns IPv4 address as readable string
   format "%d.%d.%d.%d/%d", a, b, c, d, m
 
 s2net4 = =>
-  b1, b2, b3, b4, mask = @match"(%d+)%.(%d+)%.(%d+)%.(%d+)/?(%d+)"
-  sp "B BBBB", (tonumber mask or 32), tonumber(b1), tonumber(b2), tonumber(b3), tonumber(b4)
+  b1, b2, b3, b4, mask = @match"(%d+)%.(%d+)%.(%d+)%.(%d+)/?(%d*)"
+  sp "B BBBB", (tonumber(mask) or 32), tonumber(b1), tonumber(b2), tonumber(b3), tonumber(b4)
 
 
 :ip4, :ip42s, :s2ip4, :net42s, :s2net4
