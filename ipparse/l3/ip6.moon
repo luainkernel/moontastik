@@ -1,21 +1,36 @@
 :format, pack: sp, unpack: su = string
 :insert, :remove, :unpack = table
-:range, :wrap = require"ipparse.fun"
-:ntoh16 = require"linux"
+:toarray = require"ipparse.fun"
+checksum: checksum, :pseudo_header = require "ipparse.l3.lib"
 
-ip6 = (off=0) =>
+pack = =>
+  if data = @data
+    d = "#{data}"  -- Let the L4 payload recalculate its length
+    data.checksum = 0
+    d = "#{data}"
+    data.checksum = checksum(pseudo_header(d, @src, @dst, @next_header) .. d)
+    @payload_len = #d
+  sp(">I4 I2 I1 I1 c16 c16", @vtf, @payload_len, @next_header, @hop_limit, @src, @dst) .. "#{@data or ''}"
+
+_mt = __tostring: pack
+
+parse = (off=1) =>
   vtf, payload_len, next_header, hop_limit, src, dst, data_off = su ">I4 I2 I1 I1 c16 c16", @, off
-  {
-    version: vtf >> 28, traffic_class: (vtf >> 20) & 0xff, flow_label: vtf & 0xfffff
+  setmetatable({
+    :vtf, version: vtf >> 28, traffic_class: (vtf >> 20) & 0xff, flow_label: vtf & 0xfffff
     :payload_len
     :next_header
     :hop_limit
     :src, :dst
     :off, :data_off
-  }, data_off
+  }, _mt), data_off
+
+new = =>
+  @vtf or= ((@version << 28) | (@traffic_class << 20) | @flow_label)
+  setmetatable @, _mt
 
 parse_ip6 = =>
-  address = wrap(@gmatch"([^:]*):?")\toarray!
+  address = toarray @gmatch"([^:]*):?"
   zeros = 9 - #address
   for i = 1, 8
     part = address[i]
@@ -45,4 +60,4 @@ s2net6 = =>  -- Accepts readable string; returns IPv6 subnet as data string
   sp ">B HHHH HHHH", (tonumber mask or 128), unpack parse_ip6 @
 
 
-:ip6, :ip62s, :s2ip6, :net62s, :s2net6
+:parse, :new, :ip62s, :s2ip6, :net62s, :s2net6

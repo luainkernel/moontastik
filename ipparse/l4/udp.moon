@@ -1,27 +1,17 @@
 pack: sp, unpack: su = string
 
-udp = (off=0) =>  -- Accepts data string; returns UDP header infos
+pack = =>
+  @len = 8 + (@data and #"#{@data}" or 0)
+  sp(">H H H H", @spt, @dpt, @len, @checksum) .. "#{@data or ''}"
+
+_mt = __tostring: pack
+
+parse = (off=1) =>  -- Accepts data string; returns UDP header infos
   spt, dpt, len, checksum, data_off = su ">H H H H", @, off
-  {:spt, :dpt, :len, :checksum, :off, :data_off}, data_off
+  setmetatable({:spt, :dpt, :len, :checksum, :off, :data_off}, _mt), data_off
 
-checksum = (ip) =>
-  :protocol = ip
-  len = #@
-  -- Calculate the pseudo-header checksum
-  data = ip.src .. ip.dst .. sp(">BBH", 0, protocol, len) .. @
-  if #data & 1 == 1
-    data = data.."\0"
-  -- Calculate the checksum of the pseudo-header and the packet
-  checksum = 0
-  for i = 1, #data, 2
-    word = su ">H", data, i
-    checksum += word
-  -- Handle carry-over
-  while true
-    carry = checksum >> 16
-    break if carry == 0
-    checksum = (checksum & 0xFFFF) + carry
-  -- Return the one's complement of the checksum
-  ~checksum & 0xFFFF
+new = =>
+  setmetatable @, _mt
 
-:checksum, :udp
+
+:parse, :new, :pack

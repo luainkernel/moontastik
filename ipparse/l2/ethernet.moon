@@ -1,12 +1,19 @@
 :bidirectional = require"ipparse.fun"
-:byte, :format, pack: sp, unpack: su = string
+:format, pack: sp, unpack: su = string
 :unpack = table
 mac_str = "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x"
 mac = "BBBBBB"
 
-ethernet = (off=0) =>  -- Accepts data string; returns ethernet header informations
+pack = => sp("c6 c6 >H", @dst, @src, @protocol) .. "#{@data or ''}"
+
+_mt = __tostring: pack
+
+parse = (off=1) =>  -- Accepts data string; returns ethernet header informations
   dst, src, protocol, data_off = su "c6 c6 >H", @, off
-  {:dst, :src, :protocol, :off, :data_off}, data_off
+  setmetatable({:dst, :src, :protocol, :off, :data_off}, _mt), data_off
+
+new = =>
+  setmetatable @, _mt
 
 mac2s = =>  -- Accepts data string; returns mac address as readable string
   format mac_str, su mac, @
@@ -19,4 +26,4 @@ proto =  -- Protocol numbers as found in the ethernet header
   IP4: 0x800
 proto = bidirectional proto
 
-:ethernet, :proto, :mac2s, :s2mac
+:parse, :new, :pack, :proto, :mac2s, :s2mac

@@ -36,6 +36,9 @@ bidirectional = =>
   @[v] = k for k, v in pairs @
   @
 
+zero_indexed = =>
+  @[i] = @[i+1] for i = 0, #@
+  @
 
 local iter
 
@@ -122,19 +125,19 @@ range = (max, step) =>
     i += step
     i if i <= max
 
-opairs = =>
+opairs = (f=(a,b) -> if type(a) == type(b) then a < b else "#{a}" < "#{b}") =>
   keys, i = {}, 1
   for k in pairs @
     keys[i] = k
     i += 1
-  sort keys
+  sort keys, f
   i = 0
   ->
     i += 1
     keys[i], @[keys[i]]
 
 _ = {
-  :bidirectional, :memo, :memoN, :iter, :wrap, :range, :opairs, :generate
+  :bidirectional, :memo, :memoN, :iter, :wrap, :range, :opairs, :generate, :zero_indexed
   __index: (_, k) ->
     -- Importing the names of iter’s methods will return table / iterator wrapper.
     -- Example:

@@ -1,13 +1,16 @@
 :bidirectional = require"ipparse.fun"
 :IP6, :IP4 = require"ipparse.l2.ethernet".proto
-:ip6, :ip62s, :s2ip6, :net62s, :s2net6 = require"ipparse.l3.ip6"
-:ip4, :ip42s, :s2ip4, :net42s, :s2net4 = require"ipparse.l3.ip4"
+parse: ip6, new: ip6_new, pack: ip6_pack, :ip62s, :s2ip6, :net62s, :s2net6 = require"ipparse.l3.ip6"
+parse: ip4, new: ip4_new, pack: ip4_pack, :ip42s, :s2ip4, :net42s, :s2net4 = require"ipparse.l3.ip4"
 :sub, unpack: su = string
 
 get_version = (off) =>  -- Accepts data string; returns IP version
   su("B", @, off) >> 4
 
-ip = (off, eth_proto) =>  -- Accepts data string; returns IP packet properties
+pack = =>  -- Packs IP data into a binary string
+  @version == 6 and ip6_pack(@) or ip4_pack(@)
+
+parse = (off, eth_proto) =>  -- Accepts data string; returns IP packet properties
   res = if eth_proto == IP6
     ip6 @, off
   elseif eth_proto == IP4
@@ -25,6 +28,9 @@ ip = (off, eth_proto) =>  -- Accepts data string; returns IP packet properties
   res.next_header or= res.protocol
   res.protocol or= res.next_header
   res
+
+new = =>
+  @version == 6 and ip6_new(@) or ip4_new(@)
 
 ip2s = =>  -- Accepts data string; returns IP as readable string
   (#@ == 16 and ip62s or #@ == 4 and ip42s) @
@@ -56,7 +62,7 @@ contains_subnet = (subnet) =>  -- Accepts 2 data strings; checks whether net @ c
   return @ == subnet if nmask == smask
   contains_ip @, sub(subnet, 2), nmask
 
-proto =
+proto = bidirectional {
   ICMP:   0x01
   TCP:    0x06
   UDP:    0x11
@@ -64,8 +70,7 @@ proto =
   ESP:    0x32
   ICMPv6: 0x3A
   OSPF:   0x59
-proto = bidirectional proto
+}
 
 
-:get_version, :ip, :ip6, :ip4, :proto, :ip2s, :s2ip, :net2s, :s2net, :contains_subnet, :contains_ip
-
+:get_version, :parse, :new, :pack, :proto, :ip2s, :s2ip, :net2s, :s2net, :contains_subnet, :contains_ip

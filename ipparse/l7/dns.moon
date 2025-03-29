@@ -1,9 +1,75 @@
-:bidirectional = require"ipparse.fun"
+-- +---------------------------+
+-- |         Header           |
+-- +---------------------------+
+-- |  Transaction ID (16 bits) |
+-- |  Flags (16 bits)          | qr, opcode, aa, tc, rd, ra, z, rcode
+-- |  QDCOUNT (16 bits)        |
+-- |  ANCOUNT (16 bits)        |
+-- |  NSCOUNT (16 bits)        |
+-- |  ARCOUNT (16 bits)        |
+-- +---------------------------+
+-- |         Question          |
+-- +---------------------------+
+-- |  QNAME (variable length)  |
+-- |  QTYPE (16 bits)          |
+-- |  QCLASS (16 bits)         |
+-- +---------------------------+
+-- |      Answer (each)        | idem for each Authority and Additional (which are optional)
+-- +---------------------------+
+-- |  NAME (variable length)   |
+-- |  TYPE (16 bits)           |
+-- |  CLASS (16 bits)          |
+-- |  TTL (32 bits)            |
+-- |  RDLENGTH (16 bits)       |
+-- |  RDATA (variable length)  |
+-- +---------------------------+
 
-format: sf, pack: sp, rep: sr, unpack: su = string
+:bidirectional, :zero_indexed = require"ipparse.fun"
+
+pack:sp, unpack: su, :sub = string
 :concat = table
 
-header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns DNS header infos
+pack_header = =>
+  (@size and sp(">H", @size) or "") .. sp ">H B B H H H H", @id, @qr_opcode_aa_tc_rd, @ra_z_rcode, @qdcount, @ancount, @nscount, @arcount
+
+_header_mt =
+  __tostring: pack_header
+  __index: (flag) =>
+    switch flag
+      when "qr"
+        @qr_opcode_aa_tc_rd & 0x80
+      when "opcode"
+        (@qr_opcode_aa_tc_rd >> 3) & 0xf
+      when "aa"
+        @qr_opcode_aa_tc_rd & 0x04
+      when "tc"
+        @qr_opcode_aa_tc_rd & 0x02
+      when "rd"
+        @qr_opcode_aa_tc_rd & 0x01
+      when "ra"
+        @ra_z_rcode & 0x80
+      when "z"
+        (@ra_z_rcode >> 4) & 0x07
+      when "rcode"
+        @ra_z_rcode & 0x0f
+  __newindex: (flag, val) =>
+    switch flag
+      when "qr"
+        if val then @qr_opcode_aa_tc_rd |= 0x80 else @qr_opcode_aa_tc_rd &= ~0x80
+      when "opcode"
+        @qr_opcode_aa_tc_rd = (@qr_opcode_aa_tc_rd & ~0x78) | ((val & 0xf) << 3)
+      when "aa"
+        if val then @qr_opcode_aa_tc_rd |= 0x04 else @qr_opcode_aa_tc_rd &= ~0x04
+      when "tc"
+        if val then @qr_opcode_aa_tc_rd |= 0x02 else @qr_opcode_aa_tc_rd &= ~0x02
+      when "rd"
+        if val then @qr_opcode_aa_tc_rd |= 0x01 else @qr_opcode_aa_tc_rd &= ~0x01
+      when "z"
+        @ra_z_rcode = (@ra_z_rcode & ~0x70) | ((val & 0x07) << 4)
+      when "rcode"
+        @ra_z_rcode = (@ra_z_rcode & ~0x0f) | (val & 0x0f)
+
+parse_header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns DNS header infos
   len = #@ - off
   local size
   if is_tcp
@@ -12,22 +78,14 @@ header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns D
     len -= 2
   return nil, "No DNS data" if len < 12
   id, qr_opcode_aa_tc_rd, ra_z_rcode, qdcount, ancount, nscount, arcount, data_off = su ">H B B H H H H", @, off
-  {
-    :id
-    qr: qr_opcode_aa_tc_rd & 0x80
-    opcode: (qr_opcode_aa_tc_rd >> 3) & 0xf
-    aa: qr_opcode_aa_tc_rd & 0x04
-    tc: qr_opcode_aa_tc_rd & 0x02
-    rd: qr_opcode_aa_tc_rd & 0x01
-    ra: ra_z_rcode & 0x80
-    z: (ra_z_rcode >> 4) & 0x07
-    rcode: ra_z_rcode & 0x0f
+  setmetatable({
+    :id, :qr_opcode_aa_tc_rd, :ra_z_rcode
     :qdcount, :ancount, :nscount, :arcount
     :off, :data_off, :size
-  }, data_off
+  }, _header_mt), data_off
 
 local labels
-label = (off, l7_off=0) =>
+label = (off, l7_off=1) =>
   return nil if off+2 > #@
   size, pos, _off = su "B B", @, off
   if size == 0
@@ -46,35 +104,72 @@ labels = (off, l7_off) =>
     lbls[i] = lbl
   lbls, off
 
-question = (off, l7_off) =>
-  lbls, _off = labels @, off, l7_off
-  qclass, qtype, _off = su ">H H", @, _off
-  {qname: concat(lbls, "."), :qtype, :qclass, :off, end_off: _off-1}, _off
+pack_question = =>
+  @qname .. sp ">H H", @qtype, @qclass
 
-questions = (off, qdcount, l7_off) =>
+_question_mt = __tostring: pack_question
+
+parse_question = (off, l7_off) =>
+  lbls, _off = labels @, off, l7_off
+  qname = sub @, off, _off-1
+  qtype, qclass, _off = su ">H H", @, _off
+  setmetatable({name: concat(lbls, "."), :qname, :qtype, :qclass, :off, end_off: _off-1}, _question_mt), _off
+
+parse_questions = (off, qdcount, l7_off) =>
   res = {}
   for i = 1, qdcount
-    q, off = question @, off, l7_off
+    q, off = parse_question @, off, l7_off
     res[i] = q
   res, off
 
-rr = (off, l7_off) =>
-  lbls, off = labels @, off, l7_off
-  rtype, rclass, ttl, rdata, _off = su ">H H I4 s2", @, off
-  {rname: concat(lbls, "."), :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _off
+pack_rr = =>
+  @rname .. sp ">H H I4 s2", @rtype, @rclass, @ttl, @rdata
 
-rrs = (off, count, l7_off) =>
+_rr_mt = __tostring: pack_rr
+
+parse_rr = (off, l7_off) =>
+  lbls, _off = labels @, off, l7_off
+  rname = sub @, off, _off-1
+  rtype, rclass, ttl, rdata, _off = su ">H H I4 s2", @, _off
+  setmetatable({name: concat(lbls, "."), :rname, :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _rr_mt), _off
+
+parse_rrs = (off, count, l7_off) =>
   res = {}
   for i = 1, count
-    r, off = rr @, off, l7_off
+    r, off = parse_rr @, off, l7_off
     res[i] = r
   res, off
 
+pack = =>
+  @header.qdcount = #@questions
+  @header.ancount = #@answers
+  @header.nscount = #@authorities
+  @header.arcount = #@additionals
+  questions = concat([pack_question q for q in *@questions])
+  answers = concat([pack_rr r for r in *@answers])
+  authorities = concat([pack_rr r for r in *@authorities])
+  additionals = concat([pack_rr r for r in *@additionals])
+  body = questions .. answers .. authorities .. additionals
+  @header.size = 12 + #body
+  pack_header(@header) .. body
+
+_mt = __tostring: pack
+
+parse = (off, is_tcp) =>
+  header, _off = parse_header @, off, is_tcp
+  return nil, off, "No DNS data" if not header
+  questions, _off = parse_questions @, _off, header.qdcount, off
+  answers, _off = parse_rrs @, _off, header.ancount, off
+  authorities, _off = parse_rrs @, _off, header.nscount, off
+  additionals, _off = parse_rrs @, _off, header.arcount, off
+  setmetatable({
+    :header, question: questions[1]  -- RFC 9619
+    :questions, :answers, :authorities, :additionals
+  }, _mt), _off
+
 classes = bidirectional {"IN", "CS", "CH", "HS", "NONE"}
 
-rcodes = {"FORMERR", "SERVFAIL", "NXDOMAIN", "NOTIMP", "REFUSED"}
-rcodes[0] = "NOERROR"
-rcodes = bidirectional rcodes
+rcodes = bidirectional zero_indexed {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN", "NOTIMP", "REFUSED"}
 
 types = bidirectional {
   "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG", "MR", "NULL",
@@ -88,7 +183,8 @@ types = bidirectional {
   "DLV"
 }
 
-ede_codes = {
+ede_codes = bidirectional zero_indexed {
+  "Other"
   "Unsupported_DNSKEY_Algorithm",
   "Unsupported_DS_Digest_Type",
   "Stale_Answer",
@@ -114,8 +210,5 @@ ede_codes = {
   "Network_Error",
   "Invalid_Data"
 }
-ede_codes[0] = "Other"
-ede_codes = bidirectional ede_codes
 
-:header, :label, :labels, :question, :questions, :classes, :rr, :rrs, :rcodes, :types, :ede_codes
-
+:parse, :pack, :parse_header, :pack_header, :label, :labels, :parse_question, :pack_question, :parse_questions, :classes, :parse_rr, :pack_rr, :parse_rrs, :rcodes, :types, :ede_codes
