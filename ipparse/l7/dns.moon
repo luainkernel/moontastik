@@ -88,17 +88,17 @@ local labels
 label = (off, l7_off=1) =>
   return nil if off+2 > #@
   size, pos, _off = su "B B", @, off
-  if size == 0
+  if size == 0  -- End of label
     return nil, off+1
-  elseif size & 0xC0 == 0
-    su "s1", @, off
-  else
-    off = ((size & 0x3F) << 8) + pos
-    concat(labels(@, l7_off+off), "."), _off, true
+  if size & 0xC0 == 0  -- Normal case
+    return su "s1", @, off
+  -- DNS label compression
+  off = ((size & 0x3F) << 8) + pos
+  concat(labels(@, l7_off+off, l7_off), "."), _off, true
 
 labels = (off, l7_off) =>
   lbls = {}
-  for i = 1, 1024
+  for i = 1, 1024  -- Arbitrary large limit to avoid infinite loops
     lbl, off, last = label @, off, l7_off
     break if last or not lbl
     lbls[i] = lbl
