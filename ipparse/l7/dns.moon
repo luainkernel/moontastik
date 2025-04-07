@@ -140,6 +140,41 @@ parse_rrs = (off, count, l7_off) =>
     res[i] = r
   res, off
 
+pack_opt = =>
+  sp ">Hs2", @code, "#{@data}"
+
+edns_opts = {
+  [8]:     {"client_subnet",     {"family", "source_netmask", "scope_netmask", "subnet"}, ">H B B "}
+  [65001]: {"requestor_mac",     {"mac"}}
+  [65073]: {"requestor_mac_str", {"macstr"}}
+}
+edns_opts[v[1]] = k for k, v in pairs edns_opts when type(k) == "number"
+
+_opt_mt = __tostring: pack_opt
+
+parse_opt = (off=1) =>
+  code, data, _off = su ">Hs2", @, off
+  len = #data
+  if opt_parser = edns_opts[code]
+    {typ, fields, fmt} = opt_parser
+    if fmt
+      _data = {su fmt, data}
+      _data[#_data] = sub data, _data[#_data]
+      data = _data
+    else data = {data}
+    data.type = typ
+    data[fields[i]] = data[i] for i = 1, #fields
+    setmetatable data, __tostring: => fmt and sp(fmt, unpack [data[field] for field in *fields]) or @[1]
+  else setmetatable {data}, __tostring: => @[1]
+  setmetatable({:code, :len, :data}, _opt_mt), _off
+
+parse_opts = =>
+  opts, off = {}, 1
+  while off < #@
+    opts[#opts+1], off = parse_opt @, off
+  opts
+
+
 pack = =>
   @header.qdcount = #@questions
   @header.ancount = #@answers
@@ -155,13 +190,13 @@ pack = =>
 
 _mt = __tostring: pack
 
-parse = (off, is_tcp) =>
-  header, _off = parse_header @, off, is_tcp
-  return nil, off, "No DNS data" if not header
-  questions, _off = parse_questions @, _off, header.qdcount, off
-  answers, _off = parse_rrs @, _off, header.ancount, off
-  authorities, _off = parse_rrs @, _off, header.nscount, off
-  additionals, _off = parse_rrs @, _off, header.arcount, off
+parse = (l7_off, is_tcp) =>
+  header, _off = parse_header @, l7_off, is_tcp
+  return nil, l7_off, "No DNS data" if not header
+  questions, _off = parse_questions @, _off, header.qdcount, l7_off
+  answers, _off = parse_rrs @, _off, header.ancount, l7_off
+  authorities, _off = parse_rrs @, _off, header.nscount, l7_off
+  additionals, _off = parse_rrs @, _off, header.arcount, l7_off
   setmetatable({
     :header, question: questions[1]  -- RFC 9619
     :questions, :answers, :authorities, :additionals
@@ -211,4 +246,13 @@ ede_codes = bidirectional zero_indexed {
   "Invalid_Data"
 }
 
-:parse, :pack, :parse_header, :pack_header, :label, :labels, :parse_question, :pack_question, :parse_questions, :classes, :parse_rr, :pack_rr, :parse_rrs, :rcodes, :types, :ede_codes
+{
+  :parse, :pack
+  :parse_header, :pack_header
+  :label, :labels
+  :parse_question, :pack_question, :parse_questions
+  :classes
+  :parse_rr, :pack_rr, :parse_rrs, :rcodes
+  :parse_opt, :parse_opts, :edns_opts
+  :types, :ede_codes
+}

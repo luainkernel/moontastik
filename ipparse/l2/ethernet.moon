@@ -1,8 +1,6 @@
 :bidirectional = require"ipparse.fun"
 :format, pack: sp, unpack: su = string
 :unpack = table
-mac_str = "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x"
-mac = "BBBBBB"
 
 pack = => sp("c6 c6 >H", @dst, @src, @protocol) .. "#{@data or ''}"
 
@@ -16,10 +14,10 @@ new = =>
   setmetatable @, _mt
 
 mac2s = =>  -- Accepts data string; returns mac address as readable string
-  format mac_str, su mac, @
+  format "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x", su "BBBBBB", @
 
 s2mac = =>  -- Accepts readable string; returns mac address as data string
-  sp mac, unpack [tonumber(s, 16) for s in @gmatch"[^:]+"]
+  sp "BBBBBB", unpack [tonumber(s, 16) for s in @gmatch"[^:]+"]
 
 proto =  -- Protocol numbers as found in the ethernet header
   IP6: 0x86DD

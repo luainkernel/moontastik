@@ -11,18 +11,20 @@ pack = =>  -- Packs IP data into a binary string
   @version == 6 and ip6_pack(@) or ip4_pack(@)
 
 parse = (off, eth_proto) =>  -- Accepts data string; returns IP packet properties
-  res = if eth_proto == IP6
-    ip6 @, off
-  elseif eth_proto == IP4
-    ip4 @, off
-  else
-    v = get_version @, off
-    switch v
-      when 6
-        ip6 @, off
-      when 4
-        ip4 @, off
-      else return nil, "Unknown IP version #{v}"
+  local res
+  switch eth_proto
+    when IP6
+      res = ip6 @, off
+    when IP4
+      res = ip4 @, off
+    else
+      v = get_version @, off
+      switch v
+        when 6
+          res = ip6 @, off
+        when 4
+          res = ip4 @, off
+        else return nil, "Unknown IP version #{v}"
   res.total_len or= res.payload_len + 40
   res.payload_len or= res.total_len - res.data_off
   res.next_header or= res.protocol
