@@ -1,12 +1,13 @@
-subclass = require"ipparse".subclass
-TLSExtension = require"ipparse.l7.tls.handshake.extension"
+pack: sp, unpack: su = string
 
-subclass TLSExtension, {
-  __name: "ServerNameIndication"
+pack = =>
+  sp ">H s2", @len, @name
 
-  extension_type: 0x00
+_mt =
+  __tostring: pack
 
-  type_str: "server name"
+parse = (off=1) =>
+  len, _type, name, _off = su ">H B s2", @, off
+  setmetatable({:len, :name, type: _type}, _mt), _off
 
-  _get_server_name: => @str 9, @short 7
-}
+:parse, :pack

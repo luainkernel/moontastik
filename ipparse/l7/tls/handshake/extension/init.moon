@@ -1,15 +1,13 @@
-subclass, Packet = do
-  _ = require"ipparse"
-  _.subclass, _.Packet
+pack: sp, unpack: su = string
 
-subclass Packet, {
-  __name: "TLSExtension"
+pack = =>
+  sp ">H s2", @type, @data
 
-  _get_type: => @short 0
+_mt =
+  __tostring: pack
 
-  _get_length: => 4 + @short 2
+parse = (off=1) =>
+  _type, data, _off = su ">H s2", @, off
+  setmetatable({type: _type, :data}, _mt), _off
 
-  types: {
-    server_name: 0x00
-  }
-}
+:parse, :pack

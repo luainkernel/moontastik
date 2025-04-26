@@ -1,18 +1,25 @@
-subclass, Packet = do
-  _ = require"ipparse"
-  _.subclass, _.Packet
+pack: sp, unpack: su = string
+:bidirectional = require"ipparse.fun"
 
-subclass Packet, {
-  __name: "TLS"
+pack = =>
+  sp ">B BB H", @type, @ver, @subver, @len
 
-  iana_port: 443
+_mt =
+  __tostring: pack
 
-  _get_type: => @byte 0
+parse = (off=1) =>
+  _type, ver, subver, len, _off = su ">B BB H", @, off
+  setmetatable({
+    type: _type, data_off: _off
+    :ver, :subver, :len
+  }, _mt), _off
 
-  _get_version: => "#{@byte 1}.#{@byte 2}"
-
-  _get_length: => @short 3
-
-  data_off: 5
+record_types = bidirectional {
+  [0x14]: "change_cipher_spec"
+  [0x15]: "alert"
+  [0x16]: "handshake"
+  [0x17]: "application_data"
+  [0x18]: "heartbeat"
 }
 
+:parse, :pack, :record_types

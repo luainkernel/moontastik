@@ -13,7 +13,7 @@ hexdump = (off=1, len=8, cols=2, f="%.2x") =>
   octets, characters, l = {}, {}, 0
   for i = off, #@, len
     l += 1
-    n = #@-off-i+1
+    n = #@-off-i+2
     n = n < len and n or len
     mask = sr "B", n
     fmt = sr "#{f} ", n
