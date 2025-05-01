@@ -136,8 +136,19 @@ opairs = (f=(a,b) -> if type(a) == type(b) then a < b else "#{a}" < "#{b}") =>
     i += 1
     keys[i], @[keys[i]]
 
+protected = (fn, op) -> (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
+  ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall (
+    -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+  ), (err) ->
+    print err
+    print debug.traceback!
+    op! if op
+  if ok
+    a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+
+
 _ = {
-  :bidirectional, :memo, :memoN, :iter, :wrap, :range, :opairs, :generate, :zero_indexed
+  :bidirectional, :memo, :memoN, :iter, :wrap, :range, :opairs, :generate, :zero_indexed, :protected
   __index: (_, k) ->
     -- Importing the names of iter’s methods will return table / iterator wrapper.
     -- Example:

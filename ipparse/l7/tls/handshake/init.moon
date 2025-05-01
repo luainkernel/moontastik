@@ -13,9 +13,7 @@ _mt =
 parse = (off=1) =>
   _type, _len, len, _off = su ">B BH", @, off
   len += (_len << 16)
-  setmetatable({
-    type: _type, :len
-  }, _mt), _off
+  setmetatable({type: _type, :len}, _mt), _off
 
 
 parse_ciphers = => [su ">H", @, i for i = 1, #@, 2]
