@@ -37,21 +37,21 @@ _header_mt =
   __index: (flag) =>
     switch flag
       when "qr"
-        @qr_opcode_aa_tc_rd & 0x80
+        @qr_opcode_aa_tc_rd & 0x80 ~= 0
       when "opcode"
-        (@qr_opcode_aa_tc_rd >> 3) & 0xf
+        (@qr_opcode_aa_tc_rd >> 3) & 0xf ~= 0
       when "aa"
-        @qr_opcode_aa_tc_rd & 0x04
+        @qr_opcode_aa_tc_rd & 0x04 ~= 0
       when "tc"
-        @qr_opcode_aa_tc_rd & 0x02
+        @qr_opcode_aa_tc_rd & 0x02 ~= 0
       when "rd"
-        @qr_opcode_aa_tc_rd & 0x01
+        @qr_opcode_aa_tc_rd & 0x01 ~= 0
       when "ra"
-        @ra_z_rcode & 0x80
+        @ra_z_rcode & 0x80 ~= 0
       when "z"
-        (@ra_z_rcode >> 4) & 0x07
+        (@ra_z_rcode >> 4) & 0x07 ~= 0
       when "rcode"
-        @ra_z_rcode & 0x0f
+        @ra_z_rcode & 0x0f ~= 0
   __newindex: (flag, val) =>
     switch flag
       when "qr"
@@ -188,7 +188,9 @@ pack = =>
   @header.size = 12 + #body
   pack_header(@header) .. body
 
-_mt = __tostring: pack
+_mt =
+  __tostring: pack
+  __index: (k) => @header[k]
 
 parse = (l7_off, is_tcp) =>
   header, _off = parse_header @, l7_off, is_tcp
@@ -212,37 +214,52 @@ types = bidirectional {
   "RT", "NSAP", "NSAP-PTR", "SIG", "KEY", "PX", "GPOS", "AAAA", "LOC", "NXT",
   "EID", "NIMLOC", "SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",
   "OPT", "APL", "DS", "SSHFP", "IPSECKEY", "RRSIG", "NSEC", "DNSKEY", "DHCID", "NSEC3",
-  "NSEC3PARAM", "TLSA", "SMIMEA", "HIP", "NINFO", "RKEY", "TALINK", "CDS", "CDNSKEY", "OPENPGPKEY",
-  "CSYNC", "ZONEMD", "SVCB", "HTTPS", "SPF", "EUI48", "EUI64", "TKEY", "TSIG", "IXFR",
-  "AXFR", "MAILB", "MAILA", "ANY", "URI", "CAA", "AVC", "DOA", "AMTRELAY", "TA",
-  "DLV"
+  "NSEC3PARAM", "TLSA", "SMIMEA", "Unassigned", "HIP", "NINFO", "RKEY", "TALINK", "CDS", "CDNSKEY", "OPENPGPKEY",
+  "CSYNC", "ZONEMD", "SVCB", "HTTPS", "DSYNC"
+  [99]: "SPF",
+  [108]: "EUI48",
+  [109]: "EUI64",
+  [249]: "TKEY",
+  [250]: "TSIG",
+  [251]: "IXFR",
+  [252]: "AXFR",
+  [253]: "MAILB",
+  [254]: "MAILA",
+  [255]: "ANY",
+  [256]: "URI",
+  [257]: "CAA",
+  [258]: "AVC",
+  [259]: "DOA",
+  [260]: "AMTRELAY",
+  [32768]: "TA",
+  [32769]: "DLV"
 }
 
 ede_codes = bidirectional zero_indexed {
   "Other"
-  "Unsupported_DNSKEY_Algorithm",
-  "Unsupported_DS_Digest_Type",
-  "Stale_Answer",
-  "Forged_Answer",
-  "DNSSEC_Indeterminate",
-  "DNSSEC_Bogus",
-  "Signature_Expired",
-  "Signature_Not_Yet_Valid",
-  "DNSKEY_Missing",
-  "RRSIGs_Missing",
-  "No_Zone_Key_Bit_Set",
-  "NSEC_Missing",
-  "Cached_Error",
-  "Not_Ready",
-  "Blocked",
-  "Censored",
-  "Filtered",
-  "Prohibited",
-  "Stale_NXDOMAIN_Answer",
-  "Not_Authoritative",
-  "Not_Supported",
-  "No_Reachable_Authority",
-  "Network_Error",
+  "Unsupported_DNSKEY_Algorithm"
+  "Unsupported_DS_Digest_Type"
+  "Stale_Answer"
+  "Forged_Answer"
+  "DNSSEC_Indeterminate"
+  "DNSSEC_Bogus"
+  "Signature_Expired"
+  "Signature_Not_Yet_Valid"
+  "DNSKEY_Missing"
+  "RRSIGs_Missing"
+  "No_Zone_Key_Bit_Set"
+  "NSEC_Missing"
+  "Cached_Error"
+  "Not_Ready"
+  "Blocked"
+  "Censored"
+  "Filtered"
+  "Prohibited"
+  "Stale_NXDOMAIN_Answer"
+  "Not_Authoritative"
+  "Not_Supported"
+  "No_Reachable_Authority"
+  "Network_Error"
   "Invalid_Data"
 }
 
