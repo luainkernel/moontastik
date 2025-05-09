@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2025 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 {
 [631]: "ipp"
 [161]: "snmp"

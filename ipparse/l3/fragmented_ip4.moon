@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2025 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 IP4 = require"ipparse.l3.ip4"
 new: data_new = require"data"
 :sort = table
@@ -41,4 +46,3 @@ collect: =>
   ip = IP4 :skb, :off
   ip.__len = -> total_len
   ip
-

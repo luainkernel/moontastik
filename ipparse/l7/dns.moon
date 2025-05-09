@@ -1,34 +1,81 @@
--- +---------------------------+
--- |         Header           |
--- +---------------------------+
--- |  Transaction ID (16 bits) |
--- |  Flags (16 bits)          | qr, opcode, aa, tc, rd, ra, z, rcode
--- |  QDCOUNT (16 bits)        |
--- |  ANCOUNT (16 bits)        |
--- |  NSCOUNT (16 bits)        |
--- |  ARCOUNT (16 bits)        |
--- +---------------------------+
--- |         Question          |
--- +---------------------------+
--- |  QNAME (variable length)  |
--- |  QTYPE (16 bits)          |
--- |  QCLASS (16 bits)         |
--- +---------------------------+
--- |      Answer (each)        | idem for each Authority and Additional (which are optional)
--- +---------------------------+
--- |  NAME (variable length)   |
--- |  TYPE (16 bits)           |
--- |  CLASS (16 bits)          |
--- |  TTL (32 bits)            |
--- |  RDLENGTH (16 bits)       |
--- |  RDATA (variable length)  |
--- +---------------------------+
+--
+-- SPDX-FileCopyrightText: (c) 2024-2025 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+--- DNS Parsing and Packing Module
+-- This module provides utilities for parsing, packing, and manipulating DNS messages.
+-- It supports DNS header parsing, question and resource record handling, and EDNS options.
+--
+-- ### Features
+-- - Parse and pack DNS headers, questions, and resource records.
+-- - Handle DNS label compression and decompression.
+-- - Support for EDNS options and extended DNS error codes.
+--
+-- ### DNS Message Structure
+-- A DNS message consists of the following sections:
+--
+-- 1. **Header**:
+--    - Transaction ID (16 bits): Identifies the DNS query/response pair.
+--    - Flags (16 bits): Contains fields such as `qr`, `opcode`, `aa`, `tc`, `rd`, `ra`, `z`, and `rcode`.
+--    - QDCOUNT (16 bits): Number of entries in the Question section.
+--    - ANCOUNT (16 bits): Number of entries in the Answer section.
+--    - NSCOUNT (16 bits): Number of entries in the Authority section.
+--    - ARCOUNT (16 bits): Number of entries in the Additional section.
+--
+-- 2. **Question Section**:
+--    - QNAME (variable length): Fully qualified domain name (FQDN) being queried.
+--    - QTYPE (16 bits): Type of query (e.g., `A`, `AAAA`, `MX`).
+--    - QCLASS (16 bits): Class of query (e.g., `IN` for Internet).
+--
+-- 3. **Answer, Authority, and Additional Sections**:
+--    - NAME (variable length): Domain name to which the resource record pertains.
+--    - TYPE (16 bits): Type of resource record (e.g., `A`, `AAAA`, `MX`).
+--    - CLASS (16 bits): Class of resource record (e.g., `IN` for Internet).
+--    - TTL (32 bits): Time-to-live for the resource record.
+--    - RDLENGTH (16 bits): Length of the RDATA field.
+--    - RDATA (variable length): Resource data (e.g., IP address for `A` records).
+--
+-- ### DNS Label Compression
+-- DNS messages use label compression to reduce message size. A label can either be:
+-- 1. **Normal Label**:
+--    - A sequence of characters prefixed by its length.
+-- 2. **Compressed Label**:
+--    - A pointer to a previously defined label in the message.
+--    - Compressed labels are identified by the first two bits of the label length field being set to `11`.
+--
+-- This module provides utilities to parse and handle both normal and compressed labels. The `label` function parses a single label, while the `labels` function parses a sequence of labels into a fully qualified domain name (FQDN).
+--
+-- ### EDNS Options
+-- EDNS (Extension Mechanisms for DNS) extends the capabilities of DNS by allowing additional options to be included in DNS messages.
+-- These options are encoded in OPT pseudo-resource records in the Additional section of a DNS message.
+--
+-- Common EDNS options supported by this module:
+-- - **Client Subnet (Code 8)**:
+--   - Fields: `family`, `source_netmask`, `scope_netmask`, `subnet`.
+--   - Used to specify the network of the client making the DNS query.
+-- - **Requestor MAC (Code 65001)**:
+--   - Fields: `mac`.
+--   - Used to include the MAC address of the requestor.
+-- - **Requestor MAC String (Code 65073)**:
+--   - Fields: `macstr`.
+--   - Similar to `Requestor MAC`, but includes the MAC address as a string.
+--
+-- This module provides utilities to parse and pack EDNS options, ensuring compliance with RFC 6891.
+--
+-- References:
+-- - RFC 1035: Domain Names - Implementation and Specification
+-- - RFC 6891: Extension Mechanisms for DNS (EDNS(0))
+--
+-- @module dns
 
 :bidirectional, :zero_indexed = require"ipparse.fun"
-
-pack:sp, unpack: su, :sub = string
+pack: sp, unpack: su, :sub = string
 :concat = table
 
+--- Packs the DNS header into a binary string.
+-- @tparam table self The DNS header object.
+-- @treturn string Binary string representing the packed DNS header.
 pack_header = =>
   (@size and sp(">H", @size) or "") .. sp ">H B B H H H H", @id, @qr_opcode_aa_tc_rd, @ra_z_rcode, @qdcount, @ancount, @nscount, @arcount
 
@@ -69,6 +116,12 @@ _header_mt =
       when "rcode"
         @ra_z_rcode = (@ra_z_rcode & ~0x0f) | (val & 0x0f)
 
+--- Parses a DNS header from a binary string.
+-- @tparam string self The binary string containing the DNS header.
+-- @tparam number off The offset to start parsing from.
+-- @tparam boolean is_tcp Whether the DNS message is over TCP (affects size field).
+-- @treturn table Parsed DNS header as a table.
+-- @treturn number The next offset after parsing.
 parse_header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns DNS header infos
   len = #@ - off
   local size
@@ -85,6 +138,15 @@ parse_header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; ret
   }, _header_mt), data_off
 
 local labels
+
+--- Parses a single DNS label from a binary string.
+-- Handles both normal labels and compressed labels.
+-- @tparam string self The binary string containing the DNS label.
+-- @tparam number off The offset to start parsing from.
+-- @tparam[opt=1] number l7_off The layer 7 offset for label parsing (default is 1).
+-- @treturn string|nil The parsed label as a string, or `nil` if the label is empty.
+-- @treturn number The next offset after parsing.
+-- @treturn[opt] boolean `true` if the label is compressed, `nil` otherwise.
 label = (off, l7_off=1) =>
   return nil if off+2 > #@
   size, pos, _off = su "B B", @, off
@@ -96,19 +158,42 @@ label = (off, l7_off=1) =>
   off = ((size & 0x3F) << 8) + pos
   concat(labels(@, l7_off+off, l7_off), "."), _off, true
 
+--- Parses a sequence of DNS labels into a fully qualified domain name (FQDN).
+-- Handles both normal and compressed labels.
+-- @tparam string self The binary string containing the DNS labels.
+-- @tparam number off The offset to start parsing from.
+-- @tparam number l7_off The layer 7 offset for label parsing.
+-- @treturn table A table of parsed labels.
+-- @treturn number The next offset after parsing.
 labels = (off, l7_off) =>
   lbls = {}
   for i = 1, 1024  -- Arbitrary large limit to avoid infinite loops
-    lbl, off, last = label @, off, l7_off
-    break if last or not lbl
-    lbls[i] = lbl
+    -- off is the current absolute offset in the input string (@)
+    -- l7_off is the absolute offset of the start of the DNS message in @
+    lbl_segment, next_parse_off, is_from_pointer = label @, off, l7_off
+    if not lbl_segment -- Indicates end of name (00 byte) or a parsing error in label()
+      off = next_parse_off -- Ensure 'off' is updated (e.g., past the 00 byte)
+      break
+    lbls[i] = lbl_segment -- Store the parsed label segment
+    off = next_parse_off   -- Update 'off' to the position after the processed segment
+    if is_from_pointer -- If the segment was resolved via a pointer, it's the complete name.
+      break
   lbls, off
 
+--- Packs a DNS question into a binary string.
+-- @tparam table self The DNS question object.
+-- @treturn string Binary string representing the packed DNS question.
 pack_question = =>
   @qname .. sp ">H H", @qtype, @qclass
 
 _question_mt = __tostring: pack_question
 
+--- Parses a DNS question section from a binary string.
+-- @tparam string self The binary string containing the DNS question section.
+-- @tparam number off The offset to start parsing from.
+-- @tparam number l7_off The layer 7 offset for label parsing.
+-- @treturn table Parsed DNS question as a table.
+-- @treturn number The next offset after parsing.
 parse_question = (off, l7_off) =>
   lbls, _off = labels @, off, l7_off
   qname = sub @, off, _off-1
@@ -122,11 +207,20 @@ parse_questions = (off, qdcount, l7_off) =>
     res[i] = q
   res, off
 
+--- Packs a DNS resource record (RR) into a binary string.
+-- @tparam table self The DNS resource record object.
+-- @treturn string Binary string representing the packed DNS resource record.
 pack_rr = =>
   @rname .. sp ">H H I4 s2", @rtype, @rclass, @ttl, @rdata
 
 _rr_mt = __tostring: pack_rr
 
+--- Parses a DNS resource record (RR) from a binary string.
+-- @tparam string self The binary string containing the DNS resource record.
+-- @tparam number off The offset to start parsing from.
+-- @tparam number l7_off The layer 7 offset for label parsing.
+-- @treturn table Parsed DNS resource record as a table.
+-- @treturn number The next offset after parsing.
 parse_rr = (off, l7_off) =>
   lbls, _off = labels @, off, l7_off
   rname = sub @, off, _off-1
@@ -152,6 +246,11 @@ edns_opts[v[1]] = k for k, v in pairs edns_opts when type(k) == "number"
 
 _opt_mt = __tostring: pack_opt
 
+--- Parses an EDNS option from a binary string.
+-- @tparam string self The binary string containing the EDNS option.
+-- @tparam number off The offset to start parsing from.
+-- @treturn table Parsed EDNS option as a table.
+-- @treturn number The next offset after parsing.
 parse_opt = (off=1) =>
   code, data, _off = su ">Hs2", @, off
   len = #data
@@ -168,13 +267,18 @@ parse_opt = (off=1) =>
   else setmetatable {data}, __tostring: => @[1]
   setmetatable({:code, :len, :data}, _opt_mt), _off
 
+--- Parses all EDNS options from a binary string.
+-- @tparam string self The binary string containing the EDNS options.
+-- @treturn table A table of parsed EDNS options.
 parse_opts = =>
   opts, off = {}, 1
   while off < #@
     opts[#opts+1], off = parse_opt @, off
   opts
 
-
+--- Packs a DNS message into a binary string.
+-- @tparam table self The DNS message object.
+-- @treturn string Binary string representing the packed DNS message.
 pack = =>
   @header.qdcount = #@questions
   @header.ancount = #@answers
@@ -192,6 +296,12 @@ _mt =
   __tostring: pack
   __index: (k) => @header[k]
 
+--- Parses a DNS message from a binary string.
+-- @tparam string self The binary string containing the DNS message.
+-- @tparam number l7_off The layer 7 offset for parsing.
+-- @tparam boolean is_tcp Whether the DNS message is over TCP.
+-- @treturn table Parsed DNS message as a table.
+-- @treturn number The next offset after parsing.
 parse = (l7_off, is_tcp) =>
   header, _off = parse_header @, l7_off, is_tcp
   return nil, l7_off, "No DNS data" if not header

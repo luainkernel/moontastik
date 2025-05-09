@@ -1,25 +1,76 @@
--- RFC 5246: TLS 1.2
--- RFC 6066: TLS extensions
+--
+-- SPDX-FileCopyrightText: (c) 2024-2025 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+--- TLS Handshake Parsing and Packing Module
+-- This module provides utilities for parsing and packing TLS handshake messages.
+-- It supports handling various handshake message types, ciphers, compressions, and extensions.
+--
+-- ### Features
+-- - Parse and pack TLS handshake messages.
+-- - Support for various handshake message types, ciphers, and extensions.
+--
+-- ### TLS Handshake Structure
+-- ```
+-- Handshake {
+--   type (8): Handshake message type.
+--   len (24): Length of the handshake message.
+--   payload (variable): Handshake message payload.
+-- }
+-- ```
+--
+-- References:
+-- - RFC 5246: The Transport Layer Security (TLS) Protocol Version 1.2
+-- - RFC 6066: TLS Extensions
+--
+-- @module tls.handshake
+
 pack: sp, unpack: su = string
 :bidirectional = require"ipparse.fun"
 parse: parse_extension = require"ipparse.l7.tls.handshake.extension"
 
+--- Packs a TLS handshake message into a binary string.
+-- Constructs the binary representation of the handshake message.
+-- @tparam table self The handshake message object.
+-- @treturn string Binary string representing the packed handshake message.
 pack = =>
   sp ">B BH", @type, (@len >> 16), (@len & 0xffff)
 
 _mt =
+  --- Converts the handshake message object to a binary string.
+  -- @treturn string Binary string representing the handshake message.
   __tostring: pack
 
+--- Parses a binary string into a TLS handshake message structure.
+-- Extracts the handshake type, length, and payload from the binary string.
+-- @tparam string self The binary string containing the handshake message.
+-- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
+-- @treturn table Parsed handshake message as a table.
+-- @treturn number The next offset after parsing.
 parse = (off=1) =>
   _type, _len, len, _off = su ">B BH", @, off
   len += (_len << 16)
   setmetatable({type: _type, :len}, _mt), _off
 
-
+--- Parses a list of cipher suites from a binary string.
+-- Extracts cipher suite codes from the binary string.
+-- @tparam string self The binary string containing the cipher suites.
+-- @treturn {number} Array of cipher suite codes.
 parse_ciphers = => [su ">H", @, i for i = 1, #@, 2]
 
+--- Parses a list of compression methods from a binary string.
+-- Extracts compression method codes from the binary string.
+-- @tparam string self The binary string containing the compression methods.
+-- @treturn {number} Array of compression method codes.
 parse_compressions = => [su "B", @, i for i = 1, #@]
 
+--- Iterates over TLS extensions in a binary string.
+-- Extracts extensions one by one from the binary string.
+-- @tparam string self The binary string containing the extensions.
+-- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
+-- @tparam[opt=#self] number len Length of the extensions data. Defaults to the full string length.
+-- @treturn function Iterator function returning each parsed extension.
 iter_extensions = (off=1, len=#@) =>
   _max = off+len
   ->
@@ -27,6 +78,9 @@ iter_extensions = (off=1, len=#@) =>
       extension, off = parse_extension @, off
       extension
 
+--- TLS Handshake Message Types
+-- Provides a mapping of handshake message type codes to their names.
+-- @field[type=table] message_types Bidirectional mapping of handshake message type codes and names.
 message_types = bidirectional {
   [0x00]: "hello_request"
   [0x01]: "client_hello"
@@ -45,6 +99,9 @@ message_types = bidirectional {
   [0x15]: "key_update"
 }
 
+--- TLS Cipher Suites
+-- Provides a mapping of cipher suite codes to their names.
+-- @field[type=table] ciphers Bidirectional mapping of cipher suite codes and names.
 ciphers = bidirectional {
   [0x0005]: "TLS_RSA_WITH_RC4_128_SHA"
   [0x000a]: "TLS_RSA_WITH_3DES_EDE_CBC_SHA"
@@ -71,6 +128,9 @@ ciphers = bidirectional {
   [0xcca9]: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
 }
 
+--- TLS Compression Methods
+-- Provides a mapping of compression method codes to their names.
+-- @field[type=table] compressions Bidirectional mapping of compression method codes and names.
 compressions = bidirectional {
   [0x00]: "NULL"
   [0x01]: "DEFLATE"
@@ -79,6 +139,9 @@ compressions = bidirectional {
   [0xff]: "unknown"
 }
 
+--- TLS Extensions
+-- Provides a mapping of extension codes to their names.
+-- @field[type=table] extensions Bidirectional mapping of extension codes and names.
 extensions = bidirectional {
   [0x00]: "server_name"
   [0x01]: "max_fragment_length"
