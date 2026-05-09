@@ -1,0 +1,474 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><strong>l4.quic.v1.protection</strong></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l4.quic.v1.protection</code></h1>
+<p>QUIC v1 header and packet protection (RFC 9001).</p>
+<p>
+<p> **Backend-agnostic**: all cryptographic operations are delegated to a
+ crypto backend table passed as the last argument (or returned by
+ `require "ipparse.lib.crypto.backend.ffi_openssl"`).
+ The backend must expose:
+   `aes_128_ecb_block(key, block)` → 16 bytes
+   `aes_128_gcm_encrypt(key, nonce, plaintext, aad)` → ciphertext_with_tag
+   `aes_128_gcm_decrypt(key, nonce, ciphertext_with_tag, aad)` → plaintext | nil, err
+<p> ### Header protection (RFC 9001 §5.4)
+ mask = AES-ECB(hp_key, sample)    -- sample = 16 bytes from encrypted payload
+ Long header:  first_byte ^= mask[0] & 0x0F ; pn_bytes ^= mask[1..pn_len]
+ Short header: first_byte ^= mask[0] & 0x1F ; pn_bytes ^= mask[1..pn_len]
+<p> ### Packet number nonce (RFC 9001 §5.3)
+ nonce = iv XOR (pn padded to 12 bytes, big-endian)
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#construct_nonce">construct_nonce (iv, pn)</a></td>
+	<td class="summary">Constructs the QUIC nonce by XOR-ing the IV with the packet number.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#sample_from_packet">sample_from_packet (pkt, enc_off)</a></td>
+	<td class="summary">Extracts the 16-byte sample for header protection from encrypted payload.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#apply_header_mask">apply_header_mask (hdr_bytes, first_byte_idx, pn_off, pn_len, mask, long)</a></td>
+	<td class="summary">Applies (or removes — same operation) header protection.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#pn_from_bytes">pn_from_bytes (hdr_bytes, pn_off, pn_len)</a></td>
+	<td class="summary">Decodes a big-endian packet number from `n` bytes.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#recover_packet_number">recover_packet_number (truncated, expected, pn_len)</a></td>
+	<td class="summary">Recovers the full packet number from a truncated one (RFC 9000 §A.3).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#remove_header_protection">remove_header_protection (pkt, pn_off, hp_key, long, expected_pn, crypto)</a></td>
+	<td class="summary">Removes header protection from a raw QUIC Initial (long-header) packet.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#decrypt_payload">decrypt_payload (pkt, payload_off, key, iv, pn, aad, crypto)</a></td>
+	<td class="summary">Decrypts a QUIC packet payload (AEAD, RFC 9001 §5.3).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#encrypt_payload">encrypt_payload (plaintext, key, iv, pn, aad, crypto)</a></td>
+	<td class="summary">Encrypts a QUIC packet payload (AEAD, RFC 9001 §5.3).</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "construct_nonce"></a>
+    <strong>construct_nonce (iv, pn)</strong>
+    </dt>
+    <dd>
+    Constructs the QUIC nonce by XOR-ing the IV with the packet number.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         12-byte string
+        </li>
+        <li><span class="parameter">pn</span>
+            <span class="types"><span class="type">number</span></span>
+         packet number (non-negative integer)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        12-byte nonce
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "sample_from_packet"></a>
+    <strong>sample_from_packet (pkt, enc_off)</strong>
+    </dt>
+    <dd>
+    Extracts the 16-byte sample for header protection from encrypted payload.
+ RFC 9001 §5.4.2: sample starts at offset 4 past the start of the encrypted payload.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pkt</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            full packet bytes (binary string)
+        </li>
+        <li><span class="parameter">enc_off</span>
+            <span class="types"><span class="type">number</span></span>
+         1-based offset where encrypted payload starts (after pn field)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        16-byte sample
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "apply_header_mask"></a>
+    <strong>apply_header_mask (hdr_bytes, first_byte_idx, pn_off, pn_len, mask, long)</strong>
+    </dt>
+    <dd>
+    Applies (or removes — same operation) header protection.
+ Works in-place on the mutable bytes table `hdr_bytes`.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">hdr_bytes</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+          array of byte values (1-based), modified in place
+        </li>
+        <li><span class="parameter">first_byte_idx</span>
+            <span class="types"><span class="type">number</span></span>
+          1-based index of protected first byte in hdr_bytes
+        </li>
+        <li><span class="parameter">pn_off</span>
+            <span class="types"><span class="type">number</span></span>
+             1-based index in hdr_bytes where the packet number starts
+        </li>
+        <li><span class="parameter">pn_len</span>
+            <span class="types"><span class="type">number</span></span>
+             number of packet number bytes (1..4)
+        </li>
+        <li><span class="parameter">mask</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+               5-byte mask from AES-ECB
+        </li>
+        <li><span class="parameter">long</span>
+            <span class="types"><span class="type">boolean</span></span>
+              true for long header, false for short
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "pn_from_bytes"></a>
+    <strong>pn_from_bytes (hdr_bytes, pn_off, pn_len)</strong>
+    </dt>
+    <dd>
+    Decodes a big-endian packet number from `n` bytes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">hdr_bytes</span>
+
+        </li>
+        <li><span class="parameter">pn_off</span>
+
+        </li>
+        <li><span class="parameter">pn_len</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "recover_packet_number"></a>
+    <strong>recover_packet_number (truncated, expected, pn_len)</strong>
+    </dt>
+    <dd>
+    Recovers the full packet number from a truncated one (RFC 9000 §A.3).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">truncated</span>
+            <span class="types"><span class="type">number</span></span>
+          the pn_len-byte truncated packet number
+        </li>
+        <li><span class="parameter">expected</span>
+            <span class="types"><span class="type">number</span></span>
+           the expected next packet number (largest acknowledged + 1)
+        </li>
+        <li><span class="parameter">pn_len</span>
+            <span class="types"><span class="type">number</span></span>
+             number of bytes used in the wire encoding
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">number</span></span>
+        full packet number
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "remove_header_protection"></a>
+    <strong>remove_header_protection (pkt, pn_off, hp_key, long, expected_pn, crypto)</strong>
+    </dt>
+    <dd>
+    Removes header protection from a raw QUIC Initial (long-header) packet.
+<p> Returns an immutable view: the function returns modified bytes, not a new string.
+ Caller should reconstruct the header string only if needed.
+
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pkt</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                  raw QUIC packet bytes (binary string, 1-based)
+        </li>
+        <li><span class="parameter">pn_off</span>
+            <span class="types"><span class="type">number</span></span>
+               1-based offset of the (protected) packet number field
+                              in the packet (computed during header parsing)
+        </li>
+        <li><span class="parameter">hp_key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+               16-byte header protection key
+        </li>
+        <li><span class="parameter">long</span>
+            <span class="types"><span class="type">boolean</span></span>
+                 true for long header, false for short
+        </li>
+        <li><span class="parameter">expected_pn</span>
+            <span class="types"><span class="type">number</span></span>
+          expected next packet number (for full PN recovery)
+        </li>
+        <li><span class="parameter">crypto</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+               backend table (must have `aes_128_ecb_block`)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        hdr_bytes    modified byte array of the entire packet</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        pn           recovered full packet number</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        pn_len       packet number length in bytes (1..4)</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "decrypt_payload"></a>
+    <strong>decrypt_payload (pkt, payload_off, key, iv, pn, aad, crypto)</strong>
+    </dt>
+    <dd>
+    Decrypts a QUIC packet payload (AEAD, RFC 9001 §5.3).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">pkt</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                  raw QUIC packet bytes
+        </li>
+        <li><span class="parameter">payload_off</span>
+            <span class="types"><span class="type">number</span></span>
+          1-based offset of the encrypted payload (after pn field)
+        </li>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                  16-byte packet protection key
+        </li>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                   12-byte packet protection IV
+        </li>
+        <li><span class="parameter">pn</span>
+            <span class="types"><span class="type">number</span></span>
+                   full recovered packet number (used to build nonce)
+        </li>
+        <li><span class="parameter">aad</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                  additional authenticated data (unprotected header bytes)
+        </li>
+        <li><span class="parameter">crypto</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+               backend table (must have `aes_128_gcm_decrypt`)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        decrypted plaintext (frames)</li>
+        <li>
+           <span class="types"><span class="type">nil,</span></span>
+        string        on authentication failure</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "encrypt_payload"></a>
+    <strong>encrypt_payload (plaintext, key, iv, pn, aad, crypto)</strong>
+    </dt>
+    <dd>
+    Encrypts a QUIC packet payload (AEAD, RFC 9001 §5.3).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">plaintext</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            frame data
+        </li>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                  16-byte packet protection key
+        </li>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                   12-byte packet protection IV
+        </li>
+        <li><span class="parameter">pn</span>
+            <span class="types"><span class="type">number</span></span>
+                   packet number
+        </li>
+        <li><span class="parameter">aad</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+                  unprotected header (additional authenticated data)
+        </li>
+        <li><span class="parameter">crypto</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+               backend table
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        ciphertext_with_tag
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><strong>l3.ip6</strong></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l3.ip6</code></h1>
+<p>IPv6 Header Parsing and Packing Module
+ This module provides utilities for parsing, packing, and manipulating IPv6 headers.</p>
+<p>
+ It includes functions for handling IPv6 addresses, converting between binary and readable formats,
+ and managing IPv6 network addresses.
+<p> ### IPv6 Header Structure
+ ```
+ IPv6 Header {
+   version (4): IP version (always 6 for IPv6).
+   traffic_class (8): Traffic Class.
+   flow_label (20): Flow Label.
+   payload_len (16): Payload Length (in bytes, excluding the header).
+   next_header (8): Next Header (e.g., TCP, UDP, or extension headers).
+   hop_limit (8): Hop Limit (similar to TTL in IPv4).
+   src (128): Source IPv6 Address.
+   dst (128): Destination IPv6 Address.
+   payload (variable): Payload data (e.g., transport-layer data or extension headers).
+ }
+ ```
+<p> References:
+ - RFC 8200: Internet Protocol, Version 6 (IPv6) Specification
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#pack">pack (self)</a></td>
+	<td class="summary">Packs the IPv6 header and payload into a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse">parse ([off=1])</a></td>
+	<td class="summary">Parses a binary string into an IPv6 header structure.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new">new (self)</a></td>
+	<td class="summary">Creates a new IPv6 header object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_ip6">parse_ip6 (self)</a></td>
+	<td class="summary">Parses a readable IPv6 address string into an array of 16-bit integers.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ip62s">ip62s (self)</a></td>
+	<td class="summary">Converts a binary IPv6 address to a readable string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#s2ip6">s2ip6 (self)</a></td>
+	<td class="summary">Converts a readable IPv6 address string to binary format.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#net62s">net62s (self)</a></td>
+	<td class="summary">Converts a binary IPv6 network address to a readable string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#s2net6">s2net6 (self)</a></td>
+	<td class="summary">Converts a readable IPv6 network address string to binary format.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "pack"></a>
+    <strong>pack (self)</strong>
+    </dt>
+    <dd>
+    Packs the IPv6 header and payload into a binary string.
+ Calculates the checksum and updates header fields like `payload_len`.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The IPv6 header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the packed IPv6 header and payload.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse"></a>
+    <strong>parse ([off=1])</strong>
+    </dt>
+    <dd>
+    Parses a binary string into an IPv6 header structure.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset to start parsing from. Defaults to 1.
+         (<em>default</em> 1)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed IPv6 header as a table.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new (self)</strong>
+    </dt>
+    <dd>
+    Creates a new IPv6 header object.
+ Initializes the `vtf` field if not already set.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The IPv6 header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        The new IPv6 header object.
+      <ul>
+        </ul>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_ip6"></a>
+    <strong>parse_ip6 (self)</strong>
+    </dt>
+    <dd>
+    Parses a readable IPv6 address string into an array of 16-bit integers.
+ Handles zero compression (::) in the address.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The IPv6 address string.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">{number}</span></span>
+        Array of 16-bit integers representing the IPv6 address.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ip62s"></a>
+    <strong>ip62s (self)</strong>
+    </dt>
+    <dd>
+    Converts a binary IPv6 address to a readable string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary IPv6 address.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        IPv6 address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx".
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "s2ip6"></a>
+    <strong>s2ip6 (self)</strong>
+    </dt>
+    <dd>
+    Converts a readable IPv6 address string to binary format.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The IPv6 address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx".
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the IPv6 address.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "net62s"></a>
+    <strong>net62s (self)</strong>
+    </dt>
+    <dd>
+    Converts a binary IPv6 network address to a readable string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary IPv6 network address.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        IPv6 network address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx/mask".
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "s2net6"></a>
+    <strong>s2net6 (self)</strong>
+    </dt>
+    <dd>
+    Converts a readable IPv6 network address string to binary format.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The IPv6 network address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx/mask".
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the IPv6 network address.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

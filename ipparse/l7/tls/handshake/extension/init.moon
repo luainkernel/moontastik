@@ -22,9 +22,9 @@
 -- References:
 -- - RFC 6066: Transport Layer Security (TLS) Extensions
 --
--- @module tls.handshake.extension
+-- @module l7.tls.handshake.extension
 
-pack: sp, unpack: su = string
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 
 --- Packs a TLS handshake extension into a binary string.
 -- Constructs the binary representation of the extension.

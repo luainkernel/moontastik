@@ -1,0 +1,48 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2025 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+--- Crypto backend interface for ipparse.
+--
+-- This module defines the contract that all crypto backends must satisfy.
+-- It does NOT implement any cryptographic operation itself.
+--
+-- A backend is a table exposing the following functions:
+--
+-- ### Primitives
+--
+-- **aes_128_gcm_encrypt(key, nonce, plaintext, aad) → ciphertext_with_tag**
+-- - key       : 16-byte string (AES-128 key)
+-- - nonce     : 12-byte string (GCM nonce)
+-- - plaintext : string
+-- - aad       : string (additional authenticated data, may be "")
+-- - returns   : ciphertext .. 16-byte auth tag
+--
+-- **aes_128_gcm_decrypt(key, nonce, ciphertext_with_tag, aad) → plaintext | nil, err**
+-- - key                : 16-byte string
+-- - nonce              : 12-byte string
+-- - ciphertext_with_tag: ciphertext .. 16-byte auth tag
+-- - aad                : string (may be "")
+-- - returns            : plaintext on success, nil + error string on failure
+--
+-- **aes_128_ecb_block(key, block) → encrypted_block**
+-- - key   : 16-byte string (AES-128 key)
+-- - block : exactly 16-byte string
+-- - returns: exactly 16-byte encrypted block (no padding, pure ECB)
+-- - Used for QUIC header protection (RFC 9001 §5.4.3)
+--
+-- ### Usage
+--
+-- To use a backend:
+--   crypto = require "ipparse.lib.crypto.backend.lunatik"      -- Lunatik kernel crypto API
+--   -- or:
+--   crypto = require "ipparse.lib.crypto.backend.ffi_openssl"  -- LuaJIT FFI + OpenSSL
+--   ciphertext = crypto.aes_128_gcm_encrypt(key, nonce, plaintext, aad)
+--
+-- To write a new backend, implement the three functions above and return them.
+--
+-- @module lib.crypto
+
+-- This module only serves as documentation; it exports nothing.
+{}

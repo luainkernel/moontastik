@@ -4,7 +4,7 @@
 --
 
 -- Version negotiation packets
-pack: sp, unpack: su, :rep = string
+pack: sp, unpack: su, :rep = require "ipparse.lib.pack_compat"
 :remove = table
 
 version = 0

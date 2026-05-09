@@ -1,0 +1,414 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><strong>l3.ip4</strong></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l3.ip4</code></h1>
+<p>IPv4 Header Parsing and Packing Module
+ This module provides utilities for parsing, packing, and manipulating IPv4 headers.</p>
+<p>
+ It includes functions for handling IPv4 addresses, converting between binary and readable formats,
+ and managing IPv4 network addresses.
+<p> ### IPv4 Header Structure
+ ```
+ IPv4 Header {
+   version (4): IP version (always 4 for IPv4).
+   ihl (4): Internet Header Length (in 32-bit words).
+   tos (8): Type of Service.
+   total_len (16): Total Length (header + payload).
+   id (16): Identification.
+   ff (16):
+     - flags (3): Flags:
+       - 0x4000: Don't Fragment (DF).
+       - 0x2000: More Fragments (MF).
+     - frag_offset (13): Fragment Offset.
+   ttl (8): Time to Live.
+   protocol (8): Protocol (e.g., TCP, UDP).
+   checksum (16): Header Checksum.
+   src (32): Source IP Address.
+   dst (32): Destination IP Address.
+   options (variable): Optional fields (if any).
+   payload (variable): Payload data.
+ }
+ ```
+<p> References:
+ - RFC 791: Internet Protocol (IPv4)
+ - RFC 1122: Requirements for Internet Hosts - Communication Layers
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#pack">pack (self)</a></td>
+	<td class="summary">Packs the IPv4 header and payload into a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#__tostring">__tostring ()</a></td>
+	<td class="summary">Converts the IPv4 header object to a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#__newindex">__newindex (k, v)</a></td>
+	<td class="summary">Sets or clears a specific IPv4 flag.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse">parse ([off=1])</a></td>
+	<td class="summary">Parses a binary string into an IPv4 header structure.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new">new (self)</a></td>
+	<td class="summary">Creates a new IPv4 header object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ip42s">ip42s (self)</a></td>
+	<td class="summary">Converts an IPv4 address from binary format to a readable string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#s2ip4">s2ip4 (self)</a></td>
+	<td class="summary">Converts an IPv4 address from a readable string to binary format.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#net42s">net42s (self)</a></td>
+	<td class="summary">Converts a binary IPv4 network address to a readable string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#s2net4">s2net4 (self)</a></td>
+	<td class="summary">Converts a readable IPv4 network address to binary format.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "pack"></a>
+    <strong>pack (self)</strong>
+    </dt>
+    <dd>
+    Packs the IPv4 header and payload into a binary string.
+ Calculates the checksum and updates header fields like `ihl` and `total_len`.
+ If `self.data` is present, it's assumed to be an object representing the L4 payload.
+ Its `__tostring` method will be called (potentially twice), and its `checksum` field
+ will be set after calculating the L4 checksum using the pseudo-header.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The IPv4 header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the packed IPv4 header and payload.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "__tostring"></a>
+    <strong>__tostring ()</strong>
+    </dt>
+    <dd>
+    Converts the IPv4 header object to a binary string.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the IPv4 header and payload.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "__newindex"></a>
+    <strong>__newindex (k, v)</strong>
+    </dt>
+    <dd>
+    Sets or clears a specific IPv4 flag.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">k</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The flag name (e.g., "DF", "MF").
+        </li>
+        <li><span class="parameter">v</span>
+            <span class="types"><span class="type">boolean</span></span>
+         `true` to set the flag, `false` to clear it.
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse"></a>
+    <strong>parse ([off=1])</strong>
+    </dt>
+    <dd>
+    Parses a binary string into an IPv4 header structure.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset to start parsing from. Defaults to 1.
+         (<em>default</em> 1)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed IPv4 header as a table.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new (self)</strong>
+    </dt>
+    <dd>
+    Creates a new IPv4 header object.
+ Initializes the `v_ihl` field if not already set.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The IPv4 header object, which can contain the fields below.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        The new IPv4 header object.
+      <ul>
+        </ul>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ip42s"></a>
+    <strong>ip42s (self)</strong>
+    </dt>
+    <dd>
+    Converts an IPv4 address from binary format to a readable string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary IPv4 address.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        IPv4 address as a string in the format "x.x.x.x".
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "s2ip4"></a>
+    <strong>s2ip4 (self)</strong>
+    </dt>
+    <dd>
+    Converts an IPv4 address from a readable string to binary format.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The IPv4 address as a string in the format "x.x.x.x".
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the IPv4 address.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "net42s"></a>
+    <strong>net42s (self)</strong>
+    </dt>
+    <dd>
+    Converts a binary IPv4 network address to a readable string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary IPv4 network address.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        IPv4 network address as a string in the format "x.x.x.x/mask".
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "s2net4"></a>
+    <strong>s2net4 (self)</strong>
+    </dt>
+    <dd>
+    Converts a readable IPv4 network address to binary format.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The IPv4 network address as a string in the format "x.x.x.x/mask".
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the IPv4 network address.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -1,0 +1,962 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><strong>l4.quic.frames</strong></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l4.quic.frames</code></h1>
+<p>QUIC Frame Parsing and Packing Module
+ This module provides utilities for parsing and packing QUIC frames.</p>
+<p>
+ It supports all standard QUIC frame types including CRYPTO, STREAM, ACK, and control frames.
+<p> ### Features
+ - Parse and pack QUIC frames from decrypted packet payload
+ - Support for variable-length integer encoding (VarInt)
+ - Handle all frame types defined in RFC 9000
+ - Frame iteration and validation
+<p> ### QUIC Frame Structure
+ ```
+ Frame {
+   type (variable): Frame type as VarInt
+   type_specific_fields (variable): Fields specific to frame type
+   data (variable): Frame payload data
+ }
+ ```
+<p> References:
+ - RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport
+ - RFC 9001: Using TLS to Secure QUIC
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#frame_types">frame_types ()</a></td>
+	<td class="summary">QUIC Frame Types
+ Mapping of frame type codes to their names</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_varint">parse_varint (data, offset)</a></td>
+	<td class="summary">Parses a QUIC variable-length integer (VarInt)
+ VarInt encoding uses the first two bits to indicate length:
+ 00xxxxxx = 1 byte (0-63)
+ 01xxxxxx xxxxxxxx = 2 bytes (0-16383)
+ 10xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx = 4 bytes (0-1073741823)
+ 11xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx = 8 bytes</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#encode_varint">encode_varint (value)</a></td>
+	<td class="summary">Encodes a number as a QUIC variable-length integer (VarInt)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_padding_frame">parse_padding_frame (data, offset)</a></td>
+	<td class="summary">Parses a PADDING frame
+ PADDING frames consist only of the frame type (0x00)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_ping_frame">parse_ping_frame (data, offset)</a></td>
+	<td class="summary">Parses a PING frame
+ PING frames consist only of the frame type (0x01)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_ack_frame">parse_ack_frame (data, offset, frame_type)</a></td>
+	<td class="summary">Parses an ACK frame
+ ACK frames contain acknowledgment information for received packets</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_crypto_frame">parse_crypto_frame (data, offset)</a></td>
+	<td class="summary">Parses a CRYPTO frame
+ CRYPTO frames contain TLS handshake data</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_stream_frame">parse_stream_frame (data, offset, frame_type)</a></td>
+	<td class="summary">Parses a STREAM frame
+ STREAM frames contain application data for a specific stream</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_new_token_frame">parse_new_token_frame (data, offset)</a></td>
+	<td class="summary">Parses a NEW_TOKEN frame
+ NEW_TOKEN frames provide tokens for future connection attempts</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_reset_stream_frame">parse_reset_stream_frame (data, offset)</a></td>
+	<td class="summary">Parses a RESET_STREAM frame (0x04)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_stop_sending_frame">parse_stop_sending_frame (data, offset)</a></td>
+	<td class="summary">Parses a STOP_SENDING frame (0x05)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_max_data_frame">parse_max_data_frame (data, offset)</a></td>
+	<td class="summary">Parses a MAX_DATA frame (0x10)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_max_stream_data_frame">parse_max_stream_data_frame (data, offset)</a></td>
+	<td class="summary">Parses a MAX_STREAM_DATA frame (0x11)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_max_streams_frame">parse_max_streams_frame (data, offset, frame_type)</a></td>
+	<td class="summary">Parses MAX_STREAMS frames (0x12 bidi, 0x13 uni)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_data_blocked_frame">parse_data_blocked_frame (data, offset)</a></td>
+	<td class="summary">Parses a DATA_BLOCKED frame (0x14)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_stream_data_blocked_frame">parse_stream_data_blocked_frame (data, offset)</a></td>
+	<td class="summary">Parses a STREAM_DATA_BLOCKED frame (0x15)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_streams_blocked_frame">parse_streams_blocked_frame (data, offset, frame_type)</a></td>
+	<td class="summary">Parses STREAMS_BLOCKED frames (0x16 bidi, 0x17 uni)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_new_connection_id_frame">parse_new_connection_id_frame (data, offset)</a></td>
+	<td class="summary">Parses a NEW_CONNECTION_ID frame (0x18)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_retire_connection_id_frame">parse_retire_connection_id_frame (data, offset)</a></td>
+	<td class="summary">Parses a RETIRE_CONNECTION_ID frame (0x19)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_path_challenge_frame">parse_path_challenge_frame (data, offset)</a></td>
+	<td class="summary">Parses a PATH_CHALLENGE frame (0x1a)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_path_response_frame">parse_path_response_frame (data, offset)</a></td>
+	<td class="summary">Parses a PATH_RESPONSE frame (0x1b)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_connection_close_frame">parse_connection_close_frame (data, offset, frame_type)</a></td>
+	<td class="summary">Parses a CONNECTION_CLOSE frame (0x1c or 0x1d)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_handshake_done_frame">parse_handshake_done_frame (data, offset)</a></td>
+	<td class="summary">Parses a HANDSHAKE_DONE frame (0x1e) — no fields</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_frame">parse_frame (data, offset)</a></td>
+	<td class="summary">Parses a generic frame header and delegates to specific parsers.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#iter_frames">iter_frames (payload_data)</a></td>
+	<td class="summary">Iterates over all frames in a decrypted QUIC packet payload</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#validate_frames">validate_frames (payload_data)</a></td>
+	<td class="summary">Validates that frame data is complete and well-formed</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "frame_types"></a>
+    <strong>frame_types ()</strong>
+    </dt>
+    <dd>
+    QUIC Frame Types
+ Mapping of frame type codes to their names
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_varint"></a>
+    <strong>parse_varint (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a QUIC variable-length integer (VarInt)
+ VarInt encoding uses the first two bits to indicate length:
+ 00xxxxxx = 1 byte (0-63)
+ 01xxxxxx xxxxxxxx = 2 bytes (0-16383)
+ 10xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx = 4 bytes (0-1073741823)
+ 11xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx = 8 bytes
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the VarInt
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The parsed integer value</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the VarInt</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "encode_varint"></a>
+    <strong>encode_varint (value)</strong>
+    </dt>
+    <dd>
+    Encodes a number as a QUIC variable-length integer (VarInt)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">value</span>
+            <span class="types"><span class="type">number</span></span>
+         The integer value to encode
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string containing the encoded VarInt
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_padding_frame"></a>
+    <strong>parse_padding_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a PADDING frame
+ PADDING frames consist only of the frame type (0x00)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed PADDING frame</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_ping_frame"></a>
+    <strong>parse_ping_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a PING frame
+ PING frames consist only of the frame type (0x01)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed PING frame</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_ack_frame"></a>
+    <strong>parse_ack_frame (data, offset, frame_type)</strong>
+    </dt>
+    <dd>
+    Parses an ACK frame
+ ACK frames contain acknowledgment information for received packets
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+        <li><span class="parameter">frame_type</span>
+            <span class="types"><span class="type">number</span></span>
+         Frame type (0x02 or 0x03 for ACK_ECN)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed ACK frame</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_crypto_frame"></a>
+    <strong>parse_crypto_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a CRYPTO frame
+ CRYPTO frames contain TLS handshake data
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed CRYPTO frame with TLS data</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_stream_frame"></a>
+    <strong>parse_stream_frame (data, offset, frame_type)</strong>
+    </dt>
+    <dd>
+    Parses a STREAM frame
+ STREAM frames contain application data for a specific stream
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+        <li><span class="parameter">frame_type</span>
+            <span class="types"><span class="type">number</span></span>
+         Frame type (0x08-0x0f, different bits indicate presence of fields)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed STREAM frame</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_new_token_frame"></a>
+    <strong>parse_new_token_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a NEW_TOKEN frame
+ NEW_TOKEN frames provide tokens for future connection attempts
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed NEW_TOKEN frame</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_reset_stream_frame"></a>
+    <strong>parse_reset_stream_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a RESET_STREAM frame (0x04)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_stop_sending_frame"></a>
+    <strong>parse_stop_sending_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a STOP_SENDING frame (0x05)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_max_data_frame"></a>
+    <strong>parse_max_data_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a MAX_DATA frame (0x10)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_max_stream_data_frame"></a>
+    <strong>parse_max_stream_data_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a MAX_STREAM_DATA frame (0x11)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_max_streams_frame"></a>
+    <strong>parse_max_streams_frame (data, offset, frame_type)</strong>
+    </dt>
+    <dd>
+    Parses MAX_STREAMS frames (0x12 bidi, 0x13 uni)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+        <li><span class="parameter">frame_type</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_data_blocked_frame"></a>
+    <strong>parse_data_blocked_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a DATA_BLOCKED frame (0x14)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_stream_data_blocked_frame"></a>
+    <strong>parse_stream_data_blocked_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a STREAM_DATA_BLOCKED frame (0x15)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_streams_blocked_frame"></a>
+    <strong>parse_streams_blocked_frame (data, offset, frame_type)</strong>
+    </dt>
+    <dd>
+    Parses STREAMS_BLOCKED frames (0x16 bidi, 0x17 uni)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+        <li><span class="parameter">frame_type</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_new_connection_id_frame"></a>
+    <strong>parse_new_connection_id_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a NEW_CONNECTION_ID frame (0x18)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_retire_connection_id_frame"></a>
+    <strong>parse_retire_connection_id_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a RETIRE_CONNECTION_ID frame (0x19)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_path_challenge_frame"></a>
+    <strong>parse_path_challenge_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a PATH_CHALLENGE frame (0x1a)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_path_response_frame"></a>
+    <strong>parse_path_response_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a PATH_RESPONSE frame (0x1b)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_connection_close_frame"></a>
+    <strong>parse_connection_close_frame (data, offset, frame_type)</strong>
+    </dt>
+    <dd>
+    Parses a CONNECTION_CLOSE frame (0x1c or 0x1d)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+        <li><span class="parameter">frame_type</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_handshake_done_frame"></a>
+    <strong>parse_handshake_done_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a HANDSHAKE_DONE frame (0x1e) — no fields
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+
+        </li>
+        <li><span class="parameter">offset</span>
+
+        </li>
+    </ul>
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_frame"></a>
+    <strong>parse_frame (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a generic frame header and delegates to specific parsers.
+ Returns nil only when offset is past end-of-data; returns an UNKNOWN frame
+ for unrecognised types (advances by 1 byte to avoid infinite loops).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the frame
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed frame object</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the frame</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "iter_frames"></a>
+    <strong>iter_frames (payload_data)</strong>
+    </dt>
+    <dd>
+    Iterates over all frames in a decrypted QUIC packet payload
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">payload_data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The decrypted packet payload containing frames
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        Iterator function that returns each parsed frame
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "validate_frames"></a>
+    <strong>validate_frames (payload_data)</strong>
+    </dt>
+    <dd>
+    Validates that frame data is complete and well-formed
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">payload_data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The decrypted packet payload
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">boolean</span></span>
+        True if all frames are valid</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Error message if validation fails</li>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -36,9 +36,9 @@
 --
 -- - RFC 6066: Transport Layer Security (TLS) Extensions
 --
--- @module tls.handshake.extension.server_name
+-- @module l7.tls.handshake.extension.server_name
 
-pack: sp, unpack: su = string
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :concat = table
 :bidirectional,:zero_indexed = require"ipparse.fun"
 

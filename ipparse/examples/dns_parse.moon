@@ -18,6 +18,7 @@ ip        = require "ipparse.l3.ip"
 udp       = require "ipparse.l4.udp" -- For UDP Layer
 dns       = require "ipparse.l7.dns" -- DNS module
 ip_utils  = require "ipparse" -- For hex2bin utility
+{:band, :bor, :bnot, :lshift, :rshift} = require "ipparse.lib.bit_compat"
 
 -- Sample Packet Data (DNS A Record Query for "example.com")
 -- This is a hexadecimal string representing a simplified Ethernet frame containing
@@ -142,7 +143,7 @@ unless dns_msg_query
   return
 
 print "DNS Transaction ID: 0x#{string.format "%04x", dns_msg_query.header.id}"
-print "DNS Flags: 0x#{string.format "%04x", (dns_msg_query.header.qr_opcode_aa_tc_rd << 8) | dns_msg_query.header.ra_z_rcode}" -- Reconstruct raw flags
+print "DNS Flags: 0x#{string.format "%04x", bor(lshift(dns_msg_query.header.qr_opcode_aa_tc_rd, 8), dns_msg_query.header.ra_z_rcode)}" -- Reconstruct raw flags
 print "  Query/Response: #{dns_msg_query.header.qr and "Response" or "Query"}" -- Accessing parsed flag
 print "  Recursion Desired: #{dns_msg_query.header.rd and "Yes" or "No"}" -- Accessing parsed flag
 print "Number of Questions: #{dns_msg_query.header.qdcount}"

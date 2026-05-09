@@ -6,6 +6,7 @@
 IP4 = require"ipparse.l3.ip4"
 new: data_new = require"data"
 :sort = table
+{:lshift} = require"ipparse.lib.bit_compat"
 
 fragmented = {}
 
@@ -14,7 +15,7 @@ collect: =>
   fragments = fragmented[id] or {}
   fragmented[id] = fragments
   _skb, off, data_off, data_len, mf = @skb, @off, @data_off, @data_len, @mf
-  frag_off = @fragmentation_off << 3
+  frag_off = lshift(@fragmentation_off, 3)
   total_len = off + frag_off + data_off + data_len
   -- 64KB is the theoretical maximum, 10KB a reasonable max len default
   max_len = total_len > 10240 and 65535 or 10240

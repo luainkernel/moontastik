@@ -1,0 +1,315 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><strong>init</strong></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>init</code></h1>
+<p>Returns a string representation of the table's key-value pairs.</p>
+<p>
+ Iterates over the table and formats each key-value pair as "key: value".</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#filterascii">filterascii (s)</a></td>
+	<td class="summary">Filters a binary string, replacing non-ASCII characters with dots.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#need_bytes">need_bytes (off, len)</a></td>
+	<td class="summary">Validates that a buffer has enough bytes from a given offset.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#bin2hex">bin2hex (s)</a></td>
+	<td class="summary">Converts a binary string to a hexadecimal string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#lbin2hex">lbin2hex (self)</a></td>
+	<td class="summary">Converts a binary string to its hexadecimal representation in chunks.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hex2bin">hex2bin (hex)</a></td>
+	<td class="summary">Converts a hexadecimal string to binary.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hexdump">hexdump ([off=1[, len=8[, cols=2[, f="%.2x"]]]])</a></td>
+	<td class="summary">Produces a formatted hexadecimal and ASCII dump of the input data.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "filterascii"></a>
+    <strong>filterascii (s)</strong>
+    </dt>
+    <dd>
+    Filters a binary string, replacing non-ASCII characters with dots.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary string to filter.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A string with non-ASCII characters replaced by dots.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "need_bytes"></a>
+    <strong>need_bytes (off, len)</strong>
+    </dt>
+    <dd>
+    Validates that a buffer has enough bytes from a given offset.
+ Used to prevent buffer overreads before unpack operations.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         The starting offset (1-based).
+        </li>
+        <li><span class="parameter">len</span>
+            <span class="types"><span class="type">number</span></span>
+         The number of bytes required.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true if the buffer has enough bytes, false otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "bin2hex"></a>
+    <strong>bin2hex (s)</strong>
+    </dt>
+    <dd>
+    Converts a binary string to a hexadecimal string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Binary string.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Hexadecimal representation (lowercase).
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "lbin2hex"></a>
+    <strong>lbin2hex (self)</strong>
+    </dt>
+    <dd>
+    Converts a binary string to its hexadecimal representation in chunks.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary string to convert.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A string containing the hexadecimal representation of the input.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hex2bin"></a>
+    <strong>hex2bin (hex)</strong>
+    </dt>
+    <dd>
+    Converts a hexadecimal string to binary.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">hex</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Hexadecimal string (even length).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary representation.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hexdump"></a>
+    <strong>hexdump ([off=1[, len=8[, cols=2[, f="%.2x"]]]])</strong>
+    </dt>
+    <dd>
+    Produces a formatted hexadecimal and ASCII dump of the input data.
+ Each row contains `cols` columns of `len` bytes, with both hex and ASCII representations.
+ Non-printable ASCII bytes are shown as `.` in the ASCII section.
+ The function handles incomplete rows and aligns output accordingly.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         The starting offset in the input data.
+         (<em>default</em> 1)
+        </li>
+        <li><span class="parameter">len</span>
+            <span class="types"><span class="type">number</span></span>
+         The number of bytes per row.
+         (<em>default</em> 8)
+        </li>
+        <li><span class="parameter">cols</span>
+            <span class="types"><span class="type">number</span></span>
+         The number of columns per row.
+         (<em>default</em> 2)
+        </li>
+        <li><span class="parameter">f</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The format string for each byte.
+         (<em>default</em> "%.2x")
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        A string containing the formatted hex and ASCII dump.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><strong>lib.crypto.backend.ffi_wolfssl</strong></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>lib.crypto.backend.ffi_wolfssl</code></h1>
+<p>LuaJIT FFI crypto backend for ipparse — wolfSSL.</p>
+<p>
+<p> Implements the ipparse crypto interface using LuaJIT FFI and libwolfssl.
+ Requires LuaJIT 2.x and libwolfssl.so.
+<p> AES-128-GCM uses the wolfSSL native wc_AesGcm* API.
+   wc_AesInit is intentionally NOT called: it registers the struct in wolfSSL's
+   global object-tracking list, whose atexit cleanup segfaults with
+   LuaJIT-heap-allocated structs.  wc_AesGcmSetKey works on a zero-initialised
+   struct so the init call is not needed.
+ AES-128-ECB uses direct wolfCrypt APIs (wc_AesSetKey + wc_AesEncryptDirect).
+<p> Implements:
+   aes_128_gcm_encrypt(key, nonce, plaintext, aad) → ciphertext_with_tag
+   aes_128_gcm_decrypt(key, nonce, ciphertext_with_tag, aad) → plaintext | nil, err
+   aes_128_ecb_block(key, block) → encrypted_block
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#construct_nonce">construct_nonce (iv, packet_number)</a></td>
+	<td class="summary">Constructs a QUIC nonce: XOR last 8 bytes of iv with packet_number (big-endian).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#aes_128_gcm_encrypt">aes_128_gcm_encrypt (key, nonce, plaintext, aad)</a></td>
+	<td class="summary">AES-128-GCM encryption.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#aes_128_gcm_decrypt">aes_128_gcm_decrypt (key, nonce, ciphertext_with_tag, aad)</a></td>
+	<td class="summary">AES-128-GCM decryption.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#aes_128_ecb_block">aes_128_ecb_block (key, block)</a></td>
+	<td class="summary">AES-128-ECB single-block encryption (no padding).</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "construct_nonce"></a>
+    <strong>construct_nonce (iv, packet_number)</strong>
+    </dt>
+    <dd>
+    Constructs a QUIC nonce: XOR last 8 bytes of iv with packet_number (big-endian).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         12-byte IV
+        </li>
+        <li><span class="parameter">packet_number</span>
+            <span class="types"><span class="type">number</span></span>
+         QUIC packet number
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        12-byte nonce
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "aes_128_gcm_encrypt"></a>
+    <strong>aes_128_gcm_encrypt (key, nonce, plaintext, aad)</strong>
+    </dt>
+    <dd>
+    AES-128-GCM encryption.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         16-byte key
+        </li>
+        <li><span class="parameter">nonce</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         12-byte nonce
+        </li>
+        <li><span class="parameter">plaintext</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+
+        </li>
+        <li><span class="parameter">aad</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         additional authenticated data (may be "")
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        ciphertext .. 16-byte authentication tag
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "aes_128_gcm_decrypt"></a>
+    <strong>aes_128_gcm_decrypt (key, nonce, ciphertext_with_tag, aad)</strong>
+    </dt>
+    <dd>
+    AES-128-GCM decryption.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         16-byte key
+        </li>
+        <li><span class="parameter">nonce</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         12-byte nonce
+        </li>
+        <li><span class="parameter">ciphertext_with_tag</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         ciphertext concatenated with 16-byte auth tag
+        </li>
+        <li><span class="parameter">aad</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         additional authenticated data (may be "")
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        plaintext on success</li>
+        <li>
+           <span class="types"><span class="type">nil,</span></span>
+        string on authentication failure</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "aes_128_ecb_block"></a>
+    <strong>aes_128_ecb_block (key, block)</strong>
+    </dt>
+    <dd>
+    AES-128-ECB single-block encryption (no padding).
+ Used for QUIC header protection mask generation (RFC 9001 §5.4.3).
+ Uses wolfSSL direct AES API.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         16-byte AES key
+        </li>
+        <li><span class="parameter">block</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         exactly 16 bytes of input
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        exactly 16 bytes of output
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><strong>l3.ip</strong></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l3.ip</code></h1>
+<p>IP Header Parsing and Packing Module
+ This module provides utilities for parsing, packing, and manipulating IP headers.</p>
+<p>
+ It supports both IPv6 and IPv4, automatically determining the version and delegating to the appropriate functions.
+ Additionally, it includes utilities for working with IP addresses, subnets, and protocol constants.
+<p> ### Features
+ - Parse and pack IP headers (IPv6 and IPv4).
+ - Convert between binary and readable IP addresses.
+ - Handle subnets and check for containment of IPs or subnets.
+ - Provide protocol constants for common IP protocols.
+<p> References:
+ - RFC 8200: Internet Protocol, Version 6 (IPv6) Specification
+ - RFC 791: Internet Protocol (IPv4)
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#get_version">get_version (off)</a></td>
+	<td class="summary">Determines the IP version from a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#pack">pack (self)</a></td>
+	<td class="summary">Packs the IP data into a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse">parse (off[, eth_proto])</a></td>
+	<td class="summary">Parses a binary string into an IP header structure.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new">new (self)</a></td>
+	<td class="summary">Creates a new IP header object.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#ip2s">ip2s (self)</a></td>
+	<td class="summary">Converts a binary IP address to a readable string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#s2ip">s2ip (self)</a></td>
+	<td class="summary">Converts a readable IP address string to binary format.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#net2s">net2s (self)</a></td>
+	<td class="summary">Converts a binary subnet to a readable string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#s2net">s2net (self)</a></td>
+	<td class="summary">Converts a readable subnet string to binary format.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#contains_ip">contains_ip (i[, nmask])</a></td>
+	<td class="summary">Checks whether a network contains a specific IP address.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#contains_subnet">contains_subnet (subnet)</a></td>
+	<td class="summary">Checks whether a network contains a specific subnet.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#proto">proto ()</a></td>
+	<td class="summary">Protocol constants for common IP protocols.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "get_version"></a>
+    <strong>get_version (off)</strong>
+    </dt>
+    <dd>
+    Determines the IP version from a binary string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         The offset to start reading from.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">number</span></span>
+        The IP version (4 or 6).
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "pack"></a>
+    <strong>pack (self)</strong>
+    </dt>
+    <dd>
+    Packs the IP data into a binary string.
+ Delegates to the appropriate IPv4 or IPv6 pack function based on the version.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The IP header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the packed IP header and payload.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse"></a>
+    <strong>parse (off[, eth_proto])</strong>
+    </dt>
+    <dd>
+    Parses a binary string into an IP header structure.
+ Determines the IP version and delegates to the appropriate IPv4 or IPv6 parse function.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         The offset to start parsing from.
+        </li>
+        <li><span class="parameter">eth_proto</span>
+            <span class="types"><span class="type">number</span></span>
+         The Ethernet protocol (optional).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed IP header as a table.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new (self)</strong>
+    </dt>
+    <dd>
+    Creates a new IP header object.
+ Delegates to the appropriate IPv4 or IPv6 constructor based on the version.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The IP header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        The new IP header object.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "ip2s"></a>
+    <strong>ip2s (self)</strong>
+    </dt>
+    <dd>
+    Converts a binary IP address to a readable string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary IP address.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The IP address as a readable string.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "s2ip"></a>
+    <strong>s2ip (self)</strong>
+    </dt>
+    <dd>
+    Converts a readable IP address string to binary format.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The readable IP address string.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The binary IP address.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "net2s"></a>
+    <strong>net2s (self)</strong>
+    </dt>
+    <dd>
+    Converts a binary subnet to a readable string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary subnet.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The subnet as a readable string.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "s2net"></a>
+    <strong>s2net (self)</strong>
+    </dt>
+    <dd>
+    Converts a readable subnet string to binary format.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The readable subnet string.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        The binary subnet.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "contains_ip"></a>
+    <strong>contains_ip (i[, nmask])</strong>
+    </dt>
+    <dd>
+    Checks whether a network contains a specific IP address.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">i</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary IP address.
+        </li>
+        <li><span class="parameter">nmask</span>
+            <span class="types"><span class="type">number</span></span>
+         The network mask (optional).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        `true` if the network contains the IP, `false` otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "contains_subnet"></a>
+    <strong>contains_subnet (subnet)</strong>
+    </dt>
+    <dd>
+    Checks whether a network contains a specific subnet.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">subnet</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary subnet address.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        `true` if the network contains the subnet, `false` otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "proto"></a>
+    <strong>proto ()</strong>
+    </dt>
+    <dd>
+    Protocol constants for common IP protocols.
+
+
+
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

@@ -26,12 +26,14 @@
 -- References:
 -- - RFC 8200: Internet Protocol, Version 6 (IPv6) Specification
 --
--- @module ip6
+-- @module l3.ip6
 
-:format, pack: sp, unpack: su = string
-:insert, :remove, :unpack = table
+:format, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+:insert, :remove = table
+unpack or= table.unpack
 :toarray = require"ipparse.fun"
 checksum: checksum = require"ipparse.l3.lib"
+{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
 local s2ip6
 --- Packs the IPv6 header and payload into a binary string.
@@ -46,20 +48,19 @@ pack = =>
     data.checksum = checksum sp ">c16c16 I4 xxx B c#{#d}", @src, @dst, #d, @next_header, d  -- RCF8200 Section 8.1
     data = "#{data}"
   @payload_len = #data
-  @vtf or= ((@version << 28) | ((@traffic_class or 0) << 20) | (@flow_label or 0))
+  @vtf or= bor(lshift(@version, 28), lshift(@traffic_class or 0, 20), @flow_label or 0)
   sp(">I4 I2 I1 I1 c16 c16", @vtf, @payload_len, @next_header, @hop_limit, @src, @dst) .. "#{@data or ''}"
 
 _mt = __tostring: pack
 
 --- Parses a binary string into an IPv6 header structure.
--- @tparam string self The binary string to parse.
 -- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
 -- @treturn table Parsed IPv6 header as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
   vtf, payload_len, next_header, hop_limit, src, dst, data_off = su ">I4 I2 I1 I1 c16 c16", @, off
   setmetatable({
-    :vtf, version: vtf >> 28, traffic_class: (vtf >> 20) & 0xff, flow_label: vtf & 0xfffff
+    :vtf, version: rshift(vtf, 28), traffic_class: band(rshift(vtf, 20), 0xff), flow_label: band(vtf, 0xfffff)
     :payload_len
     :next_header
     :hop_limit
@@ -82,7 +83,7 @@ parse = (off=1) =>
 -- @treturn table The new IPv6 header object.
 new = =>
   @version or= 6
-  assert @version == 6, "IPv6 only"
+  assert @version == 6, "IPv6 only (got version #{@version})"
   @hop_limit or= 64
   @payload_len or= 0
   @next_header or= 0
@@ -92,7 +93,7 @@ new = =>
   -- Note: pack() will definitively calculate vtf from the version, traffic_class, and flow_label fields.
   -- This line is a convenience if user provides version, traffic_class, and flow_label.
   -- Set common defaults for other optional fields if not provided
-  @vtf or= ((@version << 28) | ((@traffic_class or 0) << 20) | (@flow_label or 0))
+  @vtf or= bor(lshift(@version, 28), lshift(@traffic_class or 0, 20), @flow_label or 0)
   setmetatable @, _mt
 
 --- Parses a readable IPv6 address string into an array of 16-bit integers.
@@ -102,7 +103,8 @@ new = =>
 parse_ip6 = =>
   address = toarray @gmatch"([^:]*):?"
   zeros = 9 - #address
-  for i = 1, 8
+  i = 1
+  while i <= 8
     part = address[i]
     if part == "" and zeros
       for _ = 1, zeros
@@ -112,6 +114,7 @@ parse_ip6 = =>
       remove address, i
     else
       address[i] = type(part) == "string" and tonumber(part, 16) or part
+      i += 1
   address
 
 --- Converts a binary IPv6 address to a readable string.

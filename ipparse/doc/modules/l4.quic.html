@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><strong>l4.quic</strong></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l4.quic</code></h1>
+<p>QUIC Header Parsing and Packing Module
+ This module provides utilities for parsing, packing, and manipulating QUIC headers.</p>
+<p>
+ It supports both long and short headers, automatically determining the type and delegating to the appropriate functions.
+ Additionally, it includes utilities for handling QUIC versions, connection IDs, and flags.
+<p> ### Features
+ - Parse and pack QUIC headers (long and short).
+ - Handle QUIC versions and connection IDs.
+ - Manage QUIC-specific flags.
+<p> ### QUIC Header Structure
+ ```
+ QUIC Header {
+   byte1 (8): First byte containing flags and header form.
+   version (32): QUIC version (for long headers).
+   dst_connection_id (variable): Destination Connection ID.
+   src_connection_id (variable): Source Connection ID (for long headers).
+   payload (variable): Payload data.
+ }
+ ```
+<p> References:
+ - RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport
+ - RFC 8999: Version-Independent Properties of QUIC
+ - RFC 9001: Using TLS to Secure QUIC
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#pack">pack (self)</a></td>
+	<td class="summary">Packs the QUIC header and payload into a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#__tostring">__tostring (self)</a></td>
+	<td class="summary">Converts the QUIC header object to a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_long_header">parse_long_header (off, byte1)</a></td>
+	<td class="summary">Parses a long QUIC header from a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_short_header">parse_short_header (off, byte1[, dst_id[, src_connection_id[, version]]])</a></td>
+	<td class="summary">Parses a short QUIC header from a binary string.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse">parse ([off=1], ...)</a></td>
+	<td class="summary">Parses a QUIC header from a binary string.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "pack"></a>
+    <strong>pack (self)</strong>
+    </dt>
+    <dd>
+    Packs the QUIC header and payload into a binary string.
+ Constructs the binary representation of the QUIC header based on whether it is a long or short header.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The QUIC header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the packed QUIC header and payload.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "__tostring"></a>
+    <strong>__tostring (self)</strong>
+    </dt>
+    <dd>
+    Converts the QUIC header object to a binary string.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         The QUIC header object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Binary string representing the QUIC header and payload.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_long_header"></a>
+    <strong>parse_long_header (off, byte1)</strong>
+    </dt>
+    <dd>
+    Parses a long QUIC header from a binary string.
+ Extracts the version, destination connection ID, source connection ID,
+ and (for Initial packets, RFC 9001) the token and length fields.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset to start parsing from.
+        </li>
+        <li><span class="parameter">byte1</span>
+            <span class="types"><span class="type">number</span></span>
+         The first byte of the header.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed QUIC header as a table.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_short_header"></a>
+    <strong>parse_short_header (off, byte1[, dst_id[, src_connection_id[, version]]])</strong>
+    </dt>
+    <dd>
+    Parses a short QUIC header from a binary string.
+ Extracts the destination connection ID and other fields.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset to start parsing from.
+        </li>
+        <li><span class="parameter">byte1</span>
+            <span class="types"><span class="type">number</span></span>
+         The first byte of the header.
+        </li>
+        <li><span class="parameter">dst_id</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The destination connection ID (optional).
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">src_connection_id</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The source connection ID (optional).
+         (<em>optional</em>)
+        </li>
+        <li><span class="parameter">version</span>
+            <span class="types"><span class="type">number</span></span>
+         The QUIC version (optional).
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed QUIC header as a table.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse"></a>
+    <strong>parse ([off=1], ...)</strong>
+    </dt>
+    <dd>
+    Parses a QUIC header from a binary string.
+ Determines whether the header is long or short and delegates to the appropriate parse function.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset to start parsing from. Defaults to 1.
+         (<em>default</em> 1)
+        </li>
+        <li><span class="parameter">...</span>
+         Additional arguments for parsing.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed QUIC header as a table.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

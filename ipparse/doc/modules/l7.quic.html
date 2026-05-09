@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><strong>l7.quic</strong></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l7.quic</code></h1>
+<p>QUIC Layer 7 Module
+ Extracts application-layer information from decrypted QUIC frames.</p>
+<p>
+ Operates on already-decrypted QUIC payloads — no crypto dependency.
+<p> ### Usage
+ ```
+ frames_mod = require"ipparse.l4.quic.frames"
+ quic_l7 = require"ipparse.l7.quic"
+ sni = quic_l7.sni_from_plaintext(decrypted_payload)
+ ```
+<p> ### Notes
+ In QUIC, CRYPTO frames carry TLS handshake messages **directly**,
+ without the TLS record layer (RFC 9001 §4.1). Each CRYPTO frame has:
+   - name = "CRYPTO"
+   - offset: byte offset in the TLS handshake stream
+   - data: raw TLS handshake bytes
+<p> References:
+ - RFC 9000: QUIC Transport Protocol
+ - RFC 9001: Using TLS to Secure QUIC
+ - RFC 8446: TLS 1.3
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#reassemble_crypto">reassemble_crypto (frames)</a></td>
+	<td class="summary">Reassembles TLS data from a list of QUIC CRYPTO frames.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#sni_from_tls">sni_from_tls (tls_data)</a></td>
+	<td class="summary">Extracts the SNI hostname from raw TLS handshake data.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#sni_from_frames">sni_from_frames (frames)</a></td>
+	<td class="summary">Extracts the SNI hostname from a list of QUIC CRYPTO frames.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#sni_from_plaintext">sni_from_plaintext (plaintext)</a></td>
+	<td class="summary">Extracts the SNI hostname from a decrypted QUIC packet plaintext.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "reassemble_crypto"></a>
+    <strong>reassemble_crypto (frames)</strong>
+    </dt>
+    <dd>
+    Reassembles TLS data from a list of QUIC CRYPTO frames.
+ Handles retransmissions/overlaps by rebuilding a byte map from CRYPTO offsets.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">frames</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         List of parsed QUIC frame objects.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        Reassembled TLS handshake data (may be empty).
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "sni_from_tls"></a>
+    <strong>sni_from_tls (tls_data)</strong>
+    </dt>
+    <dd>
+    Extracts the SNI hostname from raw TLS handshake data.
+ Parses TLS handshake messages: type (1 byte) + length (3 bytes BE) + body.
+ In QUIC there is no TLS record wrapper (RFC 9001 §4.1).
+ For ClientHello (type 0x01), iterates extensions for server_name (0x0000).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">tls_data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Raw TLS handshake bytes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">nil</span></span>
+        SNI hostname, or nil if not found.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "sni_from_frames"></a>
+    <strong>sni_from_frames (frames)</strong>
+    </dt>
+    <dd>
+    Extracts the SNI hostname from a list of QUIC CRYPTO frames.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">frames</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         List of parsed QUIC frame objects.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">nil</span></span>
+        SNI hostname, or nil if not found.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "sni_from_plaintext"></a>
+    <strong>sni_from_plaintext (plaintext)</strong>
+    </dt>
+    <dd>
+    Extracts the SNI hostname from a decrypted QUIC packet plaintext.
+ Parses QUIC frames from the plaintext, then extracts the SNI.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">plaintext</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Decrypted QUIC payload (AEAD output).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">nil</span></span>
+        SNI hostname, or nil if not found.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

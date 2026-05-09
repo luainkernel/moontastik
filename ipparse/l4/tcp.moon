@@ -33,10 +33,12 @@
 -- References:
 -- - RFC 793: Transmission Control Protocol (TCP)
 --
--- @module tcp
+-- @module l4.tcp
 
-pack: sp, unpack: su, :sub, :upper = string
+pack: sp, unpack: su, :sub, :upper = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
+{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+{:need_bytes} = require "ipparse"
 
 flags = bidirectional {
   FIN: 0x01
@@ -66,7 +68,7 @@ _mt =
   __index: (k) =>
     if flag = type(k) == "string" and upper k
       if flag = flags[flag]
-        @flags & flag ~= 0
+        band(@flags, flag) ~= 0
 
   --- Sets or clears a specific TCP flag.
   -- @tparam string k The flag name (e.g., "SYN", "ACK").
@@ -74,19 +76,20 @@ _mt =
   __newindex: (k, v) =>
     if flag = type(k) == "string" and upper k
       if flag = flags[flag]
-        if v then @flags |= flag else @flags &= ~flag
+        if v then @flags = bor(@flags, flag) else @flags = band(@flags, bnot(flag))
         return
     rawset @, k, v
 
 --- Parses a binary string into a TCP header structure.
 -- Extracts the source port, destination port, sequence number, acknowledgment number, flags, and other fields.
--- @tparam string self The binary string containing the TCP header.
 -- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
 -- @treturn table Parsed TCP header as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
+  return nil, off unless need_bytes @, off, 20
   spt, dpt, seq_n, ack_n, header_len, _flags, window, checksum, urg_ptr, _off = su ">H H I4 I4 B B H H H", @, off
-  data_off = off + ((header_len & 0xf0) >> 2)
+  data_off = off + rshift(band(header_len, 0xf0), 2)
+  return nil, off unless need_bytes @, off, data_off - off
   options = sub @, _off, data_off-1
   setmetatable({
     :spt, :dpt, :seq_n, :ack_n
@@ -100,7 +103,7 @@ parse = (off=1) =>
 -- @tparam table self The TCP header object.
 -- @treturn table The new TCP header object.
 new = =>
-  @flags = (@flags or 0) | (@urg and URG) | (@ack and ACK) | (@psh and PSH) | (@rst and RST) | (@syn and SYN) | (@fin and FIN)
+  @flags = bor((@flags or 0), (@urg and URG or 0), (@ack and ACK or 0), (@psh and PSH or 0), (@rst and RST or 0), (@syn and SYN or 0), (@fin and FIN or 0))
   setmetatable @, _mt
 
 :flags, :parse, :new, :pack

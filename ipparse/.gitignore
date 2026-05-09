@@ -1,0 +1,15 @@
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Ctags
+.vscode-ctags
+
+# Logs and temporary files
+*.log
+*.sdr/
+tmp/
+temp/

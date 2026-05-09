@@ -21,9 +21,10 @@
 -- References:
 -- - RFC 768: User Datagram Protocol (UDP)
 --
--- @module udp
+-- @module l4.udp
 
-pack: sp, unpack: su = string
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+{:need_bytes} = require "ipparse"
 
 --- Packs the UDP header and payload into a binary string.
 -- Calculates the total length of the UDP packet and constructs the binary representation.
@@ -37,11 +38,11 @@ _mt = __tostring: pack
 
 --- Parses a binary string into a UDP header structure.
 -- Extracts the source port, destination port, length, and checksum from the binary string.
--- @tparam string self The binary string containing the UDP header.
 -- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
 -- @treturn table Parsed UDP header as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
+  return nil, off unless need_bytes @, off, 8
   spt, dpt, len, checksum, data_off = su ">H H H H", @, off
   setmetatable({:spt, :dpt, :len, :checksum, :off, :data_off}, _mt), data_off
 

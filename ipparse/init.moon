@@ -10,6 +10,7 @@ if path = (...)\match"(.*)%.[^%.]-"  -- Add subdirectory to package.path if appl
 unpack: su, :char, :format, :gsub, :rep, :sub = string
 :concat = table
 :opairs = require"ipparse.fun"
+require"ipparse.fun".leak_debug = leak_debug
 
 --- Returns a string representation of the table's key-value pairs.
 -- Iterates over the table and formats each key-value pair as "key: value".
@@ -18,20 +19,33 @@ unpack: su, :char, :format, :gsub, :rep, :sub = string
 dump = => concat ["#{k}: #{v}" for k, v in opairs @], ", "
 
 --- Filters a binary string, replacing non-ASCII characters with dots.
--- @tparam string self The binary string to filter.
+-- @tparam string s The binary string to filter.
 -- @treturn string A string with non-ASCII characters replaced by dots.
-filterascii = => gsub @, ".", => " " <= @ and @ <= "~" and @ or "."
+filterascii = (s) -> gsub s, ".", => " " <= @ and @ <= "~" and @ or "."
 
---- Converts a binary string to its hexadecimal representation.
+--- Validates that a buffer has enough bytes from a given offset.
+-- Used to prevent buffer overreads before unpack operations.
+-- @tparam number off The starting offset (1-based).
+-- @tparam number len The number of bytes required.
+-- @treturn boolean true if the buffer has enough bytes, false otherwise.
+need_bytes = (off, len) =>
+  return false if off < 1 or len < 0
+  (off + len - 1) <= #@
+
+
+--- Converts a binary string to a hexadecimal string.
+-- @tparam string s Binary string.
+-- @treturn string Hexadecimal representation (lowercase).
+bin2hex = (s) -> format rep("%.2x", #s), su rep("B", #s), s
+
+--- Converts a binary string to its hexadecimal representation in chunks.
 -- @tparam string self The binary string to convert.
 -- @treturn string A string containing the hexadecimal representation of the input.
-bin2hex = => format rep("%.2x", #@), su rep("B", #@), @
-
 lbin2hex = => concat [bin2hex sub(@, i+1, i+128) for i = 0, #@-128, 128]
 
---- Converts a hexadecimal string to its binary representation.
--- @tparam string self The hexadecimal string to convert.
--- @treturn string A string containing the binary representation of the input.
+--- Converts a hexadecimal string to binary.
+-- @tparam string hex Hexadecimal string (even length).
+-- @treturn string Binary representation.
 hex2bin = => gsub @, "%x%x", => char tonumber @, 16
 
 
@@ -39,7 +53,6 @@ hex2bin = => gsub @, "%x%x", => char tonumber @, 16
 -- Each row contains `cols` columns of `len` bytes, with both hex and ASCII representations.
 -- Non-printable ASCII bytes are shown as `.` in the ASCII section.
 -- The function handles incomplete rows and aligns output accordingly.
--- @tparam string self The input data to be dumped.
 -- @tparam[opt=1] number off The starting offset in the input data.
 -- @tparam[opt=8] number len The number of bytes per row.
 -- @tparam[opt=2] number cols The number of columns per row.
@@ -58,4 +71,4 @@ hexdump = (off=1, len=8, cols=2, f="%.2x") =>
   concat res, "\n"
 
 
-:bin2hex, :lbin2hex, :dump, :filterascii, :hex2bin, :hexdump
+:bin2hex, :lbin2hex, :dump, :filterascii, :hex2bin, :hexdump, :leak_debug, :need_bytes

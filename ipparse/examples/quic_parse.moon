@@ -25,6 +25,7 @@ hs        = require "ipparse.l7.tls.handshake.init" -- For Handshake messages
 ch_hello  = require "ipparse.l7.tls.handshake.client_hello" -- For ClientHello structure
 sni       = require "ipparse.l7.tls.handshake.extension.server_name" -- For SNI extension
 ipu       = require "ipparse.init" -- For hex2bin utility
+{:band, :bor, :bnot, :lshift, :rshift} = require "ipparse.lib.bit_compat"
 
 -- Sample Packet Data (QUIC Initial with SNI)
 -- This version includes conceptual header and payload protection.
@@ -62,7 +63,7 @@ tls_ch_hex = "0100003E" .. -- TLS Handshake: Type=ClientHello, Len=62
 -- Type (0x06), Offset (0), Length (of tls_ch_hex)
 crypto_frame_data_len = #tls_ch_hex / 2
 -- For simplicity, assume crypto_frame_data_len fits in 2 bytes for varint encoding (0x4000 | len)
-crypto_frame_len_hex = string.format "%04x", (0x4000 | crypto_frame_data_len)
+crypto_frame_len_hex = string.format "%04x", bor(0x4000, crypto_frame_data_len)
 quic_crypto_frame_hex = "060000" .. crypto_frame_len_hex .. tls_ch_hex
 
 -- QUIC Packet Number (unprotected, 1 byte for this example, value 0)
@@ -94,7 +95,9 @@ xor_hex_strings = (hex_a, hex_b) ->
   result_bin = ""
   min_len = math.min #bin_a, #bin_b
   for i=1,min_len
-    result_bin ..= string.char(string.byte(bin_a, i) ~ string.byte(bin_b, i))
+    a = string.byte(bin_a, i)
+    b = string.byte(bin_b, i)
+    result_bin ..= string.char(band(bor(a, b), bnot(band(a, b))))
   -- Append remaining part of the longer string if any (shouldn't happen if keystream is managed)
   if #bin_a > min_len then result_bin ..= string.sub(bin_a, min_len + 1)
   elseif #bin_b > min_len then result_bin ..= string.sub(bin_b, min_len + 1)
@@ -127,9 +130,9 @@ quic_len_hex_varint = ""
 if quic_len_val < 64
   quic_len_hex_varint = string.format "%02x", quic_len_val
 elseif quic_len_val < 16384
-  quic_len_hex_varint = string.format "%04x", (0x4000 | quic_len_val)
+  quic_len_hex_varint = string.format "%04x", bor(0x4000, quic_len_val)
 else -- Simplified: use 4 bytes if larger, though QUIC supports 8
-  quic_len_hex_varint = string.format "%08x", (0x80000000 | quic_len_val)
+  quic_len_hex_varint = string.format "%08x", bor(0x80000000, quic_len_val)
 
 quic_header_prefix_hex = first_byte_protected_hex .. "00000001" .. -- Protected Flags/Type/PNLen, Version
                   "08" .. dcid_hex .. -- DCID Len, DCID

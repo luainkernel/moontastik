@@ -1,0 +1,205 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><strong>l4.quic.v1.keys</strong></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>l4.quic.v1.keys</code></h1>
+<p>QUIC v1 key derivation (RFC 9001).</p>
+<p>
+<p> Derives the initial secrets, packet protection keys, IVs, and header
+ protection keys for a QUIC v1 connection from the destination Connection ID.
+<p> Uses `ipparse.lib.hkdf` (HKDF-SHA256 via crypto.hkdf/crypto.shash/pure-Lua fallback).
+<p> ### RFC 9001 §5.2 — Initial Secrets
+ initial_secret = HKDF-Extract(QUIC_V1_SALT, client_dst_connection_id)
+ client_secret  = HKDF-Expand-Label(initial_secret, "client in", "", 32)
+ server_secret  = HKDF-Expand-Label(initial_secret, "server in", "", 32)
+<p> ### RFC 9001 §5.1 — Packet Protection Keys
+ key  = HKDF-Expand-Label(secret, "quic key", "", 16)
+ iv   = HKDF-Expand-Label(secret, "quic iv",  "", 12)
+ hp   = HKDF-Expand-Label(secret, "quic hp",  "", 16)
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#INITIAL_SALT">INITIAL_SALT ()</a></td>
+	<td class="summary">QUIC v1 initial salt (RFC 9001 §5.2)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#derive_initial_secrets">derive_initial_secrets (dcid)</a></td>
+	<td class="summary">Derives client and server initial secrets from a destination Connection ID.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#derive_keys">derive_keys (secret)</a></td>
+	<td class="summary">Derives packet protection keys from a per-direction secret.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "INITIAL_SALT"></a>
+    <strong>INITIAL_SALT ()</strong>
+    </dt>
+    <dd>
+    QUIC v1 initial salt (RFC 9001 §5.2)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "derive_initial_secrets"></a>
+    <strong>derive_initial_secrets (dcid)</strong>
+    </dt>
+    <dd>
+    Derives client and server initial secrets from a destination Connection ID.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">dcid</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+          Binary destination Connection ID (variable length)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        client_secret  32-byte binary secret</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        server_secret  32-byte binary secret</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "derive_keys"></a>
+    <strong>derive_keys (secret)</strong>
+    </dt>
+    <dd>
+    Derives packet protection keys from a per-direction secret.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">secret</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+          32-byte binary secret (client or server)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        key  16-byte packet protection key</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        iv   12-byte packet protection IV</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+        hp   16-byte header protection key</li>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

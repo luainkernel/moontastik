@@ -67,11 +67,16 @@
 -- - RFC 1035: Domain Names - Implementation and Specification
 -- - RFC 6891: Extension Mechanisms for DNS (EDNS(0))
 --
--- @module dns
+-- @module l7.dns
 
 :bidirectional, :zero_indexed = require"ipparse.fun"
-pack: sp, unpack: su, :sub = string
+pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
 :concat = table
+{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+
+need_bytes = (data, off, len) ->
+  return false if off < 1 or len < 0
+  (off + len - 1) <= #data
 
 --- Packs the DNS header into a binary string.
 -- @tparam table self The DNS header object.
@@ -84,46 +89,45 @@ _header_mt =
   __index: (flag) =>
     switch flag
       when "qr"
-        @qr_opcode_aa_tc_rd & 0x80 ~= 0
+        band(@qr_opcode_aa_tc_rd, 0x80) ~= 0
       when "opcode"
-        (@qr_opcode_aa_tc_rd >> 3) & 0xf ~= 0
+        band(rshift(@qr_opcode_aa_tc_rd, 3), 0xf) ~= 0
       when "aa"
-        @qr_opcode_aa_tc_rd & 0x04 ~= 0
+        band(@qr_opcode_aa_tc_rd, 0x04) ~= 0
       when "tc"
-        @qr_opcode_aa_tc_rd & 0x02 ~= 0
+        band(@qr_opcode_aa_tc_rd, 0x02) ~= 0
       when "rd"
-        @qr_opcode_aa_tc_rd & 0x01 ~= 0
+        band(@qr_opcode_aa_tc_rd, 0x01) ~= 0
       when "ra"
-        @ra_z_rcode & 0x80 ~= 0
+        band(@ra_z_rcode, 0x80) ~= 0
       when "z"
-        (@ra_z_rcode >> 4) & 0x07 ~= 0
+        band(rshift(@ra_z_rcode, 4), 0x07) ~= 0
       when "rcode"
-        @ra_z_rcode & 0x0f ~= 0
+        band(@ra_z_rcode, 0x0f) ~= 0
   __newindex: (flag, val) =>
     switch flag
       when "qr"
-        if val then @qr_opcode_aa_tc_rd |= 0x80 else @qr_opcode_aa_tc_rd &= ~0x80
+        if val then @qr_opcode_aa_tc_rd = bor(@qr_opcode_aa_tc_rd, 0x80) else @qr_opcode_aa_tc_rd = band(@qr_opcode_aa_tc_rd, bnot(0x80))
       when "opcode"
-        @qr_opcode_aa_tc_rd = (@qr_opcode_aa_tc_rd & ~0x78) | ((val & 0xf) << 3)
+        @qr_opcode_aa_tc_rd = bor(band(@qr_opcode_aa_tc_rd, bnot(0x78)), lshift(band(val, 0xf), 3))
       when "aa"
-        if val then @qr_opcode_aa_tc_rd |= 0x04 else @qr_opcode_aa_tc_rd &= ~0x04
+        if val then @qr_opcode_aa_tc_rd = bor(@qr_opcode_aa_tc_rd, 0x04) else @qr_opcode_aa_tc_rd = band(@qr_opcode_aa_tc_rd, bnot(0x04))
       when "tc"
-        if val then @qr_opcode_aa_tc_rd |= 0x02 else @qr_opcode_aa_tc_rd &= ~0x02
+        if val then @qr_opcode_aa_tc_rd = bor(@qr_opcode_aa_tc_rd, 0x02) else @qr_opcode_aa_tc_rd = band(@qr_opcode_aa_tc_rd, bnot(0x02))
       when "rd"
-        if val then @qr_opcode_aa_tc_rd |= 0x01 else @qr_opcode_aa_tc_rd &= ~0x01
+        if val then @qr_opcode_aa_tc_rd = bor(@qr_opcode_aa_tc_rd, 0x01) else @qr_opcode_aa_tc_rd = band(@qr_opcode_aa_tc_rd, bnot(0x01))
       when "z"
-        @ra_z_rcode = (@ra_z_rcode & ~0x70) | ((val & 0x07) << 4)
+        @ra_z_rcode = bor(band(@ra_z_rcode, bnot(0x70)), lshift(band(val, 0x07), 4))
       when "rcode"
-        @ra_z_rcode = (@ra_z_rcode & ~0x0f) | (val & 0x0f)
+        @ra_z_rcode = bor(band(@ra_z_rcode, bnot(0x0f)), band(val, 0x0f))
 
 --- Parses a DNS header from a binary string.
--- @tparam string self The binary string containing the DNS header.
 -- @tparam number off The offset to start parsing from.
 -- @tparam boolean is_tcp Whether the DNS message is over TCP (affects size field).
 -- @treturn table Parsed DNS header as a table.
 -- @treturn number The next offset after parsing.
 parse_header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; returns DNS header infos
-  len = #@ - off
+  len = #@ - off + 1
   local size
   if is_tcp
     return nil, "No DNS data" if len < 2
@@ -141,36 +145,49 @@ local labels
 
 --- Parses a single DNS label from a binary string.
 -- Handles both normal labels and compressed labels.
--- @tparam string self The binary string containing the DNS label.
 -- @tparam number off The offset to start parsing from.
 -- @tparam[opt=1] number l7_off The layer 7 offset for label parsing (default is 1).
 -- @treturn string|nil The parsed label as a string, or `nil` if the label is empty.
 -- @treturn number The next offset after parsing.
 -- @treturn[opt] boolean `true` if the label is compressed, `nil` otherwise.
-label = (off, l7_off=1) =>
-  return nil if off+2 > #@
-  size, pos, _off = su "B B", @, off
+label = (off, l7_off=1, visited=nil, depth=0) =>
+  return nil, off, nil, "invalid label offset #{off}" unless need_bytes @, off, 1
+  size = su "B", @, off
+  _off = off + 1
   if size == 0  -- End of label
     return nil, off+1
-  if size & 0xC0 == 0  -- Normal case
-    return su "s1", @, off
-  -- DNS label compression
-  off = ((size & 0x3F) << 8) + pos
-  concat(labels(@, l7_off+off, l7_off), "."), _off, true
+  if band(size, 0xC0) == 0xC0  -- DNS label compression pointer
+    return nil, off, nil, "truncated DNS compression pointer" unless need_bytes @, off, 2
+    pos = su "B", @, off + 1
+    ptr = lshift(band(size, 0x3F), 8) + pos
+    target_off = l7_off + ptr
+    return nil, _off + 1, nil, "DNS compression pointer out of bounds (#{ptr})" unless target_off >= l7_off and target_off <= #@
+    return nil, _off + 1, nil, "DNS compression pointer recursion limit reached" if depth >= 32
+    return nil, _off + 1, nil, "DNS compression pointer loop at #{ptr}" if visited and visited[target_off]
+    visited or= {}
+    visited[target_off] = true
+    pointed_labels, _, err = labels @, target_off, l7_off, visited, depth + 1
+    visited[target_off] = nil
+    return nil, _off + 1, nil, err unless pointed_labels
+    return concat(pointed_labels, "."), _off + 1, true
+  if band(size, 0xC0) == 0  -- Normal case
+    return nil, off, nil, "truncated DNS label (len=#{size})" unless need_bytes @, off + 1, size
+    return sub(@, off + 1, off + size), off + size + 1
+  nil, off, nil, "invalid DNS label prefix at offset #{off}"
 
 --- Parses a sequence of DNS labels into a fully qualified domain name (FQDN).
 -- Handles both normal and compressed labels.
--- @tparam string self The binary string containing the DNS labels.
 -- @tparam number off The offset to start parsing from.
 -- @tparam number l7_off The layer 7 offset for label parsing.
 -- @treturn table A table of parsed labels.
 -- @treturn number The next offset after parsing.
-labels = (off, l7_off) =>
+labels = (off, l7_off, visited=nil, depth=0) =>
   lbls = {}
   for i = 1, 1024  -- Arbitrary large limit to avoid infinite loops
     -- off is the current absolute offset in the input string (@)
     -- l7_off is the absolute offset of the start of the DNS message in @
-    lbl_segment, next_parse_off, is_from_pointer = label @, off, l7_off
+    lbl_segment, next_parse_off, is_from_pointer, err = label @, off, l7_off, visited, depth
+    return nil, off, err if err
     if not lbl_segment -- Indicates end of name (00 byte) or a parsing error in label()
       off = next_parse_off -- Ensure 'off' is updated (e.g., past the 00 byte)
       break
@@ -189,13 +206,14 @@ pack_question = =>
 _question_mt = __tostring: pack_question
 
 --- Parses a DNS question section from a binary string.
--- @tparam string self The binary string containing the DNS question section.
 -- @tparam number off The offset to start parsing from.
 -- @tparam number l7_off The layer 7 offset for label parsing.
 -- @treturn table Parsed DNS question as a table.
 -- @treturn number The next offset after parsing.
 parse_question = (off, l7_off) =>
-  lbls, _off = labels @, off, l7_off
+  lbls, _off, err = labels @, off, l7_off
+  return nil, off, err unless lbls
+  return nil, off, "truncated DNS question fields" unless need_bytes @, _off, 4
   qname = sub @, off, _off-1
   qtype, qclass, _off = su ">H H", @, _off
   setmetatable({name: concat(lbls, "."), :qname, :qtype, :qclass, :off, end_off: _off-1}, _question_mt), _off
@@ -203,7 +221,8 @@ parse_question = (off, l7_off) =>
 parse_questions = (off, qdcount, l7_off) =>
   res = {}
   for i = 1, qdcount
-    q, off = parse_question @, off, l7_off
+    q, off, err = parse_question @, off, l7_off
+    return nil, off, err unless q
     res[i] = q
   res, off
 
@@ -216,21 +235,26 @@ pack_rr = =>
 _rr_mt = __tostring: pack_rr
 
 --- Parses a DNS resource record (RR) from a binary string.
--- @tparam string self The binary string containing the DNS resource record.
 -- @tparam number off The offset to start parsing from.
 -- @tparam number l7_off The layer 7 offset for label parsing.
 -- @treturn table Parsed DNS resource record as a table.
 -- @treturn number The next offset after parsing.
 parse_rr = (off, l7_off) =>
-  lbls, _off = labels @, off, l7_off
+  lbls, _off, err = labels @, off, l7_off
+  return nil, off, err unless lbls
+  return nil, off, "truncated DNS resource record header" unless need_bytes @, _off, 10
   rname = sub @, off, _off-1
-  rtype, rclass, ttl, rdata, _off = su ">H H I4 s2", @, _off
+  rtype, rclass, ttl, rdlen, _off = su ">H H I4 H", @, _off
+  return nil, off, "truncated DNS resource record data" unless need_bytes @, _off, rdlen
+  rdata = sub @, _off, _off + rdlen - 1
+  _off += rdlen
   setmetatable({name: concat(lbls, "."), :rname, :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _rr_mt), _off
 
 parse_rrs = (off, count, l7_off) =>
   res = {}
   for i = 1, count
-    r, off = parse_rr @, off, l7_off
+    r, off, err = parse_rr @, off, l7_off
+    return nil, off, err unless r
     res[i] = r
   res, off
 
@@ -247,24 +271,28 @@ edns_opts[v[1]] = k for k, v in pairs edns_opts when type(k) == "number"
 _opt_mt = __tostring: pack_opt
 
 --- Parses an EDNS option from a binary string.
--- @tparam string self The binary string containing the EDNS option.
 -- @tparam number off The offset to start parsing from.
 -- @treturn table Parsed EDNS option as a table.
 -- @treturn number The next offset after parsing.
 parse_opt = (off=1) =>
-  code, data, _off = su ">Hs2", @, off
-  len = #data
+  return nil, off, "truncated EDNS option header" unless need_bytes @, off, 4
+  code, len, _off = su ">H H", @, off
+  return nil, off, "truncated EDNS option data" unless need_bytes @, _off, len
+  raw_data = sub @, _off, _off + len - 1
+  _off += len
+  data = nil
   if opt_parser = edns_opts[code]
     {typ, fields, fmt} = opt_parser
-    if fmt
-      _data = {su fmt, data}
-      _data[#_data] = sub data, _data[#_data]
+    if fmt and code == 8
+      return nil, off, "truncated EDNS client_subnet option" unless need_bytes raw_data, 1, 4
+      family, source_netmask, scope_netmask, data_off = su fmt, raw_data
+      _data = {family, source_netmask, scope_netmask, sub(raw_data, data_off)}
       data = _data
-    else data = {data}
+    else data = {raw_data}
     data.type = typ
     data[fields[i]] = data[i] for i = 1, #fields
     setmetatable data, __tostring: => fmt and sp(fmt, unpack [data[field] for field in *fields]) or @[1]
-  else setmetatable {data}, __tostring: => @[1]
+  else setmetatable {raw_data}, __tostring: => @[1]
   setmetatable({:code, :len, :data}, _opt_mt), _off
 
 --- Parses all EDNS options from a binary string.
@@ -272,8 +300,10 @@ parse_opt = (off=1) =>
 -- @treturn table A table of parsed EDNS options.
 parse_opts = =>
   opts, off = {}, 1
-  while off < #@
-    opts[#opts+1], off = parse_opt @, off
+  while off <= #@
+    opt, off, err = parse_opt @, off
+    return nil, off, err unless opt
+    opts[#opts+1] = opt
   opts
 
 --- Packs a DNS message into a binary string.
@@ -297,18 +327,22 @@ _mt =
   __index: (k) => @header[k]
 
 --- Parses a DNS message from a binary string.
--- @tparam string self The binary string containing the DNS message.
 -- @tparam number l7_off The layer 7 offset for parsing.
 -- @tparam boolean is_tcp Whether the DNS message is over TCP.
 -- @treturn table Parsed DNS message as a table.
 -- @treturn number The next offset after parsing.
 parse = (l7_off, is_tcp) =>
-  header, _off = parse_header @, l7_off, is_tcp
-  return nil, l7_off, "No DNS data" if not header
-  questions, _off = parse_questions @, _off, header.qdcount, l7_off
-  answers, _off = parse_rrs @, _off, header.ancount, l7_off
-  authorities, _off = parse_rrs @, _off, header.nscount, l7_off
-  additionals, _off = parse_rrs @, _off, header.arcount, l7_off
+  header, _off_or_err = parse_header @, l7_off, is_tcp
+  return nil, l7_off, _off_or_err or "No DNS data" if not header
+  _off = _off_or_err
+  questions, _off, err = parse_questions @, _off, header.qdcount, l7_off
+  return nil, _off, err unless questions
+  answers, _off, err = parse_rrs @, _off, header.ancount, l7_off
+  return nil, _off, err unless answers
+  authorities, _off, err = parse_rrs @, _off, header.nscount, l7_off
+  return nil, _off, err unless authorities
+  additionals, _off, err = parse_rrs @, _off, header.arcount, l7_off
+  return nil, _off, err unless additionals
   setmetatable({
     :header, question: questions[1]  -- RFC 9619
     :questions, :answers, :authorities, :additionals

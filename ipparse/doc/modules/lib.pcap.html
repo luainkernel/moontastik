@@ -1,0 +1,378 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><strong>lib.pcap</strong></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>lib.pcap</code></h1>
+<p>PCAP/PCAPNG File Parsing Module
+ This module provides utilities for parsing PCAP and PCAPNG files to extract network packets.</p>
+<p>
+ It supports both the original PCAP format and the newer PCAPNG format.
+<p> ### Features
+ - Parse PCAPNG Section Header Blocks (SHB)
+ - Parse Interface Description Blocks (IDB)
+ - Parse Enhanced Packet Blocks (EPB)
+ - Extract raw packet data with timestamps
+ - Support for different link layer types (Ethernet, Raw IP)
+<p> ### PCAPNG Block Structure
+ ```
+ Block {
+   block_type (32): Type of block (SHB=0x0A0D0D0A, IDB=0x00000001, EPB=0x00000006)
+   block_total_length (32): Total length of block including headers
+   block_data (variable): Block-specific data
+   block_total_length (32): Repeated at end for validation
+ }
+ ```
+<p> References:
+ - RFC 2838: Pcap File Format
+ - PCAPNG Specification: https://github.com/pcapng/pcapng
+</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#block_types">block_types ()</a></td>
+	<td class="summary">PCAPNG Block Types
+ Mapping of block type codes to their names</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#link_types">link_types ()</a></td>
+	<td class="summary">Link Layer Types (from pcap specification)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_shb">parse_shb (data, offset)</a></td>
+	<td class="summary">Parses a PCAPNG Section Header Block (SHB)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_idb">parse_idb (data, offset, endian)</a></td>
+	<td class="summary">Parses a PCAPNG Interface Description Block (IDB)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_epb">parse_epb (data, offset, endian)</a></td>
+	<td class="summary">Parses a PCAPNG Enhanced Packet Block (EPB)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_pcapng">parse_pcapng (filename)</a></td>
+	<td class="summary">Parses a PCAPNG file and extracts all packets</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#filter_quic_packets">filter_quic_packets (packets)</a></td>
+	<td class="summary">Filters packets to find QUIC packets on standard ports</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_quic_from_pcapng">parse_quic_from_pcapng (filename)</a></td>
+	<td class="summary">Main function to parse QUIC packets from a PCAPNG file</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "block_types"></a>
+    <strong>block_types ()</strong>
+    </dt>
+    <dd>
+    PCAPNG Block Types
+ Mapping of block type codes to their names
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "link_types"></a>
+    <strong>link_types ()</strong>
+    </dt>
+    <dd>
+    Link Layer Types (from pcap specification)
+
+
+
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_shb"></a>
+    <strong>parse_shb (data, offset)</strong>
+    </dt>
+    <dd>
+    Parses a PCAPNG Section Header Block (SHB)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the SHB
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed SHB structure</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the block</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_idb"></a>
+    <strong>parse_idb (data, offset, endian)</strong>
+    </dt>
+    <dd>
+    Parses a PCAPNG Interface Description Block (IDB)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the IDB
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+        <li><span class="parameter">endian</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Byte order (">" for big-endian, "<" for little-endian)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed IDB structure</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the block</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_epb"></a>
+    <strong>parse_epb (data, offset, endian)</strong>
+    </dt>
+    <dd>
+    Parses a PCAPNG Enhanced Packet Block (EPB)
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         The binary data containing the EPB
+        </li>
+        <li><span class="parameter">offset</span>
+            <span class="types"><span class="type">number</span></span>
+         Starting offset in the data
+        </li>
+        <li><span class="parameter">endian</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Byte order (">" for big-endian, "<" for little-endian)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Parsed EPB structure with packet data</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        Next offset after the block</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_pcapng"></a>
+    <strong>parse_pcapng (filename)</strong>
+    </dt>
+    <dd>
+    Parses a PCAPNG file and extracts all packets
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">filename</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the PCAPNG file
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Array of parsed packets with metadata
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "filter_quic_packets"></a>
+    <strong>filter_quic_packets (packets)</strong>
+    </dt>
+    <dd>
+    Filters packets to find QUIC packets on standard ports
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">packets</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+         Array of parsed packets
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Array of QUIC packets with parsed headers
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_quic_from_pcapng"></a>
+    <strong>parse_quic_from_pcapng (filename)</strong>
+    </dt>
+    <dd>
+    Main function to parse QUIC packets from a PCAPNG file
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">filename</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+         Path to the PCAPNG file
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        Array of QUIC packets with full parsing
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

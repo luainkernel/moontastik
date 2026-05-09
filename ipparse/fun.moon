@@ -255,8 +255,12 @@ opairs = (f=(a,b) -> if type(a) == type(b) then a < b else "#{a}" < "#{b}") =>
     i += 1
     keys[i], @[keys[i]]
 
+
+_ = nil
+
 --- Wraps a function call in `xpcall` to catch errors.
--- If an error occurs, it prints the error and a traceback, then calls an optional `op` function.
+-- If an error occurs, it prints the error. When `leak_debug` is true, it also prints a full traceback.
+--- Calls an optional `op` function on error.
 -- @tparam function fn
 -- @tparam[opt] function op
 -- @treturn function A new, protected function.
@@ -264,15 +268,17 @@ opairs = (f=(a,b) -> if type(a) == type(b) then a < b else "#{a}" < "#{b}") =>
 -- -- The returned protected function takes:
 -- -- @tparam ...any ... Arguments for the original `fn`.
 -- -- @treturn ...any|nil Results from `fn` or `op` (see main description for conditions).
-protected = (fn, op) -> (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
-  ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall (
-    -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
-  ), (err) ->
-    print err
-    print debug.traceback!
-    op! if op
-  if ok
-    a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+protected = (fn, op) ->
+  leak_debug = _ and _.leak_debug
+  (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
+    ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall (
+      -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+    ), (err) ->
+      print err
+      print debug.traceback! if leak_debug
+      op! if op
+    if ok
+      a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
 
 
 --- The main export table for the `fun` module.

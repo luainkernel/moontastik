@@ -35,11 +35,13 @@
 -- - RFC 791: Internet Protocol (IPv4)
 -- - RFC 1122: Requirements for Internet Hosts - Communication Layers
 --
--- @module ip4
+-- @module l3.ip4
 
-:format, :sub, :upper, pack: sp, unpack: su = string
+:format, :sub, :upper, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :checksum = require"ipparse.l3.lib"
 :bidirectional = require"ipparse.fun"
+{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+{:need_bytes} = require "ipparse"
 
 flags =
   DF: 0x4000  -- Don't Fragment
@@ -62,8 +64,8 @@ pack = =>
     data = "#{data}"
   header_len = 20 + #(@options or "")
   @total_len = header_len + #data
-  @ihl = header_len >> 2
-  @v_ihl = ((@version << 4) | @ihl) if @version
+  @ihl = rshift(header_len, 2)
+  @v_ihl = bor(lshift(@version, 4), @ihl) if @version
   @checksum = checksum sp(">BBHHHBBH c4c4", @v_ihl, @tos, @total_len, @id, @ff, @ttl, @protocol, 0, @src, @dst)..@options
   sp(">BBHHHBBH c4c4", @v_ihl, @tos, @total_len, @id, @ff, @ttl, @protocol, @checksum, @src, @dst) .. @options .. data
 
@@ -77,27 +79,28 @@ _mt =
   -- @treturn boolean `true` if the flag is set, `false` otherwise.
   __index: (k) =>
     if flag = type(k) == "string" and flags[upper k]
-      (@ff & flag) ~= 0
+      band(@ff, flag) ~= 0
 
   --- Sets or clears a specific IPv4 flag.
   -- @tparam string k The flag name (e.g., "DF", "MF").
   -- @tparam boolean v `true` to set the flag, `false` to clear it.
   __newindex: (k, v) =>
     if flag = type(k) == "string" and flags[upper k]
-      if v then @ff |= flag else @ff &= ~flag
+      if v then @ff = bor(@ff, flag) else @ff = band(@ff, bnot(flag))
       return
     rawset @, k, v
 
 --- Parses a binary string into an IPv4 header structure.
--- @tparam string self The binary string to parse.
 -- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
 -- @treturn table Parsed IPv4 header as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
+  return nil, off unless need_bytes @, off, 20
   v_ihl, tos, total_len, id, ff, ttl, protocol, cksum, src, dst, _off = su ">BBHHHBBH c4c4", @, off
-  version, ihl = v_ihl >> 4, v_ihl & 0x0f
-  payload_off = ihl << 2
+  version, ihl = rshift(v_ihl, 4), band(v_ihl, 0x0f)
+  payload_off = lshift(ihl, 2)
   data_off = off + payload_off
+  return nil, off unless need_bytes @, off, data_off - off
   options = sub @, _off, data_off-1
   setmetatable({
     :version, :ihl, :v_ihl, :off, :payload_off, :data_off
@@ -128,14 +131,14 @@ parse = (off=1) =>
 -- @treturn table The new IPv4 header object.
 new = =>
   @version or= 4
-  assert @version == 4, "IPv4 only"
+  assert @version == 4, "IPv4 only (got version #{@version})"
   -- Initialize v_ihl if version and ihl are provided and v_ihl isn't already set.
   -- Note: pack() will definitively calculate ihl from the @options string and then v_ihl.
   -- This line is a convenience if user provides version and ihl.
-  @v_ihl or= ((@version << 4) | (@ihl or 0))
+  @v_ihl or= bor(lshift(@version, 4), @ihl or 0)
   -- Initialize ff from DF, MF, frag_offset if ff isn't already set.
   -- If DF, MF, frag_offset are also nil/false, ff will default to 0.
-  @ff or= ((@DF and flags.DF or 0) | (@MF and flags.MF or 0) | (@frag_offset or 0))
+  @ff or= bor((@DF and flags.DF or 0), (@MF and flags.MF or 0), @frag_offset or 0)
   -- Set common defaults for other optional fields if not provided
   @tos or= 0
   @id or= 0 -- Could be randomized, but 0 is a simple default for construction

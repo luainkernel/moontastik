@@ -1,0 +1,643 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><strong>fun</strong></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>fun</code></h1>
+<p>Small library for basic functional programming primitives.</p>
+<p>
+ Provides utilities for memoization, iteration, and other functional constructs.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#memo">memo ()</a></td>
+	<td class="summary">Creates a memoized version of a single-argument function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#memoN">memoN ()</a></td>
+	<td class="summary">Creates a memoized version of a multi-argument function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#bidirectional">bidirectional ()</a></td>
+	<td class="summary">Modifies a table in-place to create a bidirectional mapping.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#zero_indexed">zero_indexed ()</a></td>
+	<td class="summary">Modifies an array-like table in-place to make it zero-indexed.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#iter">iter (t[, step=1[, i]])</a></td>
+	<td class="summary">The main iterator constructor and stepping function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#any">any (fn)</a></td>
+	<td class="summary">Returns the first element that satisfies the predicate `fn`.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#each">each (fn)</a></td>
+	<td class="summary">Calls `fn` for each element in the iterator.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#map">map (fn)</a></td>
+	<td class="summary">Creates a new iterator that applies `fn` to each element of the current iterator.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#imap">imap (fn)</a></td>
+	<td class="summary">Creates a new iterator that applies `fn` to each element and its 1-based index.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#filter">filter (fn)</a></td>
+	<td class="summary">Creates a new iterator that yields only elements for which `fn` returns true.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#take">take (n)</a></td>
+	<td class="summary">Creates a new iterator that yields at most `n` elements from the current iterator.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#toarray">toarray ()</a></td>
+	<td class="summary">Collects all elements from the iterator into a new array.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#reduce">reduce (fn[, initial])</a></td>
+	<td class="summary">Reduces the iterator's elements to a single value using a binary function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#generate">generate (fn)</a></td>
+	<td class="summary">Creates an iterator from a generator function.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#protected">protected (fn[, op])</a></td>
+	<td class="summary">Wraps a function call in `xpcall` to catch errors.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#_">_ ()</a></td>
+	<td class="summary">The main export table for the `fun` module.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "memo"></a>
+    <strong>memo ()</strong>
+    </dt>
+    <dd>
+    Creates a memoized version of a single-argument function.
+ The cache uses the input argument as the key.
+ If the argument is `nil` or not provided, the original function is called directly without caching.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        The memoized function.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <li><pre class="example"><span class="comment">-- The memoized function takes:
+</span><span class="comment">-- @tparam any x The argument to the original function.
+</span><span class="comment">-- @treturn ...any The result from the original function.</span></pre></li>
+        <li><pre class="example"><span class="keyword">local</span> memo_expensive_calc = fun.<span class="function-name">memo</span>(expensive_calc)
+<span class="keyword">local</span> result1 = <span class="function-name">memo_expensive_calc</span>(<span class="number">5</span>) <span class="comment">-- expensive_calc is called
+</span><span class="keyword">local</span> result2 = <span class="function-name">memo_expensive_calc</span>(<span class="number">5</span>) <span class="comment">-- result is retrieved from cache</span></pre></li>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "memoN"></a>
+    <strong>memoN ()</strong>
+    </dt>
+    <dd>
+    Creates a memoized version of a multi-argument function.
+ The cache is hierarchical, using arguments as keys at successive levels.
+ `nil` arguments are handled by using a special internal `_nil` placeholder.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        The memoized function.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- The memoized function takes:
+</span><span class="comment">-- @tparam ...any ... Arguments to the original function.
+</span><span class="comment">-- @treturn ...any The result from the original function.</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "bidirectional"></a>
+    <strong>bidirectional ()</strong>
+    </dt>
+    <dd>
+    Modifies a table in-place to create a bidirectional mapping.
+ For each key-value pair `(k, v)`, it adds `(v, k)`.
+ Assumes values are unique and hashable to be used as keys.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        self
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> t = {a = <span class="number">1</span>, b = <span class="number">2</span>}
+fun.<span class="function-name">bidirectional</span>(t) <span class="comment">-- t is now {a = 1, b = 2, [1] = "a", [2] = "b"}</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "zero_indexed"></a>
+    <strong>zero_indexed ()</strong>
+    </dt>
+    <dd>
+    Modifies an array-like table in-place to make it zero-indexed.
+ It copies `@[i+1]` to `@[i]` for `i` from `0` to `#@-1`.
+ The original 1-indexed elements are preserved.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        self
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> arr = {<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>} <span class="comment">-- arr[1]="a", arr[2]="b", arr[3]="c"
+</span>fun.<span class="function-name">zero_indexed</span>(arr) <span class="comment">-- arr[0]="a", arr[1]="b", arr[2]="c" (original elements still there)</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "iter"></a>
+    <strong>iter (t[, step=1[, i]])</strong>
+    </dt>
+    <dd>
+    The main iterator constructor and stepping function.
+ This is called when `fun.iter(t)` is used.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">t</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+
+        </li>
+        <li><span class="parameter">step</span>
+            <span class="types"><span class="type">integer</span></span>
+
+         (<em>default</em> 1)
+        </li>
+        <li><span class="parameter">i</span>
+            <span class="types"><span class="type">integer</span></span>
+
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "any"></a>
+    <strong>any (fn)</strong>
+    </dt>
+    <dd>
+    Returns the first element that satisfies the predicate `fn`.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/fun.html#any">any</a> or <span class="type">nil</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "each"></a>
+    <strong>each (fn)</strong>
+    </dt>
+    <dd>
+    Calls `fn` for each element in the iterator.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+        self (to allow chaining, though `each` is usually terminal).
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "map"></a>
+    <strong>map (fn)</strong>
+    </dt>
+    <dd>
+    Creates a new iterator that applies `fn` to each element of the current iterator.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "imap"></a>
+    <strong>imap (fn)</strong>
+    </dt>
+    <dd>
+    Creates a new iterator that applies `fn` to each element and its 1-based index.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "filter"></a>
+    <strong>filter (fn)</strong>
+    </dt>
+    <dd>
+    Creates a new iterator that yields only elements for which `fn` returns true.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "take"></a>
+    <strong>take (n)</strong>
+    </dt>
+    <dd>
+    Creates a new iterator that yields at most `n` elements from the current iterator.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">n</span>
+            <span class="types"><span class="type">integer</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "toarray"></a>
+    <strong>toarray ()</strong>
+    </dt>
+    <dd>
+    Collects all elements from the iterator into a new array.
+
+
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+        An array (list-like table) containing all elements from the iterator.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "reduce"></a>
+    <strong>reduce (fn[, initial])</strong>
+    </dt>
+    <dd>
+    Reduces the iterator's elements to a single value using a binary function.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+        <li><span class="parameter">initial</span>
+            <span class="types"><a class="type" href="../modules/fun.html#any">any</a></span>
+
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="../modules/fun.html#any">any</a></span>
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> sum = fun.<span class="function-name">iter</span>({<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>})\<span class="function-name">reduce</span> (acc, val) -&gt; acc + val
+<span class="keyword">local</span> product = fun.<span class="function-name">iter</span>({<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>})\<span class="function-name">reduce</span> (((acc, val) -&gt; acc * val), <span class="number">1</span>)</pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "generate"></a>
+    <strong>generate (fn)</strong>
+    </dt>
+    <dd>
+    Creates an iterator from a generator function.
+ The generator function `fn` is called repeatedly without arguments to produce values.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">fun.iterator</span></span>
+
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="keyword">local</span> i = <span class="number">0</span>
+<span class="keyword">local</span> count_up = fun.generate -&gt; i += <span class="number">1</span>; <span class="keyword">return</span> i &lt;= <span class="number">5</span> <span class="keyword">and</span> i <span class="keyword">or</span> <span class="keyword">nil</span>
+<span class="keyword">for</span> val <span class="keyword">in</span> count_up <span class="keyword">do</span> <span class="global">print</span>(val) <span class="keyword">end</span> <span class="comment">-- prints 1, 2, 3, 4, 5</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "protected"></a>
+    <strong>protected (fn[, op])</strong>
+    </dt>
+    <dd>
+    Wraps a function call in `xpcall` to catch errors.
+ If an error occurs, it prints the error. When `leak_debug` is true, it also prints a full traceback.
+ Calls an optional `op` function on error.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">fn</span>
+            <span class="types"><span class="type">function</span></span>
+
+        </li>
+        <li><span class="parameter">op</span>
+            <span class="types"><span class="type">function</span></span>
+
+         (<em>optional</em>)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">function</span></span>
+        A new, protected function.
+    </ol>
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- The returned protected function takes:
+</span><span class="comment">-- @tparam ...any ... Arguments for the original `fn`.
+</span><span class="comment">-- @treturn ...any|nil Results from `fn` or `op` (see main description for conditions).</span></pre>
+    </ul>
+
+</dd>
+    <dt>
+    <a name = "_"></a>
+    <strong>_ ()</strong>
+    </dt>
+    <dd>
+    The main export table for the `fun` module.
+ It provides direct access to functions like `memo`, `range`, etc.
+ Additionally, it has a special `__index` metamethod that allows
+ `iter` methods (like `map`, `filter`, `reduce`) to be called directly
+ on the `fun` module itself if the first argument is a table (or something `iter` can wrap).
+ This provides a convenient shortcut.
+
+
+
+
+
+
+    <h3>Usage:</h3>
+    <ul>
+        <pre class="example"><span class="comment">-- When using methods like fun.map(tbl, fn):
+</span><span class="comment">-- The __index metamethod creates a wrapper function. This wrapper:
+</span> The <span class="global">table</span> <span class="keyword">or</span> iterator being operated on.
+<span class="comment">-- @tparam ...any ... Arguments for the specific iterator method (e.g., the mapping function for `map`).
+</span><span class="comment">-- @treturn any The result of the iterator method (e.g., a new `fun.iterator` for `map`, a value for `reduce`).
+</span><span class="keyword">local</span> fun = <span class="global">require</span> <span class="string">"fun"</span>
+<span class="keyword">local</span> doubled = fun.<span class="function-name">map</span>({<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>}, (x) -&gt; x * <span class="number">2</span>) <span class="comment">-- equivalent to fun.iter({1,2,3})\map(...)
+</span><span class="keyword">local</span> sum = fun.<span class="function-name">reduce</span>({<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>}, ((acc,v) -&gt; acc + v), <span class="number">0</span>) <span class="comment">-- equivalent to fun.iter({1,2,3})\reduce(...)</span></pre>
+    </ul>
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

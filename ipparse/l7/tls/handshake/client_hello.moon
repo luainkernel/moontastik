@@ -27,9 +27,9 @@
 -- - RFC 5246: The Transport Layer Security (TLS) Protocol Version 1.2
 -- - RFC 8446: The Transport Layer Security (TLS) Protocol Version 1.3
 --
--- @module tls.handshake.client_hello
+-- @module l7.tls.handshake.client_hello
 
-pack: sp, unpack: su = string
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 
 --- Packs a TLS ClientHello message into a binary string.
 -- Constructs the binary representation of the ClientHello message.

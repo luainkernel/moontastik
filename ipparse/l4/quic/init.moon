@@ -29,10 +29,12 @@
 -- - RFC 8999: Version-Independent Properties of QUIC
 -- - RFC 9001: Using TLS to Secure QUIC
 --
--- @module quic
+-- @module l4.quic
 
-pack: sp, unpack: su, :byte = string
+pack: sp, unpack: su, :byte = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
+{:band} = require"ipparse.lib.bit_compat"
+{:parse_varint} = require"ipparse.l4.quic.frames"
 
 versions = {v.version, v for v in *[require"ipparse.l4.quic.#{v}" for v in *{"version_negotiation", "v1"}]}
 
@@ -62,8 +64,8 @@ for {:long_mt, :short_mt} in *versions
   short_mt[k] or= v for k, v in pairs _mt
 
 --- Parses a long QUIC header from a binary string.
--- Extracts the version, destination connection ID, and source connection ID.
--- @tparam string self The binary string containing the QUIC header.
+-- Extracts the version, destination connection ID, source connection ID,
+-- and (for Initial packets, RFC 9001) the token and length fields.
 -- @tparam number off Offset to start parsing from.
 -- @tparam number byte1 The first byte of the header.
 -- @treturn table Parsed QUIC header as a table.
@@ -71,17 +73,32 @@ for {:long_mt, :short_mt} in *versions
 parse_long_header = (off, byte1) =>
   version, dst_connection_id, src_connection_id, _off = su ">I4 s1 s1", @, off
   local mt
+  local pkt_type, token, pkt_length
   if v = versions[version]
     mt = v.long_mt
+    -- Packet type is bits 4-5 of byte1 (RFC 9000 §17.2)
+    pkt_type = band(byte1, 0x30)
   mt or= _mt
+
+  -- Initial packets (pkt_type == 0x00) carry a token field (RFC 9001 §17.2.2)
+  if pkt_type == 0x00
+    token_len, _off = parse_varint @, _off
+    token = @\sub _off, _off + token_len - 1
+    _off += token_len
+
+  -- All long-header packet types carry a Length VarInt (except Retry)
+  if pkt_type != 0x30  -- 0x30 = Retry
+    pkt_length, _off = parse_varint @, _off
+
   setmetatable({
     byte1: byte1, :version, :dst_connection_id, :src_connection_id,
+    :token, :pkt_length, pkt_type: pkt_type,
+    pn_off: _off,        -- 1-based offset of the (protected) packet number field
     data_off: _off, payload_off: _off, long_header: true
   }, mt), _off
 
 --- Parses a short QUIC header from a binary string.
 -- Extracts the destination connection ID and other fields.
--- @tparam string self The binary string containing the QUIC header.
 -- @tparam number off Offset to start parsing from.
 -- @tparam number byte1 The first byte of the header.
 -- @tparam[opt] string dst_id The destination connection ID (optional).
@@ -103,14 +120,13 @@ parse_short_header = (off, byte1, dst_id=nil, src_connection_id=nil, version=nil
 
 --- Parses a QUIC header from a binary string.
 -- Determines whether the header is long or short and delegates to the appropriate parse function.
--- @tparam string self The binary string containing the QUIC header.
 -- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
 -- @param ... Additional arguments for parsing.
 -- @treturn table Parsed QUIC header as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1, ...) =>
   byte1 = byte @, off
-  if byte1 & HEADER_FORM == 0
+  if band(byte1, HEADER_FORM) == 0
     parse_short_header @, off+1, byte1, ...
   else
     parse_long_header @, off+1, byte1

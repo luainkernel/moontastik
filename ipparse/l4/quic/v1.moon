@@ -35,10 +35,11 @@
 -- - RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport
 -- - RFC 9001: Using TLS to Secure QUIC
 --
--- @module quic.v1
+-- @module l4.quic.v1
 
 :upper = string
 :bidirectional, :zero_indexed = require"ipparse.fun"
+{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
 --- QUIC version number as found in the long-header version field (0x01 for version 1).
 version = 0x01
@@ -69,7 +70,7 @@ byte1_short = bidirectional {
 --- Packet types for QUIC version 1.
 -- Provides bidirectional mappings for packet types such as `initial`, `zero_rtt`, `handshake`, and `retry`.
 packet_types = zero_indexed {"initial", "zero_rtt", "handshake", "retry"}
-packet_types[i << 4] = packet_types[i] for i = 0, #packet_types-1
+packet_types[lshift(i, 4)] = packet_types[i] for i = 0, #packet_types-1
 packet_types = bidirectional packet_types
 
 --- Generates a metatable for manipulating QUIC header fields.
@@ -83,7 +84,7 @@ generate_mt = (byte1) -> {
   __index: (k) =>
     if type(k) == "string"
       if mask = byte1[upper k]
-        @byte1 & mask
+        band(@byte1, mask)
 
   --- Writes a value to a header field.
   -- @tparam string k The name of the header field (e.g., `HEADER_FORM`).
@@ -92,7 +93,7 @@ generate_mt = (byte1) -> {
     if type(k) == "string"
       if mask = byte1[upper k]
         v = mask if v == true
-        @byte1 = (@byte1 & ~mask) | (v or 0)
+        @byte1 = bor(band(@byte1, bnot(mask)), v or 0)
 }
 
 {
