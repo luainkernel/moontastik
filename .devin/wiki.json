@@ -1,0 +1,262 @@
+{
+  "repo_notes": [
+    {
+      "content": ""
+    }
+  ],
+  "pages": [
+    {
+      "title": "MoonTAStik Overview",
+      "purpose": "Introduce the MoonTAStik project, its purpose as a collection of MoonScript components for Lunatik, and high-level architecture",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Architecture",
+      "purpose": "Explain the overall system architecture, showing how ipparse and hexdump components work together in the Lunatik environment",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "ipparse Library",
+      "purpose": "Overview of the ipparse packet parsing library, its modular design and capabilities across network layers",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Core Utilities",
+      "purpose": "Document the core utility functions for binary/hex conversion, hexdump functionality, and basic data manipulation",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Functional Programming Utilities",
+      "purpose": "Explain the functional programming primitives, iterators, memoization, and utility functions provided by fun.moon",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Network Protocol Parsing",
+      "purpose": "Overview of the layered approach to network protocol parsing and how different layers interact",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Layer 2: Ethernet Protocol",
+      "purpose": "Document Ethernet frame parsing, packing, and MAC address utilities",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Layer 3: IP Processing",
+      "purpose": "Explain the unified IP interface that handles both IPv4 and IPv6 with automatic version detection",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "IPv4 Protocol",
+      "purpose": "Detail IPv4 header parsing, packing, address conversion, and checksum calculation",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "IPv6 Protocol",
+      "purpose": "Detail IPv6 header parsing, packing, address conversion, and key derivation features",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "IPv4 Fragmentation Handling",
+      "purpose": "Explain the packet reassembly system for handling fragmented IPv4 packets",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Layer 4: Transport Protocols",
+      "purpose": "Overview of transport layer protocol support including TCP and UDP",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TCP Protocol",
+      "purpose": "Document TCP header parsing, packing, flag management, and object-oriented interface",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "UDP Protocol",
+      "purpose": "Document UDP header parsing, packing, and length calculation",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Port Number Mappings",
+      "purpose": "Explain the service name mappings for TCP and UDP port numbers",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "QUIC Protocol",
+      "purpose": "Document QUIC parsing, packing, and length calculation",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Layer 7: Application Protocols",
+      "purpose": "Overview of application layer protocol support including DNS and TLS",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "DNS Protocol",
+      "purpose": "Comprehensive documentation of DNS message parsing, packing, label compression, and EDNS support",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TLS Protocol",
+      "purpose": "Document TLS record layer parsing, packing, and key derivation functions",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TLS Handshake Processing",
+      "purpose": "Explain TLS handshake message parsing, cipher suites, compression methods, and extensions",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TLS ClientHello Messages",
+      "purpose": "Detail ClientHello message structure, parsing, and packing functionality",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "TLS Extensions",
+      "purpose": "Document TLS extension parsing and packing, including Server Name Indication (SNI)",
+      "parent": "ipparse Library",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "hexdump Tool",
+      "purpose": "Document the kernel-level packet inspection utility, its XDP and Netfilter integration, and packet dumping capabilities",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Build and Installation",
+      "purpose": "Explain the build system, MoonScript compilation, packaging, and installation procedures",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "Examples and Usage",
+      "purpose": "Provide practical examples of using the library, including DNS parsing and TLS SNI extraction",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    },
+    {
+      "title": "License",
+      "purpose": "Document the dual licensing approach with MIT and GPL licenses",
+      "page_notes": [
+        {
+          "content": ""
+        }
+      ]
+    }
+  ]
+}The content has been copied to your clipboard. Please paste it here to complete the file creation.
