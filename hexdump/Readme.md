@@ -50,6 +50,5 @@ sudo lunatik start hexdump/hook false                # runs the Lua kernel scrip
 sudo xdp-loader load -m skb eth0 xdp.o               # if using XDP: replace eth0 by your interface.
 sudo journalctl -ft kernel                           # or use dmesg
 sudo xdp-loader unload eth0 --all                    # unloads the XDP helper
-sudo lunatik stop snihook/main                       # stops the Lua kernel script
+sudo lunatik stop hexdump/hook                       # stops the Lua kernel script
 ```
-
