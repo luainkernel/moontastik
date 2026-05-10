@@ -83,14 +83,15 @@ parse = (off=1) =>
   end_offset = _off + len
   names = {}
   ok = true
+  err = nil
   while _off < end_offset
     -- If parse_entry fails due to insufficient data, su() will raise an error.
     ok, entry, _off = pcall parse_entry, @, _off
     if not ok
-      print entry
+      err = tostring entry
       break
     names[#names+1] = entry
-  setmetatable({:names, name: (names[1] and names[1].name), incomplete: not ok}, _mt), _off
+  setmetatable({:names, name: (names[1] and names[1].name), incomplete: not ok, :err}, _mt), _off
 
 name_types = bidirectional zero_indexed {"HOST_NAME"}
 

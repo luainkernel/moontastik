@@ -160,6 +160,7 @@ decrypt_initial = (self, quic_packet, q, direction, keys_override=nil) ->
       quic_packet = quic_packet\sub 1, packet_end
   pn_off = q.pn_off
   aad, pn, pn_len = prot_mod.unprotect_header quic_packet, pn_off, keys.hp_key, true, expected, self.backend
+  return nil, pn unless aad
   payload_off = pn_off + pn_len
   plaintext, err = prot_mod.decrypt_payload quic_packet, payload_off, keys.key, keys.iv, pn, aad, self.backend
   return nil, err unless plaintext

@@ -48,7 +48,7 @@ construct_nonce = (iv, pn) ->
 -- @treturn string 16-byte sample
 sample_from_packet = (pkt, enc_off) ->
   s = enc_off + 4
-  assert s + 15 <= #pkt, "packet too short to extract header protection sample"
+  return nil, "packet too short to extract header protection sample" unless s + 15 <= #pkt
   pkt\sub s, s + 15
 
 --- Applies (or removes — same operation) header protection.
@@ -69,8 +69,11 @@ apply_header_mask = (hdr_bytes, first_byte_idx, pn_off, pn_len, mask, long) ->
 recover_packet_number = nil
 
 unprotect_header = (pkt, pn_off, hp_key, long, expected_pn, crypto) ->
-  sample = sample_from_packet pkt, pn_off
+  return nil, "invalid pn_off #{pn_off}" unless pn_off and pn_off >= 2 and pn_off <= #pkt
+  sample, serr = sample_from_packet pkt, pn_off
+  return nil, serr unless sample
   mask = crypto.aes_128_ecb_block hp_key, sample
+  return nil, "header protection mask unavailable" unless mask and #mask >= 5
   m0 = byte mask, 1
   fb_mask = long and 0x0F or 0x1F
   first = bxor byte(pkt, 1), band(m0, fb_mask)
@@ -79,7 +82,10 @@ unprotect_header = (pkt, pn_off, hp_key, long, expected_pn, crypto) ->
   truncated_pn = 0
   pn_chars = {}
   for i = 1, pn_len
-    b = bxor byte(pkt, pn_off + i - 1), byte(mask, i + 1)
+    pkt_b = byte pkt, pn_off + i - 1
+    mask_b = byte mask, i + 1
+    return nil, "packet too short for packet number bytes" unless pkt_b and mask_b
+    b = bxor pkt_b, mask_b
     truncated_pn = truncated_pn * 256 + b
     pn_chars[i] = string.char b
 

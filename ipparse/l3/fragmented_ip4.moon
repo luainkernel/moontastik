@@ -10,11 +10,10 @@ new: data_new = require"data"
 
 fragmented = {}
 
-collect: =>
-  id = @id
+collect: (_skb) =>
+  :id, :off, :data_off, :data_len, :mf = @
   fragments = fragmented[id] or {}
   fragmented[id] = fragments
-  _skb, off, data_off, data_len, mf = @skb, @off, @data_off, @data_len, @mf
   frag_off = lshift(@fragmentation_off, 3)
   total_len = off + frag_off + data_off + data_len
   -- 64KB is the theoretical maximum, 10KB a reasonable max len default
@@ -44,6 +43,5 @@ collect: =>
   total_len = off + frag_off + data_off + data_len
 
   fragmented[id] = nil
-  ip = IP4 :skb, :off
-  ip.__len = -> total_len
-  ip
+  ip = IP4.parse skb
+  ip, @

@@ -16,7 +16,7 @@
 --   aes_128_ecb_block(key, block) → encrypted_block (with fallback)
 --
 -- Note: ECB uses skcipher with ephemeral allocation to avoid persistent memory pressure.
--- If ECB fails, returns nil to signal fallback to brute-force PN recovery + AEAD validation.
+-- If ECB fails, returns nil so caller can skip this packet and retry later.
 --
 -- @module lib.crypto.backend.lunatik
 
@@ -31,6 +31,9 @@ cached_gcm_enc_tfm = nil
 cached_gcm_enc_key = nil
 cached_gcm_dec_tfm = nil
 cached_gcm_dec_key = nil
+cached_ecb_tfm = nil
+cached_ecb_key = nil
+ecb_fail_streak = 0
 
 get_gcm_tfm = (mode, key) ->
   if mode == "encrypt"
@@ -118,8 +121,8 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad = "") ->
   pt_or_err, nil
 
 --- Encrypts single AES-128-ECB block.
--- Uses skcipher with ephemeral allocation to avoid persistent memory pressure.
--- Returns nil on failure so the caller can fall back to brute-force PN recovery + AEAD validation.
+-- Uses a cached skcipher transform to avoid frequent allocations under load.
+-- Returns nil on failure so caller can defer processing and retry later.
 -- @tparam string key 16-byte key
 -- @tparam string block 16-byte plaintext block
 -- @treturn string 16-byte ciphertext block, or nil if ECB unavailable
@@ -128,15 +131,23 @@ aes_128_ecb_block = (key, block) ->
   validate_ecb_block block
 
   ok, result = pcall ->
-    sk = skcipher "ecb(aes)"
-    sk\setkey key
+    unless cached_ecb_tfm
+      cached_ecb_tfm = skcipher "ecb(aes)"
+      cached_ecb_key = nil
+    if cached_ecb_key != key
+      cached_ecb_tfm\setkey key
+      cached_ecb_key = key
     -- ECB doesn't use IV, but skcipher API requires it
     -- For ECB, ivsize should be 0, so we pass empty string
-    sk\encrypt "", block
+    cached_ecb_tfm\encrypt "", block
   unless ok
-    -- ECB failed (likely "not enough memory"); return nil to signal fallback
-    print "WARN: aes_128_ecb_block failed (#{result}), falling back to brute-force PN recovery"
+    -- Keep cached tfm/key to avoid churn under memory pressure.
+    -- Reallocating tfm on each transient failure tends to make ENOMEM worse.
+    ecb_fail_streak += 1
+    if ecb_fail_streak == 1 or ecb_fail_streak % 128 == 0
+      print "WARN: aes_128_ecb_block unavailable (#{result}), header protection temporarily skipped [#{ecb_fail_streak}]"
     return nil
+  ecb_fail_streak = 0
   result
 
 {
