@@ -32,6 +32,7 @@
 -- @module l4.quic
 
 pack: sp, unpack: su, :byte = require "ipparse.lib.pack_compat"
+:unpack = table
 :bidirectional = require"ipparse.fun"
 {:band} = require"ipparse.lib.bit_compat"
 {:parse_varint} = require"ipparse.l4.quic.frames"
@@ -131,4 +132,27 @@ parse = (off=1, ...) =>
   else
     parse_long_header @, off+1, byte1
 
-:versions, :pack, :parse
+--- Splits a UDP payload into QUIC datagrams when packets are coalesced.
+-- Returns one item per parsed QUIC packet with bounds and raw bytes.
+-- @tparam[opt=1] number off Offset to start parsing from.
+-- @param ... Additional arguments forwarded to `parse`.
+-- @treturn {table}|nil Array of `{ header, off, packet_end, data }`.
+-- @treturn string|nil Error string on failure.
+split_datagrams = (off=1, ...) =>
+  frame = @
+  args = {...}
+  packets = {}
+  while off <= #frame
+    q, err = parse frame, off, unpack args
+    return nil, "QUIC header parse error at offset #{off}: #{err}" unless q
+    return nil, "unsupported QUIC short header at offset #{off}" unless q.long_header
+    return nil, "missing QUIC packet number offset at offset #{off}" unless q.pn_off
+    return nil, "missing QUIC packet length at offset #{off}" unless q.pkt_length
+
+    packet_end = (q.pn_off - 1) + q.pkt_length
+    return nil, "invalid QUIC packet bounds at offset #{off}" unless packet_end >= off and packet_end <= #frame
+    packets[#packets + 1] = header: q, :off, :packet_end, data: frame\sub(off, packet_end)
+    off = packet_end + 1
+  packets
+
+:versions, :pack, :parse, :split_datagrams

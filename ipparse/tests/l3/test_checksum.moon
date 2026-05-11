@@ -1,6 +1,7 @@
 util = require"ipparse.lib.util"
 {:test} = util
-{:checksum} = require"ipparse.l3.lib"
+pack: sp = require "ipparse.lib.pack_compat"
+{:checksum, :checksum6} = require"ipparse.l3.lib"
 ip4 = require"ipparse.l3.ip4"
 
 test "checksum of 0xffff is 0", ->
@@ -29,4 +30,12 @@ test "checksum odd-length pads with zero", ->
   -- Odd-length input should be padded; "\xff" = "\xff\x00" padded → checksum = 0xff00 → bnot = 0x00ff
   result = checksum "\xff"
   assert result == 0x00ff, "checksum(\\xff) should be 0x00ff, got #{result}"
+
+test "checksum6 matches IPv6 pseudo-header formula", ->
+  src = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+  dst = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+  payload = "abcdef"
+  got = checksum6 src, dst, 17, payload
+  expected = checksum sp(">c16c16 I4 xxx B c#{#payload}", src, dst, #payload, 17, payload)
+  assert got == expected, "checksum6 mismatch: got #{got}, expected #{expected}"
 util.summary "l3/checksum"

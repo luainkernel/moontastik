@@ -32,7 +32,7 @@
 :insert, :remove = table
 unpack or= table.unpack
 :toarray = require"ipparse.fun"
-checksum: checksum = require"ipparse.l3.lib"
+:checksum, :checksum6 = require"ipparse.l3.lib"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
 local s2ip6
@@ -45,7 +45,7 @@ pack = =>
   if type(data) == "table"
     data.checksum = 0
     d = "#{data}"  -- Let the L4 payload recalculate its length
-    data.checksum = checksum sp ">c16c16 I4 xxx B c#{#d}", @src, @dst, #d, @next_header, d  -- RCF8200 Section 8.1
+    data.checksum = checksum6 @src, @dst, @next_header, d
     data = "#{data}"
   @payload_len = #data
   @vtf or= bor(lshift(@version, 28), lshift(@traffic_class or 0, 20), @flow_label or 0)

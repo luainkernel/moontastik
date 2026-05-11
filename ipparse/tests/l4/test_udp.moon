@@ -1,6 +1,7 @@
 util = require"ipparse.lib.util"
 {:test} = util
 udp = require"ipparse.l4.udp"
+{:checksum6} = require "ipparse.l3.lib"
 
 test "parse extracts spt, dpt, len, checksum", ->
   u = udp.new {spt: 12345, dpt: 53, checksum: 0}
@@ -46,4 +47,14 @@ test "packed output includes data", ->
   u = udp.new {spt: 100, dpt: 200, checksum: 0, data: "abc"}
   raw = tostring u
   assert #raw == 11, "UDP with 3-byte data should be 11 bytes, got #{#raw}"
+
+test "checksum6 computes IPv6 UDP pseudo-header checksum", ->
+  src = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+  dst = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+  pkt = tostring udp.new spt: 1234, dpt: 443, checksum: 0, data: "hello"
+  got = udp.checksum6 src, dst, pkt
+  expected = checksum6 src, dst, 17, pkt
+  expected = 0xFFFF if expected == 0
+  assert got == expected, "checksum6 mismatch: got #{got}, expected #{expected}"
+
 util.summary "l4/udp"

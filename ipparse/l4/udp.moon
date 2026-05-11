@@ -25,6 +25,7 @@
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
+checksum6: l3_checksum6 = require "ipparse.l3.lib"
 
 --- Packs the UDP header and payload into a binary string.
 -- Calculates the total length of the UDP packet and constructs the binary representation.
@@ -43,8 +44,19 @@ _mt = __tostring: pack
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
   return nil, off unless need_bytes @, off, 8
-  spt, dpt, len, checksum, data_off = su ">H H H H", @, off
-  setmetatable({:spt, :dpt, :len, :checksum, :off, :data_off}, _mt), data_off
+  spt, dpt, len, csum, data_off = su ">H H H H", @, off
+  setmetatable({:spt, :dpt, :len, checksum: csum, :off, :data_off}, _mt), data_off
+
+--- Computes the UDP checksum over an IPv6 pseudo-header and UDP packet.
+-- The caller must pass a UDP packet with checksum field set to 0.
+-- @tparam string src 16-byte IPv6 source address.
+-- @tparam string dst 16-byte IPv6 destination address.
+-- @tparam string udp_pkt Full UDP packet (header + payload).
+-- @treturn number 16-bit checksum (mapped to 0xFFFF when result is 0).
+checksum6 = (src, dst, udp_pkt) ->
+  csum = l3_checksum6 src, dst, 17, udp_pkt
+  csum = 0xFFFF if csum == 0
+  csum
 
 --- Creates a new UDP header object.
 -- Initializes the UDP header object and sets its metatable.
@@ -53,4 +65,4 @@ parse = (off=1) =>
 new = =>
   setmetatable @, _mt
 
-:parse, :new, :pack
+:parse, :new, :pack, :checksum6
