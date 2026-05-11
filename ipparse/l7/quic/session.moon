@@ -97,15 +97,15 @@ sni_from_tls = (tls_data) ->
 
 session_mt = {}
 
-append_crypto_frame = (self, frame) ->
+append_crypto_frame = (frame) =>
   base = frame.offset or 0
   data = frame.data or ""
-  prev = self.crypto_chunks[base]
+  prev = @crypto_chunks[base]
   return true if prev and prev == data
   return nil, "conflicting CRYPTO frame at offset #{base}" if prev and prev != data
 
   data_end = base + #data - 1
-  for off, chunk in pairs self.crypto_chunks
+  for off, chunk in pairs @crypto_chunks
     chunk_end = off + #chunk - 1
     overlap_start = math.max base, off
     overlap_end = math.min data_end, chunk_end
@@ -115,59 +115,58 @@ append_crypto_frame = (self, frame) ->
         b = string.byte chunk, (pos - off + 1)
         if a != b
           return nil, "conflicting CRYPTO byte at offset #{pos}"
-  self.crypto_chunks[base] = data
+  @crypto_chunks[base] = data
   true
 
-direction_from_header = (self, q, meta={}) ->
+direction_from_header = (q, meta={}) =>
   return meta.direction if meta.direction
-  return "client" unless self.initial_dcid
-  if q.dst_connection_id == self.initial_dcid
+  return "client" unless @initial_dcid
+  if q.dst_connection_id == @initial_dcid
     "client"
-  elseif q.src_connection_id == self.initial_dcid
+  elseif q.src_connection_id == @initial_dcid
     "server"
   else
     "client"
 
-ensure_keys = (self, q, direction) ->
-  if not self.initial_dcid
-    self.initial_dcid = q.dst_connection_id
-  
+ensure_keys = (q, direction) =>
+  @initial_dcid or= q.dst_connection_id
+
   if direction == "client"
-    if not self.client_keys
+    if not @client_keys
       keys, kerr = load_keys_module!
       return nil, kerr unless keys
-      if not self.client_secret
-        self.client_secret, self.server_secret = keys.derive_initial_secrets self.initial_dcid
-      key, iv, hp = keys.derive_keys self.client_secret
-      self.client_keys = {:key, :iv, hp_key: hp}
+      if not @client_secret
+        @client_secret, @server_secret = keys.derive_initial_secrets @initial_dcid
+      key, iv, hp = keys.derive_keys @client_secret
+      @client_keys = {:key, :iv, hp_key: hp}
   else
-    if not self.server_keys
+    if not @server_keys
       keys, kerr = load_keys_module!
       return nil, kerr unless keys
-      if not self.server_secret
-        self.client_secret, self.server_secret = keys.derive_initial_secrets self.initial_dcid
-      key, iv, hp = keys.derive_keys self.server_secret
-      self.server_keys = {:key, :iv, hp_key: hp}
+      if not @server_secret
+        @client_secret, @server_secret = keys.derive_initial_secrets @initial_dcid
+      key, iv, hp = keys.derive_keys @server_secret
+      @server_keys = {:key, :iv, hp_key: hp}
 
   true, nil
 
-decrypt_initial = (self, quic_packet, q, direction, keys_override=nil) ->
-  keys = keys_override or (direction == "server" and self.server_keys or self.client_keys)
-  expected = (self.pn_largest[direction] or -1) + 1
+decrypt_initial = (quic_packet, q, direction, keys_override=nil) =>
+  keys = keys_override or (direction == "server" and @server_keys or @client_keys)
+  expected = (@pn_largest[direction] or -1) + 1
   if q.pkt_length and q.pn_off
     packet_end = (q.pn_off - 1) + q.pkt_length
     if packet_end > 0 and packet_end <= #quic_packet
       quic_packet = quic_packet\sub 1, packet_end
   pn_off = q.pn_off
-  aad, pn, pn_len = prot_mod.unprotect_header quic_packet, pn_off, keys.hp_key, true, expected, self.backend
+  aad, pn, pn_len = prot_mod.unprotect_header quic_packet, pn_off, keys.hp_key, true, expected, @backend
   return nil, pn unless aad
   payload_off = pn_off + pn_len
-  plaintext, err = prot_mod.decrypt_payload quic_packet, payload_off, keys.key, keys.iv, pn, aad, self.backend
+  plaintext, err = prot_mod.decrypt_payload quic_packet, payload_off, keys.key, keys.iv, pn, aad, @backend
   return nil, err unless plaintext
-  self.pn_largest[direction] = pn if pn > (self.pn_largest[direction] or -1)
+  @pn_largest[direction] = pn if pn > (@pn_largest[direction] or -1)
   plaintext
 
-bootstrap_initial = (self, quic_packet, q) ->
+bootstrap_initial = (quic_packet, q) =>
   keys, kerr = load_keys_module!
   return nil, kerr unless keys
 
@@ -190,13 +189,13 @@ bootstrap_initial = (self, quic_packet, q) ->
   for probe in *probes
     keyset = derive_quic_keyset keys, probe.dcid
     probe_keys = probe.direction == "server" and keyset.server_keys or keyset.client_keys
-    plaintext, derr = decrypt_initial self, quic_packet, q, probe.direction, probe_keys
+    plaintext, derr = decrypt_initial @, quic_packet, q, probe.direction, probe_keys
     if plaintext
-      self.initial_dcid = probe.dcid
-      self.client_secret = keyset.client_secret
-      self.server_secret = keyset.server_secret
-      self.client_keys = keyset.client_keys
-      self.server_keys = keyset.server_keys
+      @initial_dcid = probe.dcid
+      @client_secret = keyset.client_secret
+      @server_secret = keyset.server_secret
+      @client_keys = keyset.client_keys
+      @server_keys = keyset.server_keys
       return plaintext
     errs[#errs + 1] = "#{probe.direction}/dcid_len=#{#probe.dcid}: #{derr}"
 
@@ -216,24 +215,24 @@ session_mt.__index =
     return nil, "only QUIC Initial is supported" unless q.pkt_type == 0x00
 
     plaintext = nil
-    if not self.initial_dcid
-      plaintext, err = bootstrap_initial self, quic_packet, q
+    if not @initial_dcid
+      plaintext, err = bootstrap_initial @, quic_packet, q
       return nil, err unless plaintext
     else
-      direction = direction_from_header self, q, meta
-      ok, key_err = ensure_keys self, q, direction
+      direction = direction_from_header @, q, meta
+      ok, key_err = ensure_keys @, q, direction
       return nil, (key_err or "could not derive QUIC keys") unless ok
 
-      plaintext, err = decrypt_initial self, quic_packet, q, direction
+      plaintext, err = decrypt_initial @, quic_packet, q, direction
       return nil, "decrypt failed: #{err}" unless plaintext
 
     for f in iter_frames plaintext
       continue unless f and f.name == "CRYPTO" and f.data
-      ok_append, append_err = append_crypto_frame self, f
+      ok_append, append_err = append_crypto_frame @, f
       return nil, append_err unless ok_append
 
-    self.last_plaintext = plaintext
-    self.sni_dirty = true
+    @last_plaintext = plaintext
+    @sni_dirty = true
     true
 
   --- Returns the currently extracted SNI, if available.
