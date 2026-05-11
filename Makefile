@@ -4,3 +4,9 @@ lua_files:
 
 zip: lua_files
 	zip -r moontastik_lua.zip moontastik_lua && rm -r moontastik_lua
+
+all:
+	$(MAKE) -C ipparse all
+
+install:
+	$(MAKE) -C ipparse install
