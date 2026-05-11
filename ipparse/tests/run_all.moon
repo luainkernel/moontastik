@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- Runs all test modules in order and reports per-module + grand total
 util = require"ipparse.lib.util"
 total_pass, total_all = 0, 0

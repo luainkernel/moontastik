@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/lib/crypto/test_ffi_mbedtls.moon
 -- Tests for the mbedTLS FFI crypto backend.
 -- All tests are skipped if libmbedcrypto.so is not available.

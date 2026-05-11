@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 --- Small library for basic functional programming primitives.
 -- Provides utilities for memoization, iteration, and other functional constructs.
 -- @module fun

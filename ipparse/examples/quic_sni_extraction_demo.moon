@@ -1,5 +1,11 @@
 #!/usr/bin/env moon
 
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+
 --- Complete QUIC SNI Extraction Demo
 -- This demonstrates the entire end-to-end QUIC SNI extraction pipeline
 -- combining all the modules we've built.

@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/lib/crypto/test_ffi_wolfssl.moon
 -- Tests for the wolfSSL FFI crypto backend.
 -- All tests are skipped if libwolfssl.so is not available.

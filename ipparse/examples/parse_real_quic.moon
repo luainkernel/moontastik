@@ -1,5 +1,11 @@
 #!/usr/bin/env moon
 
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+
 -- Parse a real QUIC packet with RFC 9001 decryption
 -- Complete L2-L7 extraction from a .pcap or .pcapng file.
 

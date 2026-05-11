@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/l4/quic/test_protection.moon
 -- Tests for QUIC v1 construct_nonce and recover_packet_number.
 -- The header-protection and AEAD tests require the LuaJIT FFI backend

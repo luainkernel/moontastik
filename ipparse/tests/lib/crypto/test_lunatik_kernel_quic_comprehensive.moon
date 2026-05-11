@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- Comprehensive Lunatik kernel QUIC parsing tests (L2-L7)
 -- RFC 9001 vectors and full packet parsing workflow
 

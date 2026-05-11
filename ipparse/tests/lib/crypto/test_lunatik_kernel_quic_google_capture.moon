@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/lib/crypto/test_lunatik_kernel_quic_google_capture.moon
 -- Lunatik kernel capture-based test: full L2 -> SNI parsing on quic_google.pcapng.
 

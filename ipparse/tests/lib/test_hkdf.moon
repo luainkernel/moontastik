@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/lib/test_hkdf.moon
 -- Tests for HKDF-SHA256 (RFC 5869 test vectors + QUIC v1 vectors from RFC 9001 §A.1)
 

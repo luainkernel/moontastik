@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/l4/quic/test_keys.moon
 -- Tests for QUIC v1 key derivation using RFC 9001 §A.1 test vectors
 

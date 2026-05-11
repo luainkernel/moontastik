@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- tests/l7/quic/test_sni.moon
 --
 -- Tests for ipparse.l7.quic: reassemble_crypto, sni_from_tls, sni_from_plaintext.

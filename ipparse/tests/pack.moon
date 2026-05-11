@@ -1,5 +1,11 @@
 #!/usr/bin/env moon
 
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
+
 :test = require"lib.util"
 :pack, :unpack = require"lib.pack_compat"
 :concat = table

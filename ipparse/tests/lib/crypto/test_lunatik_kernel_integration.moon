@@ -1,3 +1,8 @@
+--
+-- SPDX-FileCopyrightText: (c) 2024-2026 jperon <cataclop@hotmail.com>
+-- SPDX-License-Identifier: MIT OR GPL-2.0-only
+--
+
 -- Full integration test suite: Real QUIC packet parsing (L2-L7) with crypto
 -- Tests QUIC header protection removal and SNI extraction from RFC 9001 §A.2 example
 
