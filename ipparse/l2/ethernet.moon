@@ -28,13 +28,22 @@
 :bidirectional = require"ipparse.fun"
 :format, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
+{:band} = require "ipparse.lib.bit_compat"
 unpack or= table.unpack
 
+--- EtherType for IEEE 802.1Q VLAN-tagged frames.
+ETH_P_8021Q = 0x8100
+
 --- Packs the Ethernet frame fields into a binary string.
--- Constructs the binary representation of the Ethernet frame, including destination MAC, source MAC, EtherType, and optional payload data.
+-- If the `vlan` field is set and non-zero, inserts a 4-byte 802.1Q tag (TPID=0x8100, TCI=VID)
+-- between source MAC and EtherType. Otherwise produces a plain Ethernet frame.
 -- @tparam table self The Ethernet frame object.
 -- @treturn string The packed Ethernet frame as a binary string.
-pack = => sp("c6 c6 >H", @dst, @src, @protocol) .. "#{@data or ''}"
+pack = =>
+  if @vlan and @vlan != 0
+    sp("c6 c6 >HHH", @dst, @src, ETH_P_8021Q, @vlan, @protocol) .. "#{@data or ''}"
+  else
+    sp("c6 c6 >H", @dst, @src, @protocol) .. "#{@data or ''}"
 
 _mt =
   --- Converts the Ethernet frame object to a binary string.
@@ -42,15 +51,23 @@ _mt =
   __tostring: pack
 
 --- Parses an Ethernet frame header from a data string.
--- Extracts the destination MAC, source MAC, EtherType, and calculates offsets for the payload.
+-- Transparently handles 802.1Q VLAN-tagged frames: if EtherType is 0x8100, the 4-byte tag is
+-- consumed and the `vlan` field (VID, 12-bit) is set on the result; `protocol` reflects the
+-- inner EtherType and `data_off` points past the full header (18 bytes instead of 14).
 -- @tparam string self The binary string containing the Ethernet frame.
 -- @tparam[opt=1] number off Offset in the data string to start parsing from. Defaults to 1.
--- @treturn table A table containing the Ethernet header fields: `dst` (destination MAC), `src` (source MAC), `protocol` (EtherType), `off` (input offset), `data_off` (offset after header).
--- @treturn number The offset after the Ethernet header (data_off).
+-- @treturn table Fields: `dst`, `src`, `protocol` (inner EtherType), `vlan` (nil if untagged),
+--   `off` (input offset), `data_off` (offset of payload).
+-- @treturn number The offset after the header.
 parse = (off=1) =>
   return nil, off unless need_bytes @, off, 14
   dst, src, protocol, data_off = su "c6 c6 >H", @, off
-  setmetatable({:dst, :src, :protocol, :off, :data_off}, _mt), data_off
+  vlan = nil
+  if protocol == ETH_P_8021Q
+    return nil, off unless need_bytes @, data_off, 4
+    tci, protocol, data_off = su ">HH", @, data_off
+    vlan = band tci, 0xFFF
+  setmetatable({:dst, :src, :protocol, :vlan, :off, :data_off}, _mt), data_off
 
 --- Creates a new instance of the Ethernet frame object and sets its metatable.
 -- @tparam table self The Ethernet frame object.
@@ -81,4 +98,4 @@ proto =
   IP4: 0x800
 proto = bidirectional proto
 
-:parse, :new, :pack, :proto, :mac2s, :s2mac
+:parse, :new, :pack, :proto, :mac2s, :s2mac, :ETH_P_8021Q

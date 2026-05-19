@@ -118,10 +118,61 @@ parse_ip6 = =>
   address
 
 --- Converts a binary IPv6 address to a readable string.
+-- Compresses consecutive zero groups with :: according to RFC 5952.
 -- @tparam string self The binary IPv6 address.
 -- @treturn string IPv6 address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx".
 ip62s = =>
-  format "%x:%x:%x:%x:%x:%x:%x:%x", su ">HHHH HHHH", @
+  parts = { su ">HHHH HHHH", @ }
+
+  -- Find the longest run of consecutive zeros
+  max_zero_start = 1
+  max_zero_len = 0
+  zero_start = 1
+  zero_len = 0
+
+  for i = 1, 8
+    if parts[i] == 0
+      if zero_len == 0
+        zero_start = i
+      zero_len += 1
+    else
+      if zero_len > max_zero_len
+        max_zero_start = zero_start
+        max_zero_len = zero_len
+      zero_len = 0
+
+  -- Check if the last run is the longest
+  if zero_len > max_zero_len
+    max_zero_start = zero_start
+    max_zero_len = zero_len
+
+  -- Only compress if we have at least 2 consecutive zeros
+  if max_zero_len >= 2
+    -- Build the compressed address in two parts
+    before = {}
+    after = {}
+
+    for i = 1, 8
+      if i < max_zero_start
+        table.insert before, format "%x", parts[i]
+      elseif i >= max_zero_start + max_zero_len
+        table.insert after, format "%x", parts[i]
+
+    before_str = table.concat before, ":"
+    after_str = table.concat after, ":"
+
+    -- Handle edge cases
+    if #before == 0 and #after == 0
+      return "::"
+    elseif #before == 0
+      return "::" .. after_str
+    elseif #after == 0
+      return before_str .. "::"
+    else
+      return before_str .. "::" .. after_str
+  else
+    -- No compression needed
+    format "%x:%x:%x:%x:%x:%x:%x:%x", unpack parts
 
 --- Converts a readable IPv6 address string to binary format.
 -- @tparam string self The IPv6 address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx".

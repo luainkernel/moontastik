@@ -63,4 +63,55 @@ test "new + tostring round-trip", ->
   assert parsed.dst == "\xaa\xbb\xcc\xdd\xee\xff", "round-trip dst mismatch"
   assert parsed.src == "\x00\x11\x22\x33\x44\x55", "round-trip src mismatch"
   assert parsed.protocol == 0x0800, "round-trip protocol mismatch"
+
+-- Build an 18-byte 802.1Q-tagged frame: same MACs, VLAN 6, inner proto=0x0800
+eth_vlan_raw = sp("c6c6>HHH", "\xaa\xbb\xcc\xdd\xee\xff", "\x00\x11\x22\x33\x44\x55", 0x8100, 6, 0x0800)
+
+test "parse detects 802.1Q tag and extracts vlan", ->
+  frame, next_off = eth.parse eth_vlan_raw, 1
+  assert frame.vlan == 6, "vlan should be 6, got #{frame.vlan}"
+
+test "parse 802.1Q: inner protocol is correct", ->
+  frame, _ = eth.parse eth_vlan_raw, 1
+  assert frame.protocol == 0x0800, "inner protocol should be 0x0800, got #{frame.protocol}"
+
+test "parse 802.1Q: data_off is 19 (18-byte header + 1-based)", ->
+  frame, next_off = eth.parse eth_vlan_raw, 1
+  assert frame.data_off == 19, "data_off should be 19, got #{frame.data_off}"
+  assert next_off == 19, "next_off should be 19, got #{next_off}"
+
+test "parse untagged frame: vlan is nil", ->
+  frame, _ = eth.parse eth_raw, 1
+  assert frame.vlan == nil, "vlan should be nil for untagged frame, got #{frame.vlan}"
+
+test "new with vlan: tostring produces 802.1Q frame", ->
+  frame = eth.new {
+    dst: "\xaa\xbb\xcc\xdd\xee\xff"
+    src: "\x00\x11\x22\x33\x44\x55"
+    protocol: 0x0800
+    vlan: 6
+  }
+  assert tostring(frame) == eth_vlan_raw, "VLAN-tagged frame bytes mismatch"
+
+test "new with vlan=0: tostring produces plain frame (no tag)", ->
+  frame = eth.new {
+    dst: "\xaa\xbb\xcc\xdd\xee\xff"
+    src: "\x00\x11\x22\x33\x44\x55"
+    protocol: 0x0800
+    vlan: 0
+  }
+  assert tostring(frame) == eth_raw, "vlan=0 should produce plain frame"
+
+test "new + tostring round-trip with vlan", ->
+  frame = eth.new {
+    dst: "\xaa\xbb\xcc\xdd\xee\xff"
+    src: "\x00\x11\x22\x33\x44\x55"
+    protocol: 0x0800
+    vlan: 42
+  }
+  parsed, _ = eth.parse tostring(frame), 1
+  assert parsed.vlan == 42, "round-trip vlan mismatch: got #{parsed.vlan}"
+  assert parsed.protocol == 0x0800, "round-trip protocol mismatch"
+  assert parsed.dst == "\xaa\xbb\xcc\xdd\xee\xff", "round-trip dst mismatch"
+
 util.summary "l2/ethernet"
