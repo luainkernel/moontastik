@@ -45,9 +45,9 @@ pack = =>
 -- @tparam number off The offset to start parsing from.
 -- @tparam[opt] number eth_proto The Ethernet protocol (optional).
 -- @treturn table Parsed IP header as a table.
-parse = (off, eth_proto) =>
+parse = (off) =>
   local res, _off
-  v = eth_proto or get_version @, off
+  v = get_version @, off
   switch v
     when 6
       res, _off = ip6 @, off

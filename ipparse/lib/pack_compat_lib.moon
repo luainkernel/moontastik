@@ -40,6 +40,14 @@ NATIVE_LE = do
 
 -- Lit un entier non signé depuis une chaîne (offset 0-based, size octets)
 read_uint = (s, offset, size, le) ->
+  if size == 1
+    return string.byte s, offset + 1
+  if size == 2
+    a, b = string.byte s, offset + 1, offset + 2
+    return le and (b * 256 + a) or (a * 256 + b)
+  if size == 4
+    a, b, c, d = string.byte s, offset + 1, offset + 4
+    return le and (d * 16777216 + c * 65536 + b * 256 + a) or (a * 16777216 + b * 65536 + c * 256 + d)
   val = ffi.cast "uint64_t", 0
   if le
     for i = size - 1, 0, -1
@@ -158,6 +166,23 @@ packsize = (fmt) ->
     opt, count, le, align = iter!
   total
 
+-- ─── Cache de formats pré-parsés ────────────────────────────────────────────
+
+-- Table de cache : fmt (string) → tableau de {opt, count, le}
+_fmt_cache = {}
+
+-- Matérialise le résultat de parse_format en tableau et le met en cache.
+-- Doit être défini après parse_format pour que la closure capture la bonne locale.
+parse_format_to_ops = (fmt) ->
+  ops = {}
+  iter = parse_format fmt
+  opt, count, le, align = iter!
+  while opt != nil
+    ops[#ops+1] = {opt, count, le}
+    opt, count, le, align = iter!
+  _fmt_cache[fmt] = ops
+  ops
+
 -- ─── Encodage IEEE 754 double ────────────────────────────────────────────────
 
 double_to_bytes = (n, le) ->
@@ -205,11 +230,10 @@ pack = (fmt, ...) ->
   args   = {...}
   argi   = 1
   parts  = {}
+  ops = _fmt_cache[fmt] or parse_format_to_ops(fmt)
 
-  iter = parse_format fmt
-  opt, count, le, align = iter!
-
-  while opt != nil
+  for j = 1, #ops
+    {opt, count, le} = ops[j]
     switch opt
 
       when "b"   -- int8
@@ -296,91 +320,104 @@ pack = (fmt, ...) ->
       when "X"   -- alignement (pas d'octet émis dans ce contexte simplifié)
         nil -- no-op
 
-    opt, count, le, align = iter!
-
   table.concat parts
 
 -- ─── string.unpack ───────────────────────────────────────────────────────────
 
+-- Buffer de résultats réutilisé : unpack n'est pas ré-entrant, donc safe.
+_results = {}
+
 unpack = (fmt, s, pos) ->
   pos  = (pos or 1) - 1   -- on travaille en 0-based en interne
-  results = {}
+  n    = 0
+  ops  = _fmt_cache[fmt] or parse_format_to_ops(fmt)
 
-  iter = parse_format fmt
-  opt, count, le, align = iter!
-
-  while opt != nil
+  for j = 1, #ops
+    {opt, count, le} = ops[j]
     switch opt
 
       when "b"   -- int8
         v = string.byte s, pos + 1
-        v = to_signed v, 1
-        results[#results+1] = v
+        n += 1
+        _results[n] = to_signed v, 1
         pos += 1
 
       when "B"   -- uint8
-        results[#results+1] = string.byte s, pos + 1
+        n += 1
+        _results[n] = string.byte s, pos + 1
         pos += 1
 
       when "h"   -- int16
         uv = read_uint s, pos, 2, le
-        results[#results+1] = to_signed uv, 2
+        n += 1
+        _results[n] = to_signed uv, 2
         pos += 2
 
       when "H"   -- uint16
-        results[#results+1] = tonumber read_uint s, pos, 2, le
+        n += 1
+        _results[n] = tonumber read_uint s, pos, 2, le
         pos += 2
 
       when "i"   -- intN signé
         sz = count or 4
         uv = read_uint s, pos, sz, le
-        results[#results+1] = to_signed uv, sz
+        n += 1
+        _results[n] = to_signed uv, sz
         pos += sz
 
       when "I"   -- uintN non signé
         sz = count or 4
-        results[#results+1] = tonumber read_uint s, pos, sz, le
+        n += 1
+        _results[n] = tonumber read_uint s, pos, sz, le
         pos += sz
 
       when "l"   -- int64 signé
         uv = read_uint s, pos, 8, le
-        results[#results+1] = tonumber ffi.cast "int64_t", uv
+        n += 1
+        _results[n] = tonumber ffi.cast "int64_t", uv
         pos += 8
 
       when "L", "J", "T"   -- uint64
-        results[#results+1] = tonumber read_uint s, pos, 8, le
+        n += 1
+        _results[n] = tonumber read_uint s, pos, 8, le
         pos += 8
 
       when "j"   -- lua_Integer (int64 signé)
         uv = read_uint s, pos, 8, le
-        results[#results+1] = tonumber ffi.cast "int64_t", uv
+        n += 1
+        _results[n] = tonumber ffi.cast "int64_t", uv
         pos += 8
 
       when "f"   -- float 32
-        results[#results+1] = bytes_to_float s, pos, le
+        n += 1
+        _results[n] = bytes_to_float s, pos, le
         pos += 4
 
       when "d", "n"   -- double 64
-        results[#results+1] = bytes_to_double s, pos, le
+        n += 1
+        _results[n] = bytes_to_double s, pos, le
         pos += 8
 
       when "c"   -- chaîne de longueur fixe
         sz = count or 1
-        results[#results+1] = s\sub pos + 1, pos + sz
+        n += 1
+        _results[n] = s\sub pos + 1, pos + sz
         pos += sz
 
       when "s"   -- chaîne préfixée longueur
         sz  = count or 8
         len = tonumber read_uint s, pos, sz, le
         pos += sz
-        results[#results+1] = s\sub pos + 1, pos + len
+        n += 1
+        _results[n] = s\sub pos + 1, pos + len
         pos += len
 
       when "z"   -- chaîne null-terminated
         nul = s\find "\0", pos + 1, true
         if not nul
           error "string.unpack 'z' : pas de \\0 trouvé"
-        results[#results+1] = s\sub pos + 1, nul - 1
+        n += 1
+        _results[n] = s\sub pos + 1, nul - 1
         pos = nul   -- avance juste après le \0
 
       when "x"   -- padding (ignore 1 octet)
@@ -389,11 +426,10 @@ unpack = (fmt, s, pos) ->
       when "X"   -- alignement (no-op simplifié)
         nil -- no-op
 
-    opt, count, le, align = iter!
-
   -- Ajoute la position suivante (1-based) comme dernier résultat
-  results[#results+1] = pos + 1
-  tunpack results
+  n += 1
+  _results[n] = pos + 1
+  tunpack _results, 1, n
 
 -- ─── Injection dans string.* ─────────────────────────────────────────────────
 

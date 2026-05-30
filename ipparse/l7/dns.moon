@@ -141,6 +141,16 @@ parse_header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; ret
     :off, :data_off, :size
   }, _header_mt), data_off
 
+--- Creates a new DNS header with sensible defaults and metatable attached.
+-- @tparam[opt] table opts Initial values for the header fields.
+-- @treturn table A new DNS header object.
+new_header = (opts) ->
+  h = setmetatable { id: 0, qr_opcode_aa_tc_rd: 0, ra_z_rcode: 0, qdcount: 0, ancount: 0, nscount: 0, arcount: 0 }, _header_mt
+  if opts
+    for k, v in pairs opts
+      h[k] = v
+  h
+
 local labels
 
 --- Parses a single DNS label from a binary string.
@@ -230,7 +240,9 @@ parse_questions = (off, qdcount, l7_off) =>
 -- @tparam table self The DNS resource record object.
 -- @treturn string Binary string representing the packed DNS resource record.
 pack_rr = =>
-  @rname .. sp ">H H I4 s2", @rtype, @rclass, @ttl, @rdata
+  _rclass = @rclass or (@rtype == 0x29 and 0 or 1)
+  _ttl = @ttl or 0
+  @rname .. sp ">H H I4 s2", @rtype, _rclass, _ttl, @rdata
 
 _rr_mt = __tostring: pack_rr
 
@@ -352,6 +364,8 @@ classes = bidirectional {"IN", "CS", "CH", "HS", "NONE"}
 
 rcodes = bidirectional zero_indexed {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN", "NOTIMP", "REFUSED"}
 
+opcodes = bidirectional zero_indexed {"QUERY", "IQUERY", "STATUS", "UNASSIGNED", "NOTIFY", "UPDATE"}
+
 types = bidirectional {
   "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG", "MR", "NULL",
   "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT", "RP", "AFSDB", "X25", "ISDN",
@@ -407,13 +421,26 @@ ede_codes = bidirectional zero_indexed {
   "Invalid_Data"
 }
 
+--- Creates a new DNS message object.
+-- Initializes the DNS message object and sets its metatable.
+-- @tparam table self The DNS message object.
+-- @treturn table The new DNS message object.
+new = =>
+  @header or= new_header!
+  @questions or= {}
+  @answers or= {}
+  @authorities or= {}
+  @additionals or= {}
+  setmetatable @, _mt
+
 {
   :parse, :pack
   :parse_header, :pack_header
   :label, :labels
   :parse_question, :pack_question, :parse_questions
   :classes
-  :parse_rr, :pack_rr, :parse_rrs, :rcodes
+  :parse_rr, :pack_rr, :parse_rrs, :rcodes, :opcodes
   :parse_opt, :parse_opts, :edns_opts
   :types, :ede_codes
+  :new_header, :new
 }
