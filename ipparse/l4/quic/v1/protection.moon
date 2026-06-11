@@ -97,7 +97,9 @@ recover_packet_number = (truncated, expected, pn_len) ->
   pn_win = 1
   for _ = 1, pn_len * 8
     pn_win *= 2
-  pn_hwin = rshift pn_win, 1
+  -- pn_win can be 2^32 (pn_len = 4): bitops are 32-bit on LuaJIT, so halve
+  -- with plain arithmetic (exact on doubles).
+  pn_hwin = pn_win / 2
   candidate = (expected - (expected % pn_win)) + truncated
   if candidate <= expected - pn_hwin
     candidate + pn_win
