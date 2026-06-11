@@ -65,5 +65,6 @@ test-lunatik-run:
 	fi; \
 	exit $$status
 
+# Only remove .lua files generated from a .moon source (some .lua are hand-written).
 clean:
-	rm ${shell find . -name \*.lua}
+	@for f in `find . -name \*.moon`; do rm -f "$${f%.moon}.lua"; done

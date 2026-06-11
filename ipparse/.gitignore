@@ -15,7 +15,12 @@ tmp/
 temp/
 
 # Generated Lua (compiled from .moon by `make`)
+# Hand-written .lua files (no .moon counterpart) must be un-ignored below.
 *.lua
+!lib/util.lua
+!lib/sha.lua
+!lib/sha2.lua
+!lib/ffi_stub.lua
 
 # Editor/session autosaves
 *.task
