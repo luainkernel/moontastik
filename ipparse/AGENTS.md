@@ -31,7 +31,8 @@ make                # Compile all .moon → .lua  (moonc .)
 sudo make install   # Copy .lua to /lib/modules/lua/ipparse/
 make clean          # Delete generated .lua files
 
-lua tests/crypto/aead.lua   # Run a test (no unified runner yet)
+make test           # Run the full test suite (tests/run_all via LuaJIT)
+sudo make test-lunatik  # Run kernel (Lunatik) crypto tests
 
 ldoc .              # Generate HTML docs in doc/  (uses config.ld)
 ```

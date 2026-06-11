@@ -79,6 +79,7 @@ _mt =
 -- @treturn string|nil Error message if parsing failed.
 parse = (off=1) =>
   -- The ServerNameList itself is prefixed by a 2-byte length.
+  return nil, off, "truncated ServerNameList" if off + 1 > #@
   len, _off = su ">H", @, off
   end_offset = _off + len
   names = {}

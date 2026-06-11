@@ -57,76 +57,28 @@ link_types = {
   [12]: "RAW_IP"         -- Raw IP; begins with IP header (version determines IPv4/IPv6)
 }
 
+-- Module-level verbosity flag: set `pcap.verbose = true` to trace parsing.
+M = verbose: false
+log = (msg) -> print msg if M.verbose
+
 --- Parses a PCAPNG Section Header Block (SHB)
 -- @tparam string data The binary data containing the SHB
 -- @tparam number offset Starting offset in the data
 -- @treturn table Parsed SHB structure
 -- @treturn number Next offset after the block
 parse_shb = (data, offset) ->
-  return nil, offset, "insufficient data for SHB header" unless need_bytes data, offset, 12
+  return nil, offset, "insufficient data for SHB header" unless need_bytes data, offset, 28
 
-  endian = nil  -- Declare before the if block
-
-  -- Try to read byte_order_magic with big-endian first
-  ok, byte_order_magic = pcall su, ">I4", data, offset + 8
-  print "parse_shb: big-endian read ok=#{ok}, byte_order_magic=0x#{string.format '%08x', byte_order_magic or 0}, numeric=#{byte_order_magic}"
-  if ok
-    -- Compare the hex string directly
-    hex_magic = string.format '%08x', byte_order_magic
-    print "parse_shb: hex_magic=#{hex_magic}"
-    -- If hex_magic is 1a2b3c4d, file is big-endian. Otherwise little-endian.
-    if hex_magic == '1a2b3c4d'
-      endian = ">"
-    else
-      endian = "<"
-  else
-    -- Try little-endian
-    ok, byte_order_magic = pcall su, "<I4", data, offset + 8
-    print "parse_shb: little-endian read ok=#{ok}, byte_order_magic=0x#{string.format '%08x', byte_order_magic or 0}, numeric=#{byte_order_magic}"
-    if ok
-      hex_magic = string.format '%08x', byte_order_magic
-      print "parse_shb: hex_magic=#{hex_magic}"
-      if hex_magic == '1a2b3c4d'
-        endian = ">"
-      else
-        endian = "<"
-    else
-      -- Default to little-endian
-      endian = "<"
-
-  print "parse_shb: detected endian=#{endian}"
-  print "parse_shb: data length=#{#data}, offset=#{offset}"
-
-  -- Declare variables before the if block to fix scoping
-  block_type, block_len, byte_order_magic, major_version, minor_version, section_length = nil
-
-  -- Parse with correct endianness
-  if endian == ">"
-    print "parse_shb: parsing with big-endian"
-    block_type = su ">I4", data, offset
-    print "parse_shb: after first su, block_type=#{block_type}"
-    block_len = su ">I4", data, offset + 4
-    byte_order_magic = su ">I4", data, offset + 8
-    major_version = su ">I2", data, offset + 12
-    minor_version = su ">I2", data, offset + 14
-    section_length = su ">I8", data, offset + 16
-  else
-    print "parse_shb: parsing with little-endian"
-    print "parse_shb: calling su with format '<I4', data length #{#data}, offset #{offset}"
-    block_type = su "<I4", data, offset
-    print "parse_shb: block_type su: ok=true, block_type=#{block_type}"
-    block_len = su "<I4", data, offset + 4
-    print "parse_shb: block_len su: ok=true, block_len=#{block_len}"
-    byte_order_magic = su "<I4", data, offset + 8
-    print "parse_shb: byte_order_magic su: ok=true, byte_order_magic=#{byte_order_magic}"
-    major_version = su "<I2", data, offset + 12
-    print "parse_shb: major_version su: ok=true, major_version=#{major_version}"
-    minor_version = su "<I2", data, offset + 14
-    print "parse_shb: minor_version su: ok=true, minor_version=#{minor_version}"
-    section_length = su "<I8", data, offset + 16
-    print "parse_shb: section_length su: ok=true, section_length=#{section_length}"
-
-  print "parse_shb: block_type=#{block_type}, block_len=#{block_len}"
+  -- The byte-order magic (offset +8) reads as 0x1A2B3C4D in the file's own
+  -- byte order; anything else means the opposite endianness.
+  endian = su(">I4", data, offset + 8) == 0x1A2B3C4D and ">" or "<"
+  block_type = su "#{endian}I4", data, offset
+  block_len = su "#{endian}I4", data, offset + 4
+  byte_order_magic = su "#{endian}I4", data, offset + 8
+  major_version = su "#{endian}I2", data, offset + 12
+  minor_version = su "#{endian}I2", data, offset + 14
+  section_length = su "#{endian}I8", data, offset + 16
+  log "parse_shb: endian=#{endian}, block_type=#{block_type}, block_len=#{block_len}"
 
   shb = {
     :block_type, :block_len, :byte_order_magic, :major_version, :minor_version, :section_length, :endian
@@ -199,19 +151,19 @@ parse_pcapng = (filename) ->
   while offset <= #data
     -- Read block type
     if offset + 8 > #data
-      print "End of data at offset #{offset}"
+      log "End of data at offset #{offset}"
       break
 
     -- Try reading with current endianness first
     block_type = su "#{endian}I4", data, offset
     block_name = block_types[block_type] or "UNKNOWN"
-    print "Offset #{offset}: block_type=0x#{string.format "%08x", block_type} (#{block_name}), endian=#{endian}"
+    log "Offset #{offset}: block_type=0x#{string.format "%08x", block_type} (#{block_name}), endian=#{endian}"
 
     -- If we don't recognize the block, and we haven't set endianness yet, try the other endianness
     if block_name == "UNKNOWN" and endian == ">"
       block_type = su "<I4", data, offset
       block_name = block_types[block_type] or "UNKNOWN"
-      print "Trying little-endian: block_type=0x#{string.format "%08x", block_type} (#{block_name})"
+      log "Trying little-endian: block_type=0x#{string.format "%08x", block_type} (#{block_name})"
 
     switch block_name
       when "SHB"
@@ -219,20 +171,20 @@ parse_pcapng = (filename) ->
         all_blocks[#all_blocks + 1] = {type: "SHB", data: shb_data}
         shb = shb_data
         endian = shb.endian
-        print "Found Section Header Block - endian: #{endian}"
+        log "Found Section Header Block - endian: #{endian}"
 
       when "IDB"
         idb, offset = parse_idb data, offset, endian
         all_blocks[#all_blocks + 1] = {type: "IDB", data: idb}
         interfaces[#interfaces + 1] = idb
-        print "Found Interface Description Block - linktype: #{idb.linktype_name}"
+        log "Found Interface Description Block - linktype: #{idb.linktype_name}"
 
       when "EPB"
         epb, offset = parse_epb data, offset, endian
         all_blocks[#all_blocks + 1] = {type: "EPB", data: epb}
         epb.interface = interfaces[epb.interface_id + 1]  -- IDs are 0-based
         packets[#packets + 1] = epb
-        print "Found Enhanced Packet Block - packet #{#packets}, len: #{epb.captured_len}, timestamp: #{epb.timestamp}"
+        log "Found Enhanced Packet Block - packet #{#packets}, len: #{epb.captured_len}, timestamp: #{epb.timestamp}"
 
       else
         -- Store unknown block raw data
@@ -240,12 +192,12 @@ parse_pcapng = (filename) ->
           block_len = su "#{endian}I4", data, offset + 4
           raw_data = data\sub offset, offset + block_len - 1
           all_blocks[#all_blocks + 1] = {type: "UNKNOWN", :raw_data, :block_type}
-          print "Found unknown block type: 0x#{string.format "%08x", block_type}, len: #{block_len} at offset #{offset}"
+          log "Found unknown block type: 0x#{string.format "%08x", block_type}, len: #{block_len} at offset #{offset}"
           offset += block_len
         else
           break
 
-  print "Parsed #{#packets} packets from #{filename}"
+  log "Parsed #{#packets} packets from #{filename}"
   packets, all_blocks
 
 --- Filters packets to find QUIC packets on standard ports
@@ -292,17 +244,17 @@ filter_quic_packets = (packets) ->
       -- Print packet summary
       src_ip = ip.ip2s ip_pkt.src
       dst_ip = ip.ip2s ip_pkt.dst
-      print "QUIC Packet #{i}: #{src_ip}:#{udp_dgram.spt} -> #{dst_ip}:#{udp_dgram.dpt}"
+      log "QUIC Packet #{i}: #{src_ip}:#{udp_dgram.spt} -> #{dst_ip}:#{udp_dgram.dpt}"
 
       if quic_pkt.long_header
         dcid = bin2hex quic_pkt.dst_connection_id
         scid = bin2hex quic_pkt.src_connection_id
-        print "  Long Header - Version: 0x#{string.format "%08x", quic_pkt.version}, DCID: #{dcid}, SCID: #{scid}"
+        log "  Long Header - Version: 0x#{string.format "%08x", quic_pkt.version}, DCID: #{dcid}, SCID: #{scid}"
       else
         dcid = bin2hex quic_pkt.dst_connection_id
-        print "  Short Header - DCID: #{dcid}"
+        log "  Short Header - DCID: #{dcid}"
 
-  print "Found #{#quic_packets} QUIC packets"
+  log "Found #{#quic_packets} QUIC packets"
   quic_packets
 
 --- Packs a PCAPNG Section Header Block (SHB)
@@ -376,4 +328,13 @@ parse_quic_from_pcapng = (filename="quic.pcapng") ->
   packets = parse_pcapng filename
   filter_quic_packets packets
 
-:parse_pcapng, :parse_quic_from_pcapng, :filter_quic_packets, :block_types, :link_types, :pack_shb, :pack_idb, :pack_epb, :write_pcapng
+M.parse_pcapng = parse_pcapng
+M.parse_quic_from_pcapng = parse_quic_from_pcapng
+M.filter_quic_packets = filter_quic_packets
+M.block_types = block_types
+M.link_types = link_types
+M.pack_shb = pack_shb
+M.pack_idb = pack_idb
+M.pack_epb = pack_epb
+M.write_pcapng = write_pcapng
+M

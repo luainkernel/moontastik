@@ -81,21 +81,7 @@ MBEDTLS_AES_ENCRYPT   = 1
 MBEDTLS_ERR_GCM_AUTH_FAILED = -18
 
 mbed = ffi.load "mbedcrypto"
-{:validate_gcm_key, :validate_gcm_nonce, :validate_ecb_key, :validate_ecb_block, :validate_quic_iv} = require "ipparse.lib.crypto.backend.common"
-
---- Constructs a QUIC nonce: XOR last 8 bytes of iv with packet_number (big-endian).
--- @tparam string iv 12-byte IV
--- @tparam number packet_number QUIC packet number
--- @treturn string 12-byte nonce
-construct_nonce = (iv, packet_number) ->
-  assert #iv == 12, "IV must be 12 bytes (got #{#iv})"
-  buf = ffi.new "uint8_t[12]"
-  ffi.copy buf, iv, 12
-  pn = packet_number
-  for i = 11, 4, -1
-    buf[i] = ffi.cast "uint8_t", bit.bxor(buf[i], bit.band(pn, 0xFF))
-    pn = bit.rshift pn, 8
-  ffi.string buf, 12
+{:validate_gcm_key, :validate_gcm_nonce, :validate_ecb_key, :validate_ecb_block, :construct_nonce, :split_ct_tag} = require "ipparse.lib.crypto.backend.common"
 
 -- Copy a Lua string into an FFI buffer, always at least 1 byte (avoids
 -- passing NULL to mbedTLS for zero-length inputs).
@@ -110,10 +96,11 @@ str_to_buf = (s) ->
 -- @tparam string nonce 12-byte nonce
 -- @tparam string plaintext
 -- @tparam string aad additional authenticated data (may be "")
--- @treturn string ciphertext .. 16-byte authentication tag
+-- @treturn string|nil ciphertext .. 16-byte authentication tag, or nil on failure
+-- @treturn string|nil error message when the first value is nil
 aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
-  assert #key == 16,   "AES-128-GCM key must be 16 bytes"
-  assert #nonce == 12, "AES-128-GCM nonce must be 12 bytes"
+  validate_gcm_key key
+  validate_gcm_nonce nonce
 
   pt_buf,  pt_len  = str_to_buf plaintext
   aad_buf, aad_len = str_to_buf aad
@@ -121,7 +108,9 @@ aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
   ctx = ffi.new "mbedtls_gcm_context_t"
   mbed.mbedtls_gcm_init ctx
   rc = mbed.mbedtls_gcm_setkey ctx, MBEDTLS_CIPHER_ID_AES, key, 128
-  assert rc == 0, "mbedtls_gcm_setkey failed (#{rc})"
+  if rc != 0
+    mbed.mbedtls_gcm_free ctx
+    return nil, "mbedtls_gcm_setkey failed (#{rc})"
 
   out_buf = ffi.new "uint8_t[?]", pt_len + 1
   tag_buf = ffi.new "uint8_t[16]"
@@ -131,7 +120,7 @@ aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
     pt_buf, out_buf,
     16, tag_buf
   mbed.mbedtls_gcm_free ctx
-  assert rc == 0, "mbedtls_gcm_crypt_and_tag failed (#{rc})"
+  return nil, "mbedtls_gcm_crypt_and_tag failed (#{rc})" if rc != 0
 
   (ffi.string out_buf, pt_len) .. (ffi.string tag_buf, 16)
 
@@ -145,11 +134,8 @@ aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
 aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad="") ->
   validate_gcm_key key
   validate_gcm_nonce nonce
-  if #ciphertext_with_tag < 16
-    return nil, "ciphertext too short (no room for auth tag)"
-
-  ciphertext = ciphertext_with_tag\sub 1, #ciphertext_with_tag - 16
-  tag        = ciphertext_with_tag\sub #ciphertext_with_tag - 15
+  ciphertext, tag = split_ct_tag ciphertext_with_tag
+  return nil, tag unless ciphertext
 
   ct_buf,  ct_len  = str_to_buf ciphertext
   aad_buf, aad_len = str_to_buf aad
@@ -157,7 +143,9 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad="") ->
   ctx = ffi.new "mbedtls_gcm_context_t"
   mbed.mbedtls_gcm_init ctx
   rc = mbed.mbedtls_gcm_setkey ctx, MBEDTLS_CIPHER_ID_AES, key, 128
-  assert rc == 0, "mbedtls_gcm_setkey failed (#{rc})"
+  if rc != 0
+    mbed.mbedtls_gcm_free ctx
+    return nil, "mbedtls_gcm_setkey failed (#{rc})"
 
   out_buf = ffi.new "uint8_t[?]", ct_len + 1
   tag_buf = ffi.new "uint8_t[16]"
@@ -172,7 +160,7 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad="") ->
   if rc == MBEDTLS_ERR_GCM_AUTH_FAILED
     return nil, "AES-128-GCM authentication failed (tag mismatch)"
   if rc != 0
-    error "mbedtls_gcm_auth_decrypt failed (#{rc})"
+    return nil, "mbedtls_gcm_auth_decrypt failed (#{rc})"
 
   ffi.string out_buf, ct_len
 
@@ -180,7 +168,8 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad="") ->
 -- Used for QUIC header protection mask generation (RFC 9001 §5.4.3).
 -- @tparam string key 16-byte AES key
 -- @tparam string block exactly 16 bytes of input
--- @treturn string exactly 16 bytes of output
+-- @treturn string|nil exactly 16 bytes of output, or nil on failure
+-- @treturn string|nil error message when the first value is nil
 aes_128_ecb_block = (key, block) ->
   validate_ecb_key key
   validate_ecb_block block
@@ -188,12 +177,14 @@ aes_128_ecb_block = (key, block) ->
   ctx = ffi.new "mbedtls_aes_context_t"
   mbed.mbedtls_aes_init ctx
   rc = mbed.mbedtls_aes_setkey_enc ctx, key, 128
-  assert rc == 0, "mbedtls_aes_setkey_enc failed (#{rc})"
+  if rc != 0
+    mbed.mbedtls_aes_free ctx
+    return nil, "mbedtls_aes_setkey_enc failed (#{rc})"
 
   out_buf = ffi.new "uint8_t[16]"
   rc = mbed.mbedtls_aes_crypt_ecb ctx, MBEDTLS_AES_ENCRYPT, block, out_buf
   mbed.mbedtls_aes_free ctx
-  assert rc == 0, "mbedtls_aes_crypt_ecb failed (#{rc})"
+  return nil, "mbedtls_aes_crypt_ecb failed (#{rc})" if rc != 0
 
   ffi.string out_buf, 16
 

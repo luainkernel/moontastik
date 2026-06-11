@@ -14,6 +14,7 @@
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require "ipparse.fun"
+{:need_bytes} = require "ipparse"
 :concat = table
 
 --- Known TLS/SSL version codes.
@@ -40,14 +41,16 @@ _mt_selected = __tostring: pack_selected
 -- @treturn table
 --   - ClientHello: `{ versions = {v1, v2, …} }` — list of offered versions.
 --   - ServerHello: `{ selected = ver }` — the negotiated version.
--- @treturn number The next offset after parsing.
+-- @treturn number The next offset after parsing, or the input offset on truncated data.
 parse = (off=1) =>
   if #@ - off + 1 == 2
     ver, _off = su ">H", @, off
     setmetatable({selected: ver}, _mt_selected), _off
   else
+    return nil, off unless need_bytes @, off, 1
     len, _off = su ">B", @, off
-    list = [su ">H", @, i for i = _off, _off + len - 1, 2]
+    return nil, off unless need_bytes @, _off, len
+    list = [su ">H", @, i for i = _off, _off + len - 2, 2]
     setmetatable({versions: list}, _mt_list), _off + len
 
 :parse, :versions

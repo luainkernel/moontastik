@@ -23,7 +23,10 @@ mods = {
   "ipparse.tests.l3.test_ip"
   "ipparse.tests.l4.test_tcp"
   "ipparse.tests.l4.test_udp"
+  "ipparse.tests.l4.test_tcp_stream"
   "ipparse.tests.l7.test_dns"
+  "ipparse.tests.l7.tls.test_handshake"
+  "ipparse.tests.test_malformed"
   "ipparse.tests.lib.test_hkdf"
   "ipparse.tests.lib.crypto.test_ffi_wolfssl"
   "ipparse.tests.lib.crypto.test_ffi_mbedtls"
@@ -43,12 +46,17 @@ if is_luajit or is_pre53
 else
   table.insert mods, 12, "ipparse.tests.lib.crypto.test_lunatik"
 
+load_errors = 0
 for mod in *mods
   ok, err = pcall require, mod
   if ok
     total_pass += util._last_pass
     total_all  += util._last_total
   else
+    load_errors += 1
     print "ERROR loading #{mod}: #{err}"
 
 print "\n==> Total: #{total_pass}/#{total_all}"
+-- Propagate failures to the shell so CI notices (os.exit is absent in-kernel).
+failed = total_pass != total_all or load_errors > 0
+os.exit failed and 1 or 0 if os and os.exit

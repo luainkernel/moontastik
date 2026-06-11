@@ -24,7 +24,8 @@
 --
 -- @module l7.tls.handshake.extension
 
-pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
+{:need_bytes} = require "ipparse"
 
 --- Packs a TLS handshake extension into a binary string.
 -- Constructs the binary representation of the extension.
@@ -42,10 +43,13 @@ _mt =
 -- Extracts the extension type and data from the binary string.
 -- @tparam string self The binary string containing the extension.
 -- @tparam[opt=1] number off Offset to start parsing from. Defaults to 1.
--- @treturn table Parsed extension as a table.
--- @treturn number The next offset after parsing.
+-- @treturn table|nil Parsed extension as a table, or nil on truncated data.
+-- @treturn number The next offset after parsing (input offset on failure).
 parse = (off=1) =>
-  _type, data, _off = su ">H s2", @, off
-  setmetatable({type: _type, :data}, _mt), _off
+  return nil, off unless need_bytes @, off, 4
+  _type, dlen = su ">HH", @, off
+  return nil, off unless need_bytes @, off + 4, dlen
+  data = sub @, off + 4, off + 3 + dlen
+  setmetatable({type: _type, :data}, _mt), off + 4 + dlen
 
 :parse, :pack

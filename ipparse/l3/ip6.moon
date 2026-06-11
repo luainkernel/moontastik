@@ -29,11 +29,10 @@
 -- @module l3.ip6
 
 :format, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
-:insert, :remove = table
 unpack or= table.unpack
-:toarray = require"ipparse.fun"
 :checksum, :checksum6 = require"ipparse.l3.lib"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+{:need_bytes} = require "ipparse"
 
 local s2ip6
 --- Packs the IPv6 header and payload into a binary string.
@@ -58,6 +57,7 @@ _mt = __tostring: pack
 -- @treturn table Parsed IPv6 header as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
+  return nil, off unless need_bytes @, off, 40
   vtf, payload_len, next_header, hop_limit, src, dst, data_off = su ">I4 I2 I1 I1 c16 c16", @, off
   setmetatable({
     :vtf, version: rshift(vtf, 28), traffic_class: band(rshift(vtf, 20), 0xff), flow_label: band(vtf, 0xfffff)
@@ -101,21 +101,20 @@ new = =>
 -- @tparam string self The IPv6 address string.
 -- @treturn {number} Array of 16-bit integers representing the IPv6 address.
 parse_ip6 = =>
-  address = toarray @gmatch"([^:]*):?"
-  zeros = 9 - #address
-  i = 1
-  while i <= 8
-    part = address[i]
-    if part == "" and zeros
-      for _ = 1, zeros
-        insert address, i, 0
-        i += 1
-      zeros = 1
-      remove address, i
-    else
-      address[i] = type(part) == "string" and tonumber(part, 16) or part
-      i += 1
-  address
+  head, tail = @match "^(.-)::(.-)$"
+  parts = {}
+  if head  -- "::" present: pad the middle with zero groups
+    hs = [tonumber(p, 16) for p in head\gmatch "[^:]+"]
+    ts = [tonumber(p, 16) for p in tail\gmatch "[^:]+"]
+    for p in *hs
+      parts[#parts+1] = p
+    for _ = 1, 8 - #hs - #ts
+      parts[#parts+1] = 0
+    for p in *ts
+      parts[#parts+1] = p
+  else
+    parts = [tonumber(p, 16) for p in @gmatch "[^:]+"]
+  parts
 
 --- Converts a binary IPv6 address to a readable string.
 -- Compresses consecutive zero groups with :: according to RFC 5952.

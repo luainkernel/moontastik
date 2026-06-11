@@ -13,3 +13,9 @@
 *.sdr/
 tmp/
 temp/
+
+# Generated Lua (compiled from .moon by `make`)
+*.lua
+
+# Editor/session autosaves
+*.task

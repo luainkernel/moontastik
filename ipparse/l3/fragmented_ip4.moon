@@ -3,17 +3,47 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
+--- Stateful IPv4 fragment reassembly (Lunatik only: relies on the `data` module).
+-- Fragments are accumulated per flow (src, dst, protocol, id); the reassembled
+-- packet is returned once the last fragment (MF=0) covering the flow arrives.
+-- Pending flows are bounded: when more than `MAX_PENDING` flows are in flight,
+-- the oldest one is dropped so a flood of never-completed fragments cannot
+-- exhaust kernel memory.
+-- @module l3.fragmented_ip4
+
 IP4 = require"ipparse.l3.ip4"
 new: data_new = require"data"
 :sort = table
 {:lshift} = require"ipparse.lib.bit_compat"
 
+MAX_PENDING = 64
+
 fragmented = {}
+pending = 0
+order, order_first, order_last = {}, 1, 0
+
+-- Drop the oldest still-pending flow (entries already completed are skipped).
+evict_oldest = ->
+  while order_first <= order_last
+    key = order[order_first]
+    order[order_first] = nil
+    order_first += 1
+    if fragmented[key]
+      fragmented[key] = nil
+      pending -= 1
+      return
 
 collect: (_skb) =>
   :id, :off, :data_off, :data_len, :mf = @
-  fragments = fragmented[id] or {}
-  fragmented[id] = fragments
+  key = "#{@src}#{@dst}#{@protocol}#{id}"
+  fragments = fragmented[key]
+  unless fragments
+    evict_oldest! if pending >= MAX_PENDING
+    fragments = {}
+    fragmented[key] = fragments
+    pending += 1
+    order_last += 1
+    order[order_last] = key
   frag_off = lshift(@fragmentation_off, 3)
   total_len = off + frag_off + data_off + data_len
   -- 64KB is the theoretical maximum, 10KB a reasonable max len default
@@ -42,6 +72,7 @@ collect: (_skb) =>
   :off, :frag_off, :data_off, :data_len = lastfrag
   total_len = off + frag_off + data_off + data_len
 
-  fragmented[id] = nil
+  fragmented[key] = nil
+  pending -= 1
   ip = IP4.parse skb
   ip, @

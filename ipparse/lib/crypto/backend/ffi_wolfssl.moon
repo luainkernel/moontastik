@@ -23,7 +23,7 @@
 -- @module lib.crypto.backend.ffi_wolfssl
 
 ffi = require "ffi"
-{:validate_gcm_key, :validate_gcm_nonce, :validate_ecb_key, :validate_ecb_block, :validate_quic_iv} = require "ipparse.lib.crypto.backend.common"
+{:validate_gcm_key, :validate_gcm_nonce, :validate_ecb_key, :validate_ecb_block, :construct_nonce, :split_ct_tag} = require "ipparse.lib.crypto.backend.common"
 
 -- Native GCM API — opaque Aes struct.
 -- Some distro builds enable larger WC_Aes layouts (AES-NI/ARM accel paths),
@@ -85,20 +85,6 @@ direct_ecb_available = (pcall -> wssl.wc_AesSetKey) and (pcall -> wssl.wc_AesEnc
 unless direct_ecb_available
   error "ffi_wolfssl: no AES-128-ECB implementation available (missing wc_AesSetKey/wc_AesEncryptDirect)"
 
---- Constructs a QUIC nonce: XOR last 8 bytes of iv with packet_number (big-endian).
--- @tparam string iv 12-byte IV
--- @tparam number packet_number QUIC packet number
--- @treturn string 12-byte nonce
-construct_nonce = (iv, packet_number) ->
-  validate_quic_iv iv
-  buf = ffi.new "uint8_t[12]"
-  ffi.copy buf, iv, 12
-  pn = packet_number
-  for i = 11, 4, -1
-    buf[i] = ffi.cast "uint8_t", bit.bxor(buf[i], bit.band(pn, 0xFF))
-    pn = bit.rshift pn, 8
-  ffi.string buf, 12
-
 -- Copy a Lua string into a padded FFI buffer.
 -- wolfSSL's AES-NI path may read up to 32 bytes beyond the declared length
 -- (look-ahead reads for multi-block SIMD operations).  We always over-allocate
@@ -114,17 +100,18 @@ str_to_buf = (s) ->
 -- @tparam string nonce 12-byte nonce
 -- @tparam string plaintext
 -- @tparam string aad additional authenticated data (may be "")
--- @treturn string ciphertext .. 16-byte authentication tag
+-- @treturn string|nil ciphertext .. 16-byte authentication tag, or nil on failure
+-- @treturn string|nil error message when the first value is nil
 aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
-  assert #key == 16,   "AES-128-GCM key must be 16 bytes (got #{#key})"
-  assert #nonce == 12, "AES-128-GCM nonce must be 12 bytes (got #{#nonce})"
+  validate_gcm_key key
+  validate_gcm_nonce nonce
 
   pt_buf, pt_len   = str_to_buf plaintext
   aad_buf, aad_len = str_to_buf aad
 
   aes = ffi.new "WC_Aes"
   rc = wssl.wc_AesGcmSetKey aes, key, 16
-  assert rc == 0, "wc_AesGcmSetKey failed (#{rc})"
+  return nil, "wc_AesGcmSetKey failed (#{rc})" if rc != 0
 
   out_buf = ffi.new "uint8_t[?]", pt_len + 16
   tag_buf = ffi.new "uint8_t[16]"
@@ -133,7 +120,7 @@ aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
     nonce, 12,
     tag_buf, 16,
     aad_buf, aad_len
-  assert rc == 0, "wc_AesGcmEncrypt failed (#{rc})"
+  return nil, "wc_AesGcmEncrypt failed (#{rc})" if rc != 0
 
   (ffi.string out_buf, pt_len) .. (ffi.string tag_buf, 16)
 
@@ -145,20 +132,17 @@ aes_128_gcm_encrypt = (key, nonce, plaintext, aad="") ->
 -- @treturn string plaintext on success
 -- @treturn nil, string on authentication failure
 aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad="") ->
-  assert #key == 16,   "AES-128-GCM key must be 16 bytes"
-  assert #nonce == 12, "AES-128-GCM nonce must be 12 bytes"
-  if #ciphertext_with_tag < 16
-    return nil, "ciphertext too short (no room for auth tag)"
-
-  ciphertext = ciphertext_with_tag\sub 1, #ciphertext_with_tag - 16
-  tag        = ciphertext_with_tag\sub #ciphertext_with_tag - 15
+  validate_gcm_key key
+  validate_gcm_nonce nonce
+  ciphertext, tag = split_ct_tag ciphertext_with_tag
+  return nil, tag unless ciphertext
 
   ct_buf, ct_len   = str_to_buf ciphertext
   aad_buf, aad_len = str_to_buf aad
 
   aes = ffi.new "WC_Aes"
   rc = wssl.wc_AesGcmSetKey aes, key, 16
-  assert rc == 0, "wc_AesGcmSetKey failed (#{rc})"
+  return nil, "wc_AesGcmSetKey failed (#{rc})" if rc != 0
 
   out_buf = ffi.new "uint8_t[?]", ct_len + 1
   tag_buf = ffi.new "uint8_t[16]"
@@ -179,7 +163,8 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad="") ->
 -- Uses wolfSSL direct AES API.
 -- @tparam string key 16-byte AES key
 -- @tparam string block exactly 16 bytes of input
--- @treturn string exactly 16 bytes of output
+-- @treturn string|nil exactly 16 bytes of output, or nil on failure
+-- @treturn string|nil error message when the first value is nil
 aes_128_ecb_block = (key, block) ->
   validate_ecb_key key
   validate_ecb_block block
@@ -188,9 +173,9 @@ aes_128_ecb_block = (key, block) ->
   aes = ffi.new "WC_Aes"
   -- wolfSSL convention: 0 = encrypt mode
   rc = wssl.wc_AesSetKey aes, key, 16, nil, 0
-  assert rc == 0, "wc_AesSetKey failed (#{rc})"
+  return nil, "wc_AesSetKey failed (#{rc})" if rc != 0
   rc = wssl.wc_AesEncryptDirect aes, out_buf, block
-  assert rc == 0, "wc_AesEncryptDirect failed (#{rc})"
+  return nil, "wc_AesEncryptDirect failed (#{rc})" if rc != 0
 
   ffi.string out_buf, 16
 

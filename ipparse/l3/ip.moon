@@ -29,8 +29,9 @@ parse: ip4, new: ip4_new, pack: ip4_pack, :ip42s, :s2ip4, :net42s, :s2net4 = req
 
 --- Determines the IP version from a binary string.
 -- @tparam number off The offset to start reading from.
--- @treturn number The IP version (4 or 6).
+-- @treturn number|nil The IP version (4 or 6), or nil if `off` is out of bounds.
 get_version = (off) =>
+  return nil if off < 1 or off > #@
   rshift(su("B", @, off), 4)
 
 --- Packs the IP data into a binary string.

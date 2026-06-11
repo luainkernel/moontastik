@@ -39,7 +39,9 @@ NATIVE_LE = do
 -- ─── Utilitaires ────────────────────────────────────────────────────────────
 
 -- Lit un entier non signé depuis une chaîne (offset 0-based, size octets)
+-- Comme string.unpack de Lua 5.3, lève une erreur explicite sur chaîne tronquée.
 read_uint = (s, offset, size, le) ->
+  error "data string too short" if offset + size > #s
   if size == 1
     return string.byte s, offset + 1
   if size == 2
@@ -435,22 +437,6 @@ unpack = (fmt, s, pos) ->
 
 --- Injects pack/unpack functions into the global string table.
 -- This makes string.pack, string.unpack, and string.packsize available globally.
-inject = ->
-  string.pack     = pack
-  string.unpack   = unpack
-  string.packsize = packsize
-
--- ─── Export ──────────────────────────────────────────────────────────────────
-
-setmetatable {
-  :pack
-  :unpack
-  :packsize
-  :inject
-}, __index: string
-
--- ─── Injection dans string.* ─────────────────────────────────────────────────
-
 inject = ->
   string.pack     = pack
   string.unpack   = unpack

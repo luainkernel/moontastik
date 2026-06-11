@@ -175,6 +175,11 @@ parse_ack_frame = (data, offset, frame_type) ->
   first_ack_range, offset, err = parse_varint_required data, offset, "ACK first_ack_range"
   return nil, offset, err unless first_ack_range != nil
 
+  -- Each ACK range needs at least 2 bytes (two varints): cap the attacker-controlled
+  -- count by what the remaining payload can actually hold, before looping.
+  max_ranges = rshift #data - offset + 1, 1
+  return nil, offset, "ACK ack_range_count too large" if ack_range_count > max_ranges
+
   ack_ranges = {}
   for i = 1, ack_range_count
     gap, offset, err = parse_varint_required data, offset, "ACK gap[#{i}]"
@@ -462,7 +467,7 @@ iter_frames = (payload_data) ->
     return nil if offset > #payload_data
 
     frame, new_offset = parse_frame payload_data, offset
-    return nil unless frame
+    return nil unless frame and new_offset > offset
     offset = new_offset
     frame
 
@@ -484,10 +489,6 @@ validate_frames = (payload_data) ->
 
     offset = new_offset
     frame_count += 1
-
-    -- Prevent infinite loop with reasonable limit
-    if frame_count > 1000
-      return false, "Too many frames (possible parsing error)"
 
   true, "#{frame_count} frames validated"
 

@@ -72,6 +72,9 @@ reassemble_stream = (chunks) ->
 
   table.concat out
 
+-- A ClientHello fits well under this; reject absurd 24-bit lengths up front.
+MAX_TLS_MSG_LEN = 0x100000  -- 1 MiB
+
 sni_from_tls = (tls_data) ->
   return nil if #tls_data < 4
   off = 1
@@ -80,6 +83,7 @@ sni_from_tls = (tls_data) ->
     b_hi     = su "B",  tls_data, off + 1
     b_lo     = su ">H", tls_data, off + 2
     msg_len  = b_hi * 65536 + b_lo
+    return nil if msg_len > MAX_TLS_MSG_LEN
     body_off = off + 4
     return nil if body_off + msg_len - 1 > #tls_data
     if msg_type == 0x01
@@ -88,6 +92,7 @@ sni_from_tls = (tls_data) ->
         ext_off = 1
         while ext_off <= #ch.extensions
           ext, next_off = ext_mod.parse ch.extensions, ext_off
+          break unless ext and next_off and next_off > ext_off  -- no progress: malformed
           if ext.type == 0x0000
             sn, _ = sn_mod.parse ext.data, 1
             return sn.name if sn and sn.name and #sn.name > 0
@@ -97,12 +102,19 @@ sni_from_tls = (tls_data) ->
 
 session_mt = {}
 
+-- A CRYPTO stream carrying a ClientHello stays well under these; bounding them
+-- keeps a malicious peer from growing the session state without limit.
+MAX_CRYPTO_CHUNKS = 256
+MAX_CRYPTO_BYTES  = 0x100000  -- 1 MiB
+
 append_crypto_frame = (frame) =>
   base = frame.offset or 0
   data = frame.data or ""
   prev = @crypto_chunks[base]
   return true if prev and prev == data
   return nil, "conflicting CRYPTO frame at offset #{base}" if prev and prev != data
+  return nil, "too many CRYPTO chunks" if @crypto_chunks_n >= MAX_CRYPTO_CHUNKS
+  return nil, "CRYPTO stream too large" if @crypto_bytes + #data > MAX_CRYPTO_BYTES
 
   data_end = base + #data - 1
   for off, chunk in pairs @crypto_chunks
@@ -110,12 +122,12 @@ append_crypto_frame = (frame) =>
     overlap_start = math.max base, off
     overlap_end = math.min data_end, chunk_end
     if overlap_start <= overlap_end
-      for pos = overlap_start, overlap_end
-        a = string.byte data, (pos - base + 1)
-        b = string.byte chunk, (pos - off + 1)
-        if a != b
-          return nil, "conflicting CRYPTO byte at offset #{pos}"
+      a = data\sub overlap_start - base + 1, overlap_end - base + 1
+      b = chunk\sub overlap_start - off + 1, overlap_end - off + 1
+      return nil, "conflicting CRYPTO bytes at offset #{overlap_start}" if a != b
   @crypto_chunks[base] = data
+  @crypto_chunks_n += 1
+  @crypto_bytes += #data
   true
 
 direction_from_header = (q, meta={}) =>
@@ -271,6 +283,8 @@ new = (opts={}) ->
     server_keys: opts.server_keys
     pn_largest: client: -1, server: -1
     crypto_chunks: {}
+    crypto_chunks_n: 0
+    crypto_bytes: 0
     last_plaintext: nil
     cached_sni: nil
     sni_dirty: true

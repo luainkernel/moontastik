@@ -49,7 +49,16 @@ To use it in a local project, you can:
 1.  Create an `ipparse` directory within your project's Lua module path (e.g., `./lib/ipparse` or a directory included in your `LUA_PATH`).
 2.  Copy all the generated `.lua` files (preserving their subdirectory structure if `ipparse` has internal modules) into this `ipparse` directory.
 
-`ipparse` is not currently available on LuaRocks.
+`ipparse` is not published on luarocks.org, but a rockspec is provided at the
+repository root: from `moontastik/`, run `luarocks make ipparse-1.0-0.rockspec`
+to install it via LuaRocks.
+
+## Tests
+
+```bash
+make test           # full test suite (LuaJIT, tests/run_all)
+sudo make test-lunatik  # kernel (Lunatik) crypto tests
+```
 
 ## Usage
 

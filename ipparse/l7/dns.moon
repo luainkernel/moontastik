@@ -175,9 +175,11 @@ label = (off, l7_off=1, visited=nil, depth=0) =>
     return nil, _off + 1, nil, "DNS compression pointer recursion limit reached" if depth >= 32
     return nil, _off + 1, nil, "DNS compression pointer loop at #{ptr}" if visited and visited[target_off]
     visited or= {}
+    -- Keep the entry for the whole resolution: clearing it after the recursive
+    -- call would let crafted pointer chains revisit the same offset through
+    -- different paths (quadratic blow-up).
     visited[target_off] = true
     pointed_labels, _, err = labels @, target_off, l7_off, visited, depth + 1
-    visited[target_off] = nil
     return nil, _off + 1, nil, err unless pointed_labels
     return concat(pointed_labels, "."), _off + 1, true
   if band(size, 0xC0) == 0  -- Normal case

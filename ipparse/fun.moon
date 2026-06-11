@@ -26,12 +26,9 @@ memo = =>
   tmp = __mode: "kv"
   setmetatable tmp, tmp
   (x) ->
-    -- If x is nil, we can't use it as a table key reliably for caching.
-    -- The original code's `if not x` would also trigger for `false`.
-    -- Let's assume the intent was to bypass cache for nil.
-    return @(x) if not x
+    return @(x) if x == nil  -- nil cannot be a table key: bypass the cache
     r = tmp[x] or {@ x}
-    tmp[x] = r if x
+    tmp[x] = r
     unpack r
 
 --- Creates a memoized version of a multi-argument function.
@@ -266,9 +263,15 @@ _ = nil
 --- Wraps a function call in `xpcall` to catch errors.
 -- If an error occurs, it prints the error. When `leak_debug` is true, it also prints a full traceback.
 --- Calls an optional `op` function on error.
+--
+-- Implementation note: arguments and results are threaded through 26 explicit
+-- locals (a–z) instead of varargs. This is deliberate: protected functions sit
+-- on the hot path (per-packet), and a vararg implementation would allocate a
+-- table and call `unpack` on every invocation. The trade-off is a hard limit
+-- of 26 arguments and 26 return values.
 -- @tparam function fn
 -- @tparam[opt] function op
--- @treturn function A new, protected function.
+-- @treturn function A new, protected function (max 26 args/returns).
 -- @usage
 -- -- The returned protected function takes:
 -- -- @tparam ...any ... Arguments for the original `fn`.

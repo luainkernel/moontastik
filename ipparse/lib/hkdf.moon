@@ -90,12 +90,13 @@ hkdf_expand = (prk, info="", len) ->
   if crypto_hkdf
     return bin_to_hex crypto_hkdf.new("sha256")\expand prk, info, len
   len *= 2
-  i, okm, t = 1, "", ""
-  while #okm < len
+  i, total, t, parts = 1, 0, "", {}
+  while total < len
     t = hmac_hex prk, hex_to_bin(t) .. info .. char(i)
-    okm ..= t
+    parts[i] = t
+    total += #t
     i += 1
-  sub okm, 1, len
+  sub table.concat(parts), 1, len
 
 
 --- Complete HKDF operation (Extract + Expand).

@@ -5,17 +5,38 @@
 
 --- Generic TCP stream defragmenter.
 -- Accumulates TCP payloads by session key; clears on FIN/RST; purges by age.
+-- Memory is bounded: per-session buffers are capped (`max_buf`) and so is the
+-- number of tracked sessions (`max_sessions`, oldest dropped first), so a
+-- flood of never-completing streams cannot grow state without limit.
 -- @module l4.tcp_stream
 
 {:band} = require "ipparse.lib.bit_compat"
+:concat = table
 
 --- Creates a new TCP stream defragmenter.
 -- @tparam[opt] function check_complete  Predicate (buf) -> bool. Default: always
 --   true (each segment with payload is immediately complete). When provided,
 --   feed returns nil until the predicate passes, then auto-clears the session.
--- @treturn table State with :feed, :clear and :purge methods.
-new = (check_complete=(-> true)) ->
+-- @tparam[opt] table opts Options: `max_buf` (bytes per session, default 1 MiB),
+--   `max_sessions` (default 1024).
+-- @treturn table State with :feed, :clear, :reset and :purge methods.
+new = (check_complete=(-> true), opts={}) ->
+  max_buf = opts.max_buf or 0x100000
+  max_sessions = opts.max_sessions or 1024
   sessions = {}
+  count = 0
+
+  drop = (key) ->
+    if sessions[key] != nil
+      sessions[key] = nil
+      count -= 1
+
+  drop_oldest = ->
+    oldest_key, oldest_ts = nil, nil
+    for key, entry in pairs sessions
+      if not oldest_ts or entry.timestamp < oldest_ts
+        oldest_key, oldest_ts = key, entry.timestamp
+    drop oldest_key if oldest_key
 
   {
     --- Feed a TCP segment into the stream.
@@ -28,28 +49,40 @@ new = (check_complete=(-> true)) ->
     -- @treturn boolean|nil true if this was the first segment for this session.
     feed: (key, payload, flags, init_seq) ->
       if band(flags, 0x05) != 0   -- FIN or RST
-        sessions[key] = nil
+        drop key
         return nil
       return nil if payload == ""
-      first_seg = sessions[key] == nil
-      if first_seg
-        sessions[key] = { buf: payload, :init_seq, timestamp: os.time! }
-      else
-        sessions[key].buf ..= payload
       entry = sessions[key]
-      if check_complete entry.buf
+      first_seg = entry == nil
+      if first_seg
+        drop_oldest! if count >= max_sessions
+        entry = { segments: {payload}, total: #payload, :init_seq, timestamp: os.time! }
+        sessions[key] = entry
+        count += 1
+      else
+        entry.segments[#entry.segments + 1] = payload
+        entry.total += #payload
+      if entry.total > max_buf
+        drop key
+        return nil
+      buf = concat entry.segments
+      if check_complete buf
         stored_seq = entry.init_seq
-        buf = entry.buf
-        sessions[key] = nil
+        drop key
         return buf, stored_seq, first_seg
+      -- Collapse the segments we just concatenated so the next feed does not
+      -- redo the whole join.
+      entry.segments = {buf}
       nil
 
     --- Clear a session explicitly.
     -- @tparam string key
-    clear: (key) -> sessions[key] = nil
+    clear: (key) -> drop key
 
     --- Drop every tracked session (vidage en place, références préservées).
-    reset: -> sessions[k] = nil for k in pairs sessions
+    reset: ->
+      sessions[k] = nil for k in pairs sessions
+      count = 0
 
     --- Purge sessions older than max_age seconds.
     -- @tparam[opt=300] number max_age
@@ -57,7 +90,7 @@ new = (check_complete=(-> true)) ->
       now = os.time!
       for key, entry in pairs sessions
         if now - entry.timestamp > max_age
-          sessions[key] = nil
+          drop key
   }
 
 { :new }

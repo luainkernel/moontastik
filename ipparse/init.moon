@@ -7,7 +7,8 @@ if path = (...)\match"(.*)%.[^%.]-"  -- Add subdirectory to package.path if appl
   path = package.path\match"^[^%?]+" .. path
   package.path ..= ";"..path.."/?.lua;"..path.."/?/init.lua"
 
-unpack: su, :char, :format, :gsub, :rep, :sub = string
+:char, :format, :gsub, :rep, :sub = string
+unpack: su = require "ipparse.lib.pack_compat"  -- string.unpack is absent on LuaJIT/Lua 5.1
 :concat = table
 :opairs = require"ipparse.fun"
 require"ipparse.fun".leak_debug = leak_debug

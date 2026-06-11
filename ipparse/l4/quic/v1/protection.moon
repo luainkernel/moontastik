@@ -23,23 +23,9 @@
 --
 -- @module l4.quic.v1.protection
 
-{:band, :bor, :bxor, :rshift} = require "ipparse.lib.bit_compat"
-pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+{:band, :bxor, :rshift} = require "ipparse.lib.bit_compat"
+{:construct_nonce} = require "ipparse.lib.crypto.backend.common"
 byte = string.byte
-tunpack = table.unpack or unpack
-
---- Constructs the QUIC nonce by XOR-ing the IV with the packet number.
--- @tparam string iv 12-byte string
--- @tparam number pn packet number (non-negative integer)
--- @treturn string 12-byte nonce
-construct_nonce = (iv, pn) ->
-  -- Build big-endian 12-byte representation of pn
-  buf = {byte iv, 1, 12}
-  -- XOR the last 8 bytes (indices 5..12, 1-based) with pn
-  for i = 12, 5, -1
-    buf[i] = bxor buf[i], band(pn, 0xFF)
-    pn = rshift pn, 8
-  string.char tunpack buf
 
 --- Extracts the 16-byte sample for header protection from encrypted payload.
 -- RFC 9001 §5.4.2: sample starts at offset 4 past the start of the encrypted payload.

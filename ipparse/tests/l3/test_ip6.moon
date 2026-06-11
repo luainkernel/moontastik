@@ -7,11 +7,10 @@ util = require"ipparse.lib.util"
 {:test} = util
 ip6 = require"ipparse.l3.ip6"
 
-test "ip62s converts 16 bytes to colon-hex", ->
-  -- Use fully expanded address to avoid s2ip6 compression-parsing quirks
+test "ip62s compresses zero runs per RFC 5952", ->
   bin = ip6.s2ip6 "0:0:0:0:0:0:0:1"
   result = ip6.ip62s bin
-  assert result == "0:0:0:0:0:0:0:1", "expected '0:0:0:0:0:0:0:1', got '#{result}'"
+  assert result == "::1", "expected '::1', got '#{result}'"
 
 test "s2ip6 converts address to 16 bytes", ->
   result = ip6.s2ip6 "0:0:0:0:0:0:0:1"
@@ -24,7 +23,9 @@ test "s2ip6 full address", ->
 
 test "ip62s/s2ip6 round-trip preserves bytes", ->
   original = "\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
-  converted = ip6.s2ip6(ip6.ip62s(original))
+  s = ip6.ip62s original
+  assert s == "2001:db8::1", "expected '2001:db8::1', got '#{s}'"
+  converted = ip6.s2ip6 s
   assert converted == original, "ip62s/s2ip6 round-trip failed"
 
 test "parse extracts version=6", ->

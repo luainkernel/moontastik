@@ -32,7 +32,8 @@
 -- @module l4.quic
 
 pack: sp, unpack: su, :byte = require "ipparse.lib.pack_compat"
-:unpack = table
+unpack = table.unpack or unpack
+{:need_bytes} = require "ipparse"
 :bidirectional = require"ipparse.fun"
 {:band} = require"ipparse.lib.bit_compat"
 {:parse_varint} = require"ipparse.l4.quic.frames"
@@ -72,7 +73,9 @@ for {:long_mt, :short_mt} in *versions
 -- @treturn table Parsed QUIC header as a table.
 -- @treturn number The next offset after parsing.
 parse_long_header = (off, byte1) =>
-  version, dst_connection_id, src_connection_id, _off = su ">I4 s1 s1", @, off
+  return nil, off unless need_bytes @, off, 6  -- version (4) + 2 CID length bytes
+  ok, version, dst_connection_id, src_connection_id, _off = pcall su, ">I4 s1 s1", @, off
+  return nil, off unless ok
   local mt
   local pkt_type, token, pkt_length
   if v = versions[version]
@@ -84,12 +87,14 @@ parse_long_header = (off, byte1) =>
   -- Initial packets (pkt_type == 0x00) carry a token field (RFC 9001 §17.2.2)
   if pkt_type == 0x00
     token_len, _off = parse_varint @, _off
+    return nil, off unless token_len and need_bytes @, _off, token_len
     token = @\sub _off, _off + token_len - 1
     _off += token_len
 
   -- All long-header packet types carry a Length VarInt (except Retry)
   if pkt_type != 0x30  -- 0x30 = Retry
     pkt_length, _off = parse_varint @, _off
+    return nil, off unless pkt_length
 
   setmetatable({
     byte1: byte1, :version, :dst_connection_id, :src_connection_id,
@@ -127,6 +132,7 @@ parse_short_header = (off, byte1, dst_id=nil, src_connection_id=nil, version=nil
 -- @treturn number The next offset after parsing.
 parse = (off=1, ...) =>
   byte1 = byte @, off
+  return nil, off unless byte1
   if band(byte1, HEADER_FORM) == 0
     parse_short_header @, off+1, byte1, ...
   else
