@@ -37,7 +37,7 @@ EXPECTED = {
   dst_mac: "f2198cc26bb3"
   src_mac: "f2e9008a2acc"
   src_ip:  "3ffa:e7fe:4375:16ed:e28f:4cff:fec8:91fa"
-  dst_ip:  "2485:ec87:7655:20de:0:0:0:8b"
+  dst_ip:  "2485:ec87:7655:20de::8b"  -- ip62s compresses zero runs (RFC 5952)
   udp_spt: 35336
   udp_dpt: 443
   sni: "google.com"

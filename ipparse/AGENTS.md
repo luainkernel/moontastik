@@ -32,7 +32,9 @@ sudo make install   # Copy .lua to /lib/modules/lua/ipparse/
 make clean          # Delete generated .lua files
 
 make test           # Run the full test suite (tests/run_all via LuaJIT)
-sudo make test-lunatik  # Run kernel (Lunatik) crypto tests
+sudo make test-lunatik  # Run kernel (Lunatik) crypto tests on the host
+make -C .. vm-test  # Full suite (userspace + kernel) in a virtme-ng VM
+                    # on the pinned LTS kernel — see ../tools/vmtest/
 
 ldoc .              # Generate HTML docs in doc/  (uses config.ld)
 ```

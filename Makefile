@@ -10,3 +10,9 @@ all:
 
 install:
 	$(MAKE) -C ipparse install
+
+vm-test:
+	tools/vmtest/run.sh
+
+vm-smoke:
+	tools/vmtest/run.sh --smoke

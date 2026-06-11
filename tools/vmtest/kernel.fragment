@@ -1,0 +1,38 @@
+# Kernel config fragment merged on top of virtme-ng's defconfig.
+# Options required by Lunatik and the ipparse kernel tests.
+
+CONFIG_MODULES=y
+CONFIG_MODULE_UNLOAD=y
+
+# Lunatik (out-of-tree) emits informational #warning directives
+# (e.g. crypto_comp removed in 6.15); don't make them fatal.
+CONFIG_WERROR=n
+
+# No module signing / trusted keyring in the test VM: building
+# certs/extract-cert links host openssl, which clashes with the pinned
+# Nix toolchain (mixed glibc versions). Not needed for tests anyway.
+CONFIG_MODULE_SIG=n
+CONFIG_SYSTEM_TRUSTED_KEYRING=n
+CONFIG_SECONDARY_TRUSTED_KEYRING=n
+CONFIG_SYSTEM_BLACKLIST_KEYRING=n
+
+# Kernel crypto API used by lunatik's crypto bindings (AEAD GCM, ECB, HMAC-SHA256)
+CONFIG_CRYPTO=y
+CONFIG_CRYPTO_AES=y
+CONFIG_CRYPTO_GCM=y
+CONFIG_CRYPTO_ECB=y
+CONFIG_CRYPTO_CTR=y
+CONFIG_CRYPTO_HMAC=y
+CONFIG_CRYPTO_SHA256=y
+CONFIG_CRYPTO_USER_API=y
+CONFIG_CRYPTO_USER_API_SKCIPHER=y
+CONFIG_CRYPTO_USER_API_AEAD=y
+
+# Netfilter hooks (lunatik netfilter bindings; harmless if unused by tests)
+CONFIG_NETFILTER=y
+CONFIG_NETFILTER_ADVANCED=y
+
+# Subsystems lunatik builds bindings for (luahid.ko links against HID)
+CONFIG_HID=y
+CONFIG_HID_GENERIC=y
+CONFIG_INPUT=y

@@ -1,0 +1,73 @@
+# Unified test pipeline:
+#  - userspace: fast LuaJIT run of the ipparse suite (no VM)
+#  - kernel: full suite (userspace + lunatik kernel modules) inside a
+#    virtme-ng microVM on the pinned LTS kernel (tools/vmtest/)
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  userspace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LuaJIT + MoonScript
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y luajit luarocks
+          sudo luarocks install moonscript
+      - name: Run test suite
+        run: make -C ipparse test
+
+  kernel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential flex bison bc libelf-dev libssl-dev dwarves \
+            ccache cpio zstd qemu-system-x86 busybox-static \
+            python3-venv rustc cargo \
+            luajit luarocks lua5.4 git curl kmod
+          sudo luarocks install moonscript
+
+      - name: Enable KVM on the runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
+            | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+
+      - name: Restore kernel build cache
+        uses: actions/cache@v4
+        with:
+          path: tools/vmtest/build/linux-*
+          key: vmtest-kernel-${{ hashFiles('tools/vmtest/versions.env', 'tools/vmtest/kernel.fragment') }}
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: vmtest-ccache-${{ hashFiles('tools/vmtest/versions.env') }}
+          restore-keys: vmtest-ccache-
+
+      - name: Run full suite in VM
+        run: make vm-test
+
+      - name: Collect dmesg on failure
+        if: failure()
+        run: dmesg > vm-dmesg.log 2>/dev/null || true
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-logs
+          path: vm-dmesg.log
+          if-no-files-found: ignore
