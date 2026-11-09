@@ -44,6 +44,11 @@ fi
 
 KREL="$(make -s -C "$KERNEL_SRC" kernelrelease)"
 log "Building lunatik against $KREL ($KERNEL_SRC)…"
+# The source tree is shared between kernel versions (the .ko objects live
+# in it): wipe objects built against another kernel before compiling.
+(cd "$LUNATIK_SRC" && make clean \
+  KERNEL_RELEASE="$KREL" \
+  MODULES_BUILD_PATH="$KERNEL_SRC" >/dev/null)
 # cd rather than make -C: lunatik's Makefile passes M=$(PWD) to Kbuild,
 # and PWD is the caller's directory unless we actually chdir.
 # Upstream v5.1 defaults LUA to lua5.5 (bundled kernel Lua). LUA here only
@@ -55,11 +60,10 @@ log "Building lunatik against $KREL ($KERNEL_SRC)…"
   MODULES_BUILD_PATH="$KERNEL_SRC" \
   -j"$(nproc)")
 
-echo "$KREL" > "$BUILD_DIR/kernelrelease"
+echo "$KREL" > "$KERNELREL_FILE"
 
 # Pre-populate the guest /lib/modules 9p mount with the kernel's module
 # metadata (modules.builtin & co), so depmod/modprobe work in the VM.
-GUEST_MODULES_DIR="$BUILD_DIR/guest-modules"
 mkdir -p "$GUEST_MODULES_DIR"
 make -C "$KERNEL_SRC" modules_install \
   INSTALL_MOD_PATH="$BUILD_DIR/guest-modules-staging" >/dev/null

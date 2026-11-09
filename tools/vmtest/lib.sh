@@ -18,5 +18,9 @@ KERNEL_IMAGE="$KERNEL_SRC/arch/x86/boot/bzImage"
 LUNATIK_SRC_USER="${LUNATIK_SRC:-}"
 LUNATIK_SRC="$(realpath -m -- "${LUNATIK_SRC:-$BUILD_DIR/lunatik}")"
 
+# Per-kernel artefacts: several kernels can be built and tested side by side.
+GUEST_MODULES_DIR="$BUILD_DIR/guest-modules-$KERNEL_VERSION"
+KERNELREL_FILE="$BUILD_DIR/kernelrelease-$KERNEL_VERSION"
+
 log() { printf '\033[1;34m[vmtest]\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31m[vmtest]\033[0m %s\n' "$*" >&2; exit 1; }

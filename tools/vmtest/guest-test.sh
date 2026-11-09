@@ -4,7 +4,7 @@
 
 . "$(dirname "$0")/lib.sh"
 
-KREL="$(cat "$BUILD_DIR/kernelrelease")"
+KREL="$(cat "$KERNELREL_FILE")"
 [ "$(uname -r)" = "$KREL" ] || die "VM kernel $(uname -r) != expected $KREL"
 
 log "Installing lunatik modules + scripts into the overlay…"

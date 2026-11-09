@@ -38,8 +38,8 @@ else
 fi
 # vng bind-mounts the kernel's module dir read-only over /lib/modules;
 # lunatik and ipparse need to install there, so mount a writable 9p
-# (host-backed, reusable across boots) on top instead.
-GUEST_MODULES_DIR="$BUILD_DIR/guest-modules"
+# (host-backed, reusable across boots) on top instead. GUEST_MODULES_DIR
+# is per kernel version (see lib.sh).
 mkdir -p "$GUEST_MODULES_DIR"
 
 in_vm() {
