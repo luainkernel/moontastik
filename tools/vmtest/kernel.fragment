@@ -27,6 +27,10 @@ CONFIG_CRYPTO_SHA256=y
 CONFIG_CRYPTO_USER_API=y
 CONFIG_CRYPTO_USER_API_SKCIPHER=y
 CONFIG_CRYPTO_USER_API_AEAD=y
+# lunatik's crypto.rng needs CRYPTO_RNG, which is hidden and no longer
+# selected by virtme-ng's config on 7.x. CRYPTO_DRBG selects it; note that
+# CRYPTO_DRBG_MENU (the 6.x wrapper) no longer exists in 7.3.3.
+CONFIG_CRYPTO_DRBG=y
 
 # Netfilter hooks (lunatik netfilter bindings; harmless if unused by tests)
 CONFIG_NETFILTER=y
