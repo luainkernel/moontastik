@@ -17,7 +17,10 @@ if [ ! -d "$KERNEL_SRC" ]; then
   major="${KERNEL_VERSION%%.*}"
   url="https://cdn.kernel.org/pub/linux/kernel/v${major}.x/linux-$KERNEL_VERSION.tar.xz"
   log "Downloading $url…"
-  curl -fL --retry 3 -o "$BUILD_DIR/linux-$KERNEL_VERSION.tar.xz" "$url"
+  if ! curl -fL --retry 3 -o "$BUILD_DIR/linux-$KERNEL_VERSION.tar.xz" "$url"; then
+    rm -f "$BUILD_DIR/linux-$KERNEL_VERSION.tar.xz"
+    die "download failed: $url"
+  fi
   log "Extracting…"
   tar -C "$BUILD_DIR" -xf "$BUILD_DIR/linux-$KERNEL_VERSION.tar.xz"
   rm "$BUILD_DIR/linux-$KERNEL_VERSION.tar.xz"
