@@ -42,7 +42,7 @@ bin2hex = (s) -> format rep("%.2x", #s), su rep("B", #s), s
 --- Converts a binary string to its hexadecimal representation in chunks.
 -- @tparam string self The binary string to convert.
 -- @treturn string A string containing the hexadecimal representation of the input.
-lbin2hex = => concat [bin2hex sub(@, i+1, i+128) for i = 0, #@-128, 128]
+lbin2hex = => concat [bin2hex sub(@, i+1, i+128) for i = 0, #@-1, 128]
 
 --- Converts a hexadecimal string to binary.
 -- @tparam string hex Hexadecimal string (even length).
