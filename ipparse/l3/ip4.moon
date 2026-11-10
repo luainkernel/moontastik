@@ -37,7 +37,7 @@
 --
 -- @module l3.ip4
 
-:format, :sub, :upper, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+:format, :sub, :upper, :lower, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :checksum = require"ipparse.l3.lib"
 :bidirectional = require"ipparse.fun"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
@@ -47,6 +47,15 @@ flags =
   DF: 0x4000  -- Don't Fragment
   MF: 0x2000  -- More Fragments
 flags = bidirectional flags
+
+-- Plain (metatable-free) name -> mask lookup for the hot metamethods below.
+-- Both all-upper and all-lower spellings map to the same mask; mixed case is
+-- deliberately not recognized.
+flag_masks = {}
+for name in *{"DF", "MF"}
+  mask = flags[name]
+  flag_masks[name] = mask
+  flag_masks[lower name] = mask
 
 --- Packs the IPv4 header and payload into a binary string.
 -- Calculates the checksum and updates header fields like `ihl` and `total_len`.
@@ -78,15 +87,15 @@ _mt =
   -- @tparam string k The flag name (e.g., "DF", "MF").
   -- @treturn boolean `true` if the flag is set, `false` otherwise.
   __index: (k) =>
-    if flag = type(k) == "string" and flags[upper k]
-      band(@ff, flag) ~= 0
+    if mask = flag_masks[k]
+      band(@ff, mask) ~= 0
 
   --- Sets or clears a specific IPv4 flag.
   -- @tparam string k The flag name (e.g., "DF", "MF").
   -- @tparam boolean v `true` to set the flag, `false` to clear it.
   __newindex: (k, v) =>
-    if flag = type(k) == "string" and flags[upper k]
-      if v then @ff = bor(@ff, flag) else @ff = band(@ff, bnot(flag))
+    if mask = flag_masks[k]
+      if v then @ff = bor(@ff, mask) else @ff = band(@ff, bnot(mask))
       return
     rawset @, k, v
 

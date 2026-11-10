@@ -121,4 +121,26 @@ test "options empty in standard header", ->
   raw = tostring t
   parsed, _ = tcp.parse raw, 1
   assert parsed.options == "", "options should be empty string, got '#{parsed.options}'"
+
+test "SYN readable and writable in both all-lower and all-upper case", ->
+  t = mk_tcp {}
+  assert t.syn == false, "t.syn should be false initially"
+  assert t.SYN == false, "t.SYN should be false initially"
+  t.syn = true
+  assert t.SYN == true, "setting t.syn should set SYN"
+  assert t.flags == 0x02, "flags should be 0x02, got #{t.flags}"
+  t.SYN = false
+  assert t.syn == false, "setting t.SYN should clear SYN"
+  assert t.flags == 0, "flags should be 0, got #{t.flags}"
+
+test "absent field reads as nil and unknown field is stored", ->
+  t = mk_tcp {}
+  assert t.data == nil, "absent data should read as nil"
+  t.foo = 1
+  assert t.foo == 1, "t.foo should be 1, got '#{t.foo}'"
+  assert rawget(t, "foo") == 1, "t.foo should be stored directly"
+
+test "mixed-case flag names are no longer recognized", ->
+  t = mk_tcp {syn: true}
+  assert t.Syn == nil, "t.Syn should not be recognized, got '#{t.Syn}'"
 util.summary "l4/tcp"
