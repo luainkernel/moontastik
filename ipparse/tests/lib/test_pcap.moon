@@ -95,6 +95,19 @@ test "pcap: filter_quic_packets ignores too-short frames", ->
   res = pcap.filter_quic_packets { { packet_data: "\001\002" } }
   assert #res == 0, "expected no QUIC packet, got #{#res}"
 
+test "pcap: filter_quic_packets handles short headers and verbose logging", ->
+  frame = make_quic_frame "\000\000\000\000\000\000\000\000\000", 443, 12345
+  original_print = _G.print
+  lines = { }
+  _G.print = (msg) -> lines[#lines + 1] = msg
+  pcap.verbose = true
+  ok, res = pcall pcap.filter_quic_packets, { { packet_data: frame } }
+  pcap.verbose = false
+  _G.print = original_print
+  assert ok, "filter should not raise: #{res}"
+  assert #res == 1, "expected 1 QUIC packet, got #{#res}"
+  assert #lines > 0, "expected verbose log lines"
+
 test "pcap: parse_pcapng reads a real temporary file", ->
   data = make_shb! .. make_idb! .. make_epb 0, 0, "\001\002\003\004"
   fname = os.tmpname!
