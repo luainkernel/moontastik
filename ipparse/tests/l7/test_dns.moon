@@ -238,4 +238,12 @@ test "classes NONE and ANY use RFC values", ->
   assert dns.classes.ANY == 255, "ANY should be 255, got #{dns.classes.ANY}"
   assert dns.classes[1] == "IN", "classes[1] should be 'IN'"
 
+test "parse_opt reuses module-level data metatables", ->
+  a = dns.parse_opt "\000\010\000\002hi"
+  b = dns.parse_opt "\000\010\000\002ho"
+  assert getmetatable(a.data) == getmetatable(b.data), "unknown options should share one metatable"
+  c = dns.parse_opt "\000\008\000\007\000\001\024\000\192\168\001"
+  d = dns.parse_opt "\000\008\000\007\000\001\024\000\192\168\002"
+  assert getmetatable(c.data) == getmetatable(d.data), "client_subnet options should share one metatable"
+
 util.summary "l7/dns"
