@@ -52,6 +52,28 @@ ldoc .              # Generate HTML docs in doc/  (uses config.ld)
 - Functional style: `fun.moon` primitives (`iter`, `memo`, `bidirectional`, …).
 - `bidirectional` tables map both `name→value` and `value→name`.
 
+## Kernel stack budget
+
+Under Lunatik a kernel thread has a 16 KiB stack, and `lunatik_maxccalls`
+lets Lua consume 5/8 of it before raising "C stack overflow". Loading a
+module costs C stack: every nested `require` pushes frames, and the Lua
+parser itself is recursive, so `ipparse.fun` first parsed at the bottom of a
+require chain has already overflowed twice in practice.
+
+Rules for entry modules (any module a user may `require` directly):
+
+- Make `require "ipparse"` the **first** `require`, so the shared base is
+  parsed at the shallowest possible depth.
+- Internal modules must never load the `ipparse.fun` facade; they take the
+  small `ipparse.fun.tables` subset instead.
+- Do not add deeply nested function expressions to modules loaded
+  everywhere: each nesting level counts against the loader's stack.
+
+The mechanical guard is `tests/test_lunatik_kernel_stack_canary.moon` and its
+`REQUIRED_DEPTH` constant: it also checks that each entry module loaded the
+base first and did not drag in the heavy `fun` facade. Never lower
+`REQUIRED_DEPTH` to make the test pass.
+
 ## Test coverage
 
 `make coverage` runs the suite under LuaJIT and Lua 5.4 with luacov and prints
