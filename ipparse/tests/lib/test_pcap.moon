@@ -47,4 +47,10 @@ test "pcap: truncated block at end terminates", ->
   packets = pcap.parse_pcapng_data data
   assert #packets == 0, "packets: #{#packets}"
 
+test "pcap: 64-bit timestamp keeps high word", ->
+  data = make_shb! .. make_idb! .. make_epb 1, 2, "\001\002\003\004"
+  packets = pcap.parse_pcapng_data data
+  assert #packets == 1, "packets: #{#packets}"
+  assert packets[1].timestamp == 4294967298, "timestamp: #{packets[1].timestamp}"
+
 util.summary "pcap"
