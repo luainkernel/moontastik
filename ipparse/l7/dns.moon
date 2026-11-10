@@ -287,6 +287,8 @@ edns_opts = {
 edns_opts[v[1]] = k for k, v in pairs edns_opts when type(k) == "number"
 
 _opt_mt = __tostring: pack_opt
+_raw_opt_data_mt = __tostring: => @[1]
+_ecs_data_mt = __tostring: => sp(">H B B ", @family, @source_netmask, @scope_netmask) .. @subnet
 
 --- Parses an EDNS option from a binary string.
 -- @tparam number off The offset to start parsing from.
@@ -309,12 +311,8 @@ parse_opt = (off=1) =>
     else data = {raw_data}
     data.type = typ
     data[fields[i]] = data[i] for i = 1, #fields
-    setmetatable data, __tostring: =>
-      if code == 8
-        sp(fmt, data.family, data.source_netmask, data.scope_netmask) .. data.subnet
-      else
-        @[1]
-  else data = setmetatable {raw_data}, __tostring: => @[1]
+    setmetatable data, (fmt and code == 8 and _ecs_data_mt or _raw_opt_data_mt)
+  else data = setmetatable {raw_data}, _raw_opt_data_mt
   setmetatable({:code, :len, :data}, _opt_mt), _off
 
 --- Parses all EDNS options from a binary string.
