@@ -61,6 +61,20 @@ mk_aead = ->
         error "EINVAL"
       if prefix == "PLAINBAD"
         return "EBADMSG"
+      -- Upstream Lunatik v5.1 convention (luacrypto_aead_decrypt ->
+      -- lunatik_pushfail): return nil, <errname> instead of raising.
+      if prefix == "NEWFAIL1"
+        return nil, "EBADMSG"
+      if prefix == "NEWFAIL2"
+        return nil, "-EBADMSG"
+      if prefix == "NEWFAIL3"
+        return nil, "-74"
+      if prefix == "NEWFAIL4"
+        return nil, "unknown"
+      if prefix == "NEWERR01"
+        return nil, "EINVAL"
+      if prefix == "NEWERR02"
+        return nil, "-174"
       "pt:" .. ciphertext_with_tag .. "|aad:" .. aad
     __close: =>
       calls.aead_close += 1
@@ -137,6 +151,51 @@ test "lunatik: AES-128-GCM decrypt maps -74 (pre-6.7 numeric) to nil,error", ->
   pt, err = b.aes_128_gcm_decrypt key, nonce, ("AUTHNUM1" .. string.rep("T", 16)), ""
   assert pt == nil, "pt should be nil on auth failure"
   assert err == "AES-128-GCM authentication failed (tag mismatch)", "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt maps v5.1 nil,EBADMSG to nil,error", ->
+  key = string.rep "\017", 16
+  nonce = string.rep "\000", 12
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("NEWFAIL1" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on auth failure"
+  assert err == "AES-128-GCM authentication failed (tag mismatch)", "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt maps v5.1 nil,-EBADMSG to nil,error", ->
+  key = string.rep "\017", 16
+  nonce = string.rep "\000", 12
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("NEWFAIL2" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on auth failure"
+  assert err == "AES-128-GCM authentication failed (tag mismatch)", "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt maps v5.1 nil,-74 to nil,error", ->
+  key = string.rep "\017", 16
+  nonce = string.rep "\000", 12
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("NEWFAIL3" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on auth failure"
+  assert err == "AES-128-GCM authentication failed (tag mismatch)", "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt maps v5.1 nil,unknown to decrypt failed", ->
+  key = string.rep "\017", 16
+  nonce = string.rep "\000", 12
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("NEWFAIL4" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on failure"
+  assert err ~= "AES-128-GCM authentication failed (tag mismatch)", "unexpected auth error: #{tostring err}"
+  assert tostring(err)\find("aead(gcm(aes)) decrypt failed", 1, true), "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt maps v5.1 nil,EINVAL to decrypt failed", ->
+  key = string.rep "\017", 16
+  nonce = string.rep "\000", 12
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("NEWERR01" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on failure"
+  assert err ~= "AES-128-GCM authentication failed (tag mismatch)", "unexpected auth error: #{tostring err}"
+  assert tostring(err)\find("aead(gcm(aes)) decrypt failed", 1, true), "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt does not treat v5.1 nil,-174 as EBADMSG", ->
+  key = string.rep "\017", 16
+  nonce = string.rep "\000", 12
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("NEWERR02" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on failure"
+  assert err ~= "AES-128-GCM authentication failed (tag mismatch)", "unexpected auth error: #{tostring err}"
+  assert tostring(err)\find("aead(gcm(aes)) decrypt failed", 1, true), "unexpected error: #{tostring err}"
 
 test "lunatik: AES-128-GCM decrypt does not treat -174 as EBADMSG", ->
   key = string.rep "\017", 16

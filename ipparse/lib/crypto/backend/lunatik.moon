@@ -46,6 +46,13 @@ is_ebadmsg = (err) ->
   bare = (s\match "^.*:%d+: (.*)$") or s
   ebadmsg_names[bare] == true
 
+--- Normalizes an EBADMSG from either Lunatik convention to the public error.
+-- @tparam string err Error value (name, "-NAME" or signed decimal)
+-- @treturn string|nil Authentication error message, or nil if not EBADMSG
+ebadmsg_error = (err) ->
+  return unless is_ebadmsg err
+  "AES-128-GCM authentication failed (tag mismatch)"
+
 cached_gcm_enc_tfm = nil
 cached_gcm_enc_key = nil
 cached_gcm_dec_tfm = nil
@@ -98,15 +105,24 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad = "") ->
   if #ciphertext_with_tag < 16
     return nil, "ciphertext_with_tag too short (need at least 16-byte tag)"
   c = get_gcm_tfm "decrypt", key
-  -- Wrap decrypt call to catch EBADMSG as a handled error, not an exception
-  ok, pt_or_err = pcall -> c\decrypt nonce, ciphertext_with_tag, aad
+  -- Two Lunatik conventions must be handled:
+  --   * old API (fork fix_crypto_enomem): decrypt raises (lunatik_throw) on
+  --     bad tag, so the error lands in the pcall status slot;
+  --   * upstream v5.1+ (lib/luacrypto_aead.c: luacrypto_aead_decrypt calls
+  --     lunatik_pushfail(L, -EBADMSG)): decrypt returns nil, "EBADMSG" and
+  --     nothing is raised. Only non-EBADMSG failures still raise.
+  ok, pt, err = pcall -> c\decrypt nonce, ciphertext_with_tag, aad
   unless ok
-    -- Decrypt raises on failure (luacrypto_aead_finish -> lunatik_throw)
-    if is_ebadmsg pt_or_err
-      return nil, "AES-128-GCM authentication failed (tag mismatch)"
-    return nil, "aead(gcm(aes)) decrypt failed: #{tostring pt_or_err}"
-  -- Success always returns the plaintext (may be empty string, which is valid).
-  pt_or_err, nil
+    msg = ebadmsg_error pt
+    return nil, msg if msg
+    return nil, "aead(gcm(aes)) decrypt failed: #{tostring pt}"
+  -- Success returns the plaintext (possibly ""); only inspect the second
+  -- value when the plaintext is nil (a plaintext equal to "EBADMSG" is kept).
+  if pt == nil
+    msg = ebadmsg_error err
+    return nil, msg if msg
+    return nil, "aead(gcm(aes)) decrypt failed: #{tostring err}"
+  pt, nil
 
 --- Encrypts single AES-128-ECB block.
 -- Uses a cached skcipher transform to avoid frequent allocations under load.
