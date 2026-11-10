@@ -228,99 +228,147 @@ bytes_to_float = (s, offset, le) ->
 
 -- ─── string.pack ─────────────────────────────────────────────────────────────
 
+-- Construit un encodeur spécialisé pour un entier non signé de `sz` octets.
+-- Les tailles courantes (1, 2, 3, 4) sont déroulées via string.char, sans
+-- allocation de table ni appel FFI ; les tailles 5-6 utilisent une petite
+-- boucle et au-delà de 6 octets on retombe sur write_uint (précision 64 bits).
+make_uint = (sz, le) ->
+  if sz == 1
+    (v) -> string.char(v % 256)
+  elseif sz == 2
+    if le
+      (v) ->
+        u = v % 65536
+        string.char(u % 256, math.floor(u / 256) % 256)
+    else
+      (v) ->
+        u = v % 65536
+        string.char(math.floor(u / 256) % 256, u % 256)
+  elseif sz == 3
+    mod = 16777216
+    if le
+      (v) ->
+        u = v % mod
+        string.char(u % 256, math.floor(u / 256) % 256, math.floor(u / 65536) % 256)
+    else
+      (v) ->
+        u = v % mod
+        string.char(math.floor(u / 65536) % 256, math.floor(u / 256) % 256, u % 256)
+  elseif sz == 4
+    mod = 4294967296
+    if le
+      (v) ->
+        u = v % mod
+        string.char(u % 256, math.floor(u / 256) % 256,
+          math.floor(u / 65536) % 256, math.floor(u / 16777216) % 256)
+    else
+      (v) ->
+        u = v % mod
+        string.char(math.floor(u / 16777216) % 256, math.floor(u / 65536) % 256,
+          math.floor(u / 256) % 256, u % 256)
+  elseif sz <= 6
+    mod = 2 ^ (8 * sz)
+    if le
+      (v) ->
+        u = v % mod
+        bytes = {}
+        for k = 1, sz
+          bytes[k] = u % 256
+          u = math.floor(u / 256)
+        string.char tunpack bytes
+    else
+      (v) ->
+        u = v % mod
+        bytes = {}
+        for k = sz, 1, -1
+          bytes[k] = u % 256
+          u = math.floor(u / 256)
+        string.char tunpack bytes
+  else
+    (v) ->
+      buf = ffi.new "uint8_t[?]", sz
+      write_uint buf, 0, v, sz, le
+      ffi.string buf, sz
+
+make_float = (le) ->
+  (v) -> string.char(tunpack(float_to_bytes(v, le)))
+
+make_double = (le) ->
+  (v) -> string.char(tunpack(double_to_bytes(v, le)))
+
+make_c = (sz) ->
+  (v) ->
+    if #v < sz
+      v .. string.rep "\0", sz - #v
+    else
+      v\sub 1, sz
+
+make_s = (sz, le) ->
+  len_emit = make_uint sz, le
+  (v) -> len_emit(#v) .. v
+
+-- Choisit l'encodeur d'une option au moment de la compilation du format.
+pack_op = (opt, count, le) ->
+  switch opt
+
+    when "b", "B"   -- int8 / uint8
+      { consume: true, emit: make_uint(1, le) }
+
+    when "h", "H"   -- int16 / uint16
+      { consume: true, emit: make_uint(2, le) }
+
+    when "i", "I"   -- int/uint N octets (défaut 4)
+      { consume: true, emit: make_uint((count or 4), le) }
+
+    when "l", "L", "j", "J", "T"   -- 64 bits
+      { consume: true, emit: make_uint(8, le) }
+
+    when "f"   -- float 32
+      { consume: true, emit: make_float le }
+
+    when "d", "n"   -- double 64
+      { consume: true, emit: make_double le }
+
+    when "c"   -- chaîne de longueur fixe
+      { consume: true, emit: make_c(count or 1) }
+
+    when "s"   -- chaîne préfixée longueur (size_t = 8 octets par défaut)
+      { consume: true, emit: make_s((count or 8), le) }
+
+    when "z"   -- chaîne null-terminated
+      { consume: true, emit: (v) -> v .. "\0" }
+
+    when "x"   -- padding (un octet nul)
+      { consume: false, emit: -> "\0" }
+
+    else       -- "X" (alignement) et options inconnues : no-op
+      { consume: false, emit: -> "" }
+
+-- Cache des formats compilés en liste d'encodeurs : fmt → plan.
+_pack_cache = {}
+
+compile_pack = (fmt) ->
+  plan = {}
+  iter = parse_format fmt
+  opt, count, le = iter!
+  while opt != nil
+    plan[#plan+1] = pack_op opt, count, le
+    opt, count, le = iter!
+  _pack_cache[fmt] = plan
+  plan
+
 pack = (fmt, ...) ->
-  args   = {...}
-  argi   = 1
-  parts  = {}
-  ops = _fmt_cache[fmt] or parse_format_to_ops(fmt)
+  plan  = _pack_cache[fmt] or compile_pack(fmt)
+  parts = {}
+  argi  = 1
 
-  for j = 1, #ops
-    {opt, count, le} = ops[j]
-    switch opt
-
-      when "b"   -- int8
-        v   = args[argi]
-        argi += 1
-        v   = v % 256
-        parts[#parts+1] = string.char v
-
-      when "B"   -- uint8
-        v = args[argi]
-        argi += 1
-        parts[#parts+1] = string.char(v % 256)
-
-      when "h"   -- int16
-        v = args[argi]
-        argi += 1
-        uv = v % 65536
-        if le
-          parts[#parts+1] = string.char(uv % 256, math.floor(uv/256) % 256)
-        else
-          parts[#parts+1] = string.char(math.floor(uv/256) % 256, uv % 256)
-
-      when "H"   -- uint16
-        v = args[argi]
-        argi += 1
-        uv = v % 65536
-        if le
-          parts[#parts+1] = string.char(uv % 256, math.floor(uv/256) % 256)
-        else
-          parts[#parts+1] = string.char(math.floor(uv/256) % 256, uv % 256)
-
-      when "i", "I"   -- int/uint N octets (défaut 4)
-        sz = count or 4
-        v  = args[argi]
-        argi += 1
-        buf = ffi.new "uint8_t[?]", sz
-        write_uint buf, 0, v, sz, le
-        parts[#parts+1] = ffi.string buf, sz
-
-      when "l", "L", "j", "J", "T"   -- 64 bits
-        v   = args[argi]
-        argi += 1
-        buf = ffi.new "uint8_t[8]"
-        write_uint buf, 0, v, 8, le
-        parts[#parts+1] = ffi.string buf, 8
-
-      when "f"   -- float 32
-        v = args[argi]
-        argi += 1
-        bytes = float_to_bytes v, le
-        parts[#parts+1] = string.char tunpack bytes
-
-      when "d", "n"   -- double 64
-        v = args[argi]
-        argi += 1
-        bytes = double_to_bytes v, le
-        parts[#parts+1] = string.char tunpack bytes
-
-      when "c"   -- chaîne de longueur fixe
-        sz = count or 1
-        v  = args[argi]
-        argi += 1
-        if #v < sz
-          parts[#parts+1] = v .. string.rep "\0", sz - #v
-        else
-          parts[#parts+1] = v\sub 1, sz
-
-      when "s"   -- chaîne préfixée par une longueur (size_t = 8 octets ici)
-        sz  = count or 8
-        v   = args[argi]
-        argi += 1
-        buf = ffi.new "uint8_t[?]", sz
-        write_uint buf, 0, #v, sz, le
-        parts[#parts+1] = ffi.string(buf, sz) .. v
-
-      when "z"   -- chaîne null-terminated
-        v = args[argi]
-        argi += 1
-        parts[#parts+1] = v .. "\0"
-
-      when "x"   -- padding (un octet nul)
-        parts[#parts+1] = "\0"
-
-      when "X"   -- alignement (pas d'octet émis dans ce contexte simplifié)
-        nil -- no-op
+  for j = 1, #plan
+    op = plan[j]
+    if op.consume
+      parts[#parts+1] = op.emit(select(argi, ...))
+      argi += 1
+    else
+      parts[#parts+1] = op.emit!
 
   table.concat parts
 
