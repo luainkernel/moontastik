@@ -31,17 +31,12 @@ jobs:
       fail-fast: false
       matrix:
         lua: [luajit, lua5.1, lua5.4, lua5.5]
-        include:
-          - lua: lua5.1
-            experimental: true
     steps:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
       - name: Compile MoonScript sources
         run: nix-shell -p luajitPackages.moonscript --run "make -C ipparse all"
       - name: Run test suite
-        # TODO: remove once Lua 5.1 support lands
-        continue-on-error: ${{ matrix.experimental == true }}
         run: |
           case "${{ matrix.lua }}" in
             luajit) pkg=luajit; bin=luajit ;;
