@@ -233,4 +233,9 @@ test "EDNS client_subnet reflects modified fields", ->
   assert tostring(o) == "\000\008\000\007\000\001\016\000\192\168\001",
     "modified source_netmask should be packed"
 
+test "classes NONE and ANY use RFC values", ->
+  assert dns.classes.NONE == 254, "NONE should be 254, got #{dns.classes.NONE}"
+  assert dns.classes.ANY == 255, "ANY should be 255, got #{dns.classes.ANY}"
+  assert dns.classes[1] == "IN", "classes[1] should be 'IN'"
+
 util.summary "l7/dns"
