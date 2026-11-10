@@ -161,4 +161,27 @@ test "pack_compat: >i8 negative round-trip", ->
   assert v == -2, "got: #{v}"
   assert pos == 9, "pos: #{pos}"
 
+-- ─── Truncated input must raise, as native string.unpack does ───────────────
+
+test "pack_compat: unpack B on empty string raises", ->
+  ok, err = pcall unpack, "B", "", 1
+  assert not ok and tostring(err)\match("too short"),
+    "expected 'data string too short', got: #{tostring err}"
+
+test "pack_compat: unpack c8 on 3-byte string raises", ->
+  ok, err = pcall unpack, "c8", "abc", 1
+  assert not ok and tostring(err)\match("too short"),
+    "expected 'data string too short', got: #{tostring err}"
+
+test "pack_compat: unpack >s1 with truncated body raises", ->
+  ok, err = pcall unpack, ">s1", "\005ab", 1
+  assert not ok and tostring(err)\match("too short"),
+    "expected 'data string too short', got: #{tostring err}"
+
+test "pack_compat: unpack full-width controls still work", ->
+  assert unpack("B", "a", 1) == 97, "B on 'a'"
+  assert unpack("c3", "abc", 1) == "abc", "c3 on 'abc'"
+  assert unpack(">s1", "\002ab", 1) == "ab", "s1 on '\\002ab'"
+  assert unpack("c0", "", 1) == "", "c0 on ''"
+
 util.summary "pack_compat"
