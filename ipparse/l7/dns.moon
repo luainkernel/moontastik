@@ -69,9 +69,9 @@
 --
 -- @module l7.dns
 
+{:need_bytes} = require "ipparse"
 :bidirectional, :zero_indexed = require "ipparse.fun.tables"
 pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
-{:need_bytes} = require "ipparse"
 :concat = table
 :byte = string
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"

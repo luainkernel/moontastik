@@ -28,11 +28,11 @@
 --
 -- @module l3.ip6
 
+{:need_bytes} = require "ipparse"
 :format, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 unpack or= table.unpack
 :checksum, :checksum6 = require"ipparse.l3.lib"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
-{:need_bytes} = require "ipparse"
 
 local s2ip6
 --- Packs the IPv6 header and payload into a binary string.

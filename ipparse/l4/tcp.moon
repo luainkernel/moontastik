@@ -35,10 +35,10 @@
 --
 -- @module l4.tcp
 
+{:need_bytes} = require "ipparse"
 pack: sp, unpack: su, :sub, :lower = require "ipparse.lib.pack_compat"
 :bidirectional = require "ipparse.fun.tables"
 {:band, :bor, :bnot, :rshift} = require"ipparse.lib.bit_compat"
-{:need_bytes} = require "ipparse"
 
 flags = bidirectional {
   FIN: 0x01

@@ -37,11 +37,11 @@
 --
 -- @module l3.ip4
 
+{:need_bytes} = require "ipparse"
 :format, :sub, :lower, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :checksum = require"ipparse.l3.lib"
 :bidirectional = require "ipparse.fun.tables"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
-{:need_bytes} = require "ipparse"
 
 flags =
   DF: 0x4000  -- Don't Fragment

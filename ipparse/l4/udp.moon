@@ -23,8 +23,8 @@
 --
 -- @module l4.udp
 
-pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 checksum6: l3_checksum6 = require "ipparse.l3.lib"
 
 --- Packs the UDP header and payload into a binary string.
