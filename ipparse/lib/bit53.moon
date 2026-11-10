@@ -4,7 +4,8 @@
 --
 
 --- Bitwise operations compatibility layer (Lua 5.3 style).
--- This module provides Lua 5.3-style bitwise operations using LuaJIT's native operators.
+-- This module provides Lua 5.3-style bitwise operations using the native
+-- operators of Lua 5.3 and later.
 -- Like LuaJIT's `bit` library, `band`, `bor` and `bxor` are variadic: `bor(a)`
 -- returns `a`, and operations fold left to right over their arguments.
 -- MoonScript parses `~` ambiguously, so XOR is expressed using boolean identities.
@@ -45,6 +46,6 @@ bit =
   bnot: (a) -> ~a
   lshift: (a, n) -> a << n
   rshift: (a, n) -> a >> n
-  arshift: (a, n) -> a >> n
+  arshift: (a, n) -> if a >= 0 then a >> n else ~((~a) >> n)
 
 return bit
