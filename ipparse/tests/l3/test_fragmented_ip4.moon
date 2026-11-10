@@ -124,4 +124,57 @@ test "truncated packet is rejected", ->
   assert res == nil, "expected nil result"
   assert err == "truncated packet", "got '#{err}'"
 
+test "completed flows do not grow the eviction queue", ->
+  frag.reset!
+  for i = 1, 1000
+    raw1, ip1 = build i, 0x2000, "ABCDEFGH"
+    raw2, ip2 = build i, 1, "IJKL"
+    assert frag.collect(ip1, raw1) == nil, "flow #{i} first fragment should be pending"
+    payload = frag.collect ip2, raw2
+    assert payload == "ABCDEFGHIJKL", "flow #{i} should complete, got '#{payload}'"
+  pending, queued = frag.stats!
+  assert pending == 0, "pending should be 0, got #{pending}"
+  assert queued == 0, "eviction queue should be empty, got #{queued}"
+
+test "eviction queue holds one entry per incomplete flow", ->
+  frag.reset!
+  for i = 1, 10
+    raw, ip = build i, 0x2000, "ABCDEFGH"
+    assert frag.collect(ip, raw) == nil, "flow #{i} should be pending"
+  pending, queued = frag.stats!
+  assert pending == 10, "pending should be 10, got #{pending}"
+  assert queued == 10, "eviction queue should hold 10 entries, got #{queued}"
+
+test "reused key evicts the oldest living flow, not a newer one", ->
+  frag.reset!
+  a1raw, a1 = build 7, 0x2000, "AAAAAAAA"
+  assert frag.collect(a1, a1raw) == nil, "A first should be pending"
+  a2raw, a2 = build 7, 1, "aaaa"
+  payload = frag.collect a2, a2raw
+  assert payload == "AAAAAAAAaaaa", "A should complete, got '#{payload}'"
+  n1raw, n1 = build 7, 0x2000, "BBBBBBBB"
+  assert frag.collect(n1, n1raw) == nil, "new id 7 flow should be pending"
+  for i = 100, 162
+    raw, ip = build i, 0x2000, "CCCCCCCC"
+    assert frag.collect(ip, raw) == nil, "flow #{i} should be pending"
+  pending, queued = frag.stats!
+  assert pending == 64, "pending should be 64, got #{pending}"
+  assert queued == 64, "eviction queue should hold 64 entries, got #{queued}"
+  raw, ip = build 200, 0x2000, "DDDDDDDD"
+  assert frag.collect(ip, raw) == nil, "65th flow should be pending"
+  pending, queued = frag.stats!
+  assert pending == 64, "pending should stay at 64, got #{pending}"
+  assert queued == 64, "eviction queue should hold 64 entries, got #{queued}"
+  r200raw, r200 = build 200, 1, "dddd"
+  payload = frag.collect r200, r200raw
+  assert payload == "DDDDDDDDdddd", "newest flow should survive, got '#{payload}'"
+  n2raw, n2 = build 7, 1, "bbbb"
+  assert frag.collect(n2, n2raw) == nil, "oldest living flow (id 7) must have been evicted"
+  r100raw, r100 = build 100, 1, "cccc"
+  payload = frag.collect r100, r100raw
+  assert payload == "CCCCCCCCcccc", "a recent flow should survive, got '#{payload}'"
+  r150raw, r150 = build 150, 1, "eeee"
+  payload = frag.collect r150, r150raw
+  assert payload == "CCCCCCCCeeee", "another recent flow should survive, got '#{payload}'"
+
 util.summary "l3/fragmented_ip4"
