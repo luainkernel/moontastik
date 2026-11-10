@@ -143,6 +143,7 @@ new = =>
   @tos or= 0
   @id or= 0 -- Could be randomized, but 0 is a simple default for construction
   @ttl or= 64 -- A common default TTL
+  @options or= ""
   -- protocol is intentionally not defaulted here as it's critical for L4.
   -- checksum, total_len, ihl are calculated by pack().
 
