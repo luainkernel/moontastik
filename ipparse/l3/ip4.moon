@@ -37,7 +37,7 @@
 --
 -- @module l3.ip4
 
-:format, :sub, :upper, :lower, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+:format, :sub, :lower, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :checksum = require"ipparse.l3.lib"
 :bidirectional = require"ipparse.fun"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
