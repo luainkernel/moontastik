@@ -45,6 +45,7 @@
 version = 0x01
 
 --- Initial salt used for key derivation in QUIC version 1, as a hexadecimal string.
+-- Kept for public export; the binary form lives in `keys.INITIAL_SALT`.
 initial_salt = "38762cf7f55934b34d179ae6a4c80cadccbb7f0a"
 
 --- Masks for the first byte of a long QUIC header.
