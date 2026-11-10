@@ -3,20 +3,26 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
---- Stateful IPv4 fragment reassembly (Lunatik only: relies on the `data` module).
--- Fragments are accumulated per flow (src, dst, protocol, id); the reassembled
--- packet is returned once the last fragment (MF=0) covering the flow arrives.
+--- Stateful IPv4 fragment reassembly (pure Lua strings).
+-- Fragments are accumulated per flow (src, dst, protocol, id) and the
+-- reassembled payload is returned once every byte from offset 0 up to the end
+-- of the last fragment (MF=0) has been received.
 -- Pending flows are bounded: when more than `MAX_PENDING` flows are in flight,
 -- the oldest one is dropped so a flood of never-completed fragments cannot
--- exhaust kernel memory.
+-- exhaust memory. Each flow also keeps at most 256 fragments.
+-- This module only uses Lua strings, so it works both in user space and in the
+-- Lunatik kernel.
 -- @module l3.fragmented_ip4
 
-IP4 = require"ipparse.l3.ip4"
-new: data_new = require"data"
 :sort = table
-{:lshift} = require"ipparse.lib.bit_compat"
+pack: sp = require"ipparse.lib.pack_compat"
+{:band, :lshift} = require"ipparse.lib.bit_compat"
 
+--- Maximum number of pending (incomplete) flows kept at once.
 MAX_PENDING = 64
+
+--- Maximum number of fragments remembered per flow.
+MAX_FRAGMENTS = 256
 
 fragmented = {}
 pending = 0
@@ -33,46 +39,85 @@ evict_oldest = ->
       pending -= 1
       return
 
-collect: (_skb) =>
-  :id, :off, :data_off, :data_len, :mf = @
-  key = "#{@src}#{@dst}#{@protocol}#{id}"
-  fragments = fragmented[key]
-  unless fragments
+-- Drop a flow by key, keeping the pending counter consistent.
+drop_flow = (key) ->
+  if fragmented[key]
+    fragmented[key] = nil
+    pending -= 1
+
+-- Reassemble the chunks of a flow into a contiguous string, or return nil when
+-- a gap remains. Overlapping fragments are truncated; the first gap stops the
+-- walk. `total` is the expected reassembled length.
+reassemble = (chunks, total) ->
+  offsets = [off for off, _ in pairs chunks]
+  sort offsets
+  out = {}
+  expected = 0
+  for off in *offsets
+    chunk = chunks[off]
+    chunk_end = off + #chunk - 1
+    continue if chunk_end < expected
+    break if off > expected
+    start_idx = expected > off and (expected - off + 1) or 1
+    out[#out + 1] = chunk\sub start_idx
+    expected = chunk_end + 1
+  return nil if expected < total
+  table.concat out
+
+--- Collects an IPv4 fragment and returns the reassembled payload when complete.
+-- @tparam table ip IPv4 header as returned by `ip4.parse`.
+-- @tparam string pkt String containing the whole packet.
+-- @treturn string|nil Reassembled payload, or `nil` while more fragments are needed.
+-- @treturn table|nil The first fragment's header when reassembly completes.
+-- @treturn string|nil Error message on invalid input.
+collect = (ip, pkt) ->
+  header_len = ip.data_off - ip.off
+  return nil, "truncated packet" if ip.total_len < header_len
+  last = ip.off + ip.total_len - 1
+  return nil, "truncated packet" if last > #pkt
+  payload = pkt\sub ip.data_off, last
+  frag_off = lshift(band(ip.ff, 0x1fff), 3)
+  mf = band(ip.ff, 0x2000) != 0
+  if frag_off == 0 and not mf
+    return payload, ip
+
+  key = sp ">c4 c4 B H", ip.src, ip.dst, ip.protocol, ip.id
+  if frag_off + #payload > 65535
+    drop_flow key
+    return nil, "fragment exceeds 65535 bytes"
+  if mf and (#payload % 8) != 0
+    return nil, "invalid fragment length"
+
+  state = fragmented[key]
+  unless state
     evict_oldest! if pending >= MAX_PENDING
-    fragments = {}
-    fragmented[key] = fragments
+    state = {chunks: {}, total: nil, first: nil, n: 0}
+    fragmented[key] = state
     pending += 1
     order_last += 1
     order[order_last] = key
-  frag_off = lshift(@fragmentation_off, 3)
-  total_len = off + frag_off + data_off + data_len
-  -- 64KB is the theoretical maximum, 10KB a reasonable max len default
-  max_len = total_len > 10240 and 65535 or 10240
-  return false, "Invalid size" if max_len > 65535
-  skb = fragments.skb
-  if skb
-    if #skb < max_len  -- Handle the case of a very big jumbo frame
-      tmp = data_new max_len
-      tmp\setstring 0, skb\getstring 0
-      skb = tmp
-  else
-    skb = data_new max_len
-  fragments.skb = skb
-  if frag_off == 0
-    skb\setstring 0, _skb\getstring 0, (off + data_off + data_len - 1)
-  else
-    offset = off + data_off
-    max_offset = offset + data_len - 1
-    return false, "Invalid data offset" if max_offset > #_skb
-    skb\setstring (frag_off + offset), _skb\getstring offset, max_offset
-  fragments[#fragments+1] = {:frag_off, :off, :data_off, :data_len, :mf}
-  sort fragments, (a, b) -> a.frag_off < b.frag_off
-  lastfrag = fragments[#fragments]
-  return if lastfrag.mf ~= 0
-  :off, :frag_off, :data_off, :data_len = lastfrag
-  total_len = off + frag_off + data_off + data_len
 
-  fragmented[key] = nil
-  pending -= 1
-  ip = IP4.parse skb
-  ip, @
+  if not state.chunks[frag_off]
+    if state.n >= MAX_FRAGMENTS
+      drop_flow key
+      return nil, "too many fragments"
+    state.n += 1
+  state.chunks[frag_off] = payload
+  state.first = ip if frag_off == 0
+  state.total = frag_off + #payload unless mf
+
+  if state.total and state.first
+    data = reassemble state.chunks, state.total
+    if data
+      first = state.first
+      drop_flow key
+      return data, first
+  return nil
+
+--- Clears all reassembly state.
+reset = ->
+  fragmented = {}
+  pending = 0
+  order, order_first, order_last = {}, 1, 0
+
+{:collect, :reset, :MAX_PENDING}
