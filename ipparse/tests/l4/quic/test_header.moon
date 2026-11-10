@@ -11,6 +11,7 @@ util = require "ipparse.lib.util"
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 quic = require "ipparse.l4.quic"
 v1   = require "ipparse.l4.quic.v1"
+vn   = require "ipparse.l4.quic.version_negotiation"
 
 -- Helper: build a minimal QUIC v1 Initial long-header packet (no payload)
 -- byte1: 0xC0 = HEADER_FORM(1) + FIXED_BIT(1) + PKT_TYPE(Initial=0x00) + TYPE_BITS(0)
@@ -134,5 +135,19 @@ test "header: FIXED_BIT assignment still updates byte1", ->
   h.fixed_bit = false
   assert h.byte1 == 0x80, "expected byte1 0x80, got #{h.byte1}"
   assert h.FIXED_BIT == 0, "expected FIXED_BIT cleared"
+
+test "header: version_negotiation pack/parse round-trip", ->
+  payload = vn.pack {supported_versions: {1, 0x6b3343cf}}
+  obj, off = vn.parse_payload payload, 1
+  assert #obj.supported_versions == 2, "expected 2 versions, got #{#obj.supported_versions}"
+  assert obj.supported_versions[1] == 1, "first version mismatch"
+  assert obj.supported_versions[2] == 0x6b3343cf, "second version mismatch"
+  assert off == 9, "expected off 9, got #{off}"
+
+test "header: version_negotiation parse truncated payload", ->
+  obj, off = vn.parse_payload "\000\000\000\001\255", 1
+  assert #obj.supported_versions == 1, "expected 1 version, got #{#obj.supported_versions}"
+  assert obj.supported_versions[1] == 1, "version mismatch"
+  assert off == 5, "expected off 5, got #{off}"
 
 util.summary "header"
