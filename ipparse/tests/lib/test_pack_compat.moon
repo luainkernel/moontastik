@@ -183,5 +183,23 @@ test "pack_compat: unpack full-width controls still work", ->
   assert unpack("c3", "abc", 1) == "abc", "c3 on 'abc'"
   assert unpack(">s1", "\002ab", 1) == "ab", "s1 on '\\002ab'"
   assert unpack("c0", "", 1) == "", "c0 on ''"
+-- Round-trips migrated from the old out-of-tree tests/pack.moon.
+test "pack_compat: B round-trip", ->
+  packed = pack "B", 35
+  result, pos = unpack "B", packed
+  assert result == 35, "got: #{result}"
+  assert pos == 2, "pos: #{pos}"
+
+test "pack_compat: I round-trip", ->
+  packed = pack "I", 35
+  result, pos = unpack "I", packed
+  assert result == 35, "got: #{result}"
+  assert pos == 5, "pos: #{pos}"
+
+test "pack_compat: s2 round-trip", ->
+  packed = pack "s2", "he"
+  result, pos = unpack "s2", packed
+  assert result == "he", "got: #{result}"
+  assert pos == 2 * #result + 1, "pos: #{pos}"
 
 util.summary "pack_compat"
