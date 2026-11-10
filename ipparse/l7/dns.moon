@@ -310,7 +310,7 @@ parse_opt = (off=1) =>
     data.type = typ
     data[fields[i]] = data[i] for i = 1, #fields
     setmetatable data, __tostring: => fmt and sp(fmt, unpack [data[field] for field in *fields]) or @[1]
-  else setmetatable {raw_data}, __tostring: => @[1]
+  else data = setmetatable {raw_data}, __tostring: => @[1]
   setmetatable({:code, :len, :data}, _opt_mt), _off
 
 --- Parses all EDNS options from a binary string.
