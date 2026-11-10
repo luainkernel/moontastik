@@ -10,6 +10,8 @@ util = require "ipparse.lib.util"
 {:test} = util
 pack_compat = require "ipparse.lib.pack_compat_lib"
 pack = pack_compat.pack or string.pack
+-- Native string.pack rejects the two fallback-only behaviours tested below.
+is_fallback = pack != string.pack
 
 from_hex = (h) -> h\gsub "..", (cc) -> string.char tonumber cc, 16
 
@@ -43,11 +45,12 @@ test "pack_compat: >c4 short", ->
   expected = from_hex "61620000"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
--- Fixed-width string longer than the field is truncated.
-test "pack_compat: >c4 long", ->
-  got = pack ">c4", "abcdef"
-  expected = from_hex "61626364"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
+if is_fallback
+  -- Fixed-width string longer than the field is truncated.
+  test "pack_compat: >c4 long", ->
+    got = pack ">c4", "abcdef"
+    expected = from_hex "61626364"
+    assert got == expected, "got: #{got}\nexp: #{expected}"
 
 -- NUL-terminated string gets a trailing \0.
 test "pack_compat: z", ->
@@ -67,10 +70,11 @@ test "pack_compat: >I3", ->
   expected = from_hex "010203"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
--- uint8 keeps the low byte of out-of-range values (300 % 256 == 44).
-test "pack_compat: B 300 wraps", ->
-  got = pack "B", 300
-  expected = from_hex "2c"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
+if is_fallback
+  -- uint8 keeps the low byte of out-of-range values (300 % 256 == 44).
+  test "pack_compat: B 300 wraps", ->
+    got = pack "B", 300
+    expected = from_hex "2c"
+    assert got == expected, "got: #{got}\nexp: #{expected}"
 
 util.summary "pack_compat"
