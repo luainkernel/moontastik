@@ -65,8 +65,9 @@ test "varint: round-trip 8-byte value", ->
   assert v == value, "round-trip 8-byte value failed: got #{v}"
 
 -- 2^62-1 is not exactly representable as a double (LuaJIT): only run where
--- native integers exist.
-if math.type
+-- native integers exist. Same condition as frames.moon's native_int: in the
+-- kernel math.type is absent but native 64-bit integers do exist.
+if math.floor == nil or math.type ~= nil
   test "varint: round-trip 8-byte max value", ->
     value = 4611686018427387903 -- 0x3FFFFFFFFFFFFFFF (2^62-1)
     encoded = encode_varint value
