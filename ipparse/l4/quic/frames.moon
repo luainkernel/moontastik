@@ -29,6 +29,7 @@
 -- @module l4.quic.frames
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+{:need_bytes} = require "ipparse"
 :bidirectional = require"ipparse.fun"
 byte = string.byte
 {:band, :bor, :rshift} = require"ipparse.lib.bit_compat"
@@ -104,10 +105,6 @@ parse_varint = (data, offset) ->
       return nil, offset if offset + 7 > #data
       high, low = su ">I4I4", data, offset
       (band(high, 0x3FFFFFFF) * 4294967296) + low, offset + 8
-
-need_bytes = (data, offset, len) ->
-  return false if offset < 1 or len < 0
-  (offset + len - 1) <= #data
 
 parse_varint_required = (data, offset, field_name) ->
   value, next_off = parse_varint data, offset
