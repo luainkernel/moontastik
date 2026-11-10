@@ -64,16 +64,16 @@ jobs:
           restore-keys: vmtest-ccache-
 
       - name: Run full suite in VM
+        env:
+          VMTEST_RW_DIR: ${{ runner.temp }}/vmtest-rw
         run: make vm-test
-
-      - name: Collect dmesg on failure
-        if: failure()
-        run: dmesg > vm-dmesg.log 2>/dev/null || true
 
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: vm-logs
-          path: vm-dmesg.log
+          path: |
+            ${{ runner.temp }}/vmtest-rw/console.log
+            ${{ runner.temp }}/vmtest-rw/out
           if-no-files-found: ignore
