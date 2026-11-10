@@ -131,6 +131,88 @@ if sha_mod
     package.preload["crypto.hkdf"] = preload_before.crypto_hkdf
     error err unless ok
 
+  test "hkdf: crypto.hkdf transform is created once", ->
+    loaded_before = {
+      crypto: package.loaded["crypto"]
+      crypto_hkdf: package.loaded["crypto.hkdf"]
+      hkdf: package.loaded["ipparse.lib.hkdf"]
+    }
+    preload_before = {
+      crypto: package.preload["crypto"]
+      crypto_hkdf: package.preload["crypto.hkdf"]
+    }
+    new_count = 0
+    make_stub = ->
+      new_count += 1
+      obj = {}
+      obj.extract = (salt, ikm) => ref_hmac_bin salt, ikm
+      obj.expand = (prk, info, len) =>
+        parts, t, i, total = {}, "", 1, 0
+        while total < len
+          t = ref_hmac_bin prk, t .. info .. string.char i
+          parts[i] = t
+          total += #t
+          i += 1
+        table.concat(parts)\sub 1, len
+      obj.hkdf = (salt, ikm, info, len) =>
+        prk = @extract salt, ikm
+        @expand prk, info, len
+      obj
+    run = ->
+      package.loaded["crypto.hkdf"] = nil
+      package.preload["crypto.hkdf"] = -> { new: make_stub }
+      package.loaded["ipparse.lib.hkdf"] = nil
+      h = require "ipparse.lib.hkdf"
+      prk = h.hkdf_extract h.hex_to_bin("000102030405060708090a0b0c"), h.hex_to_bin("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b")
+      h.hkdf_expand prk, "", 32
+      h.hkdf_expand_label prk, "label", "", 16
+      assert new_count == 1, "crypto.hkdf.new should be called once, got #{new_count}"
+    ok, err = pcall run
+    package.loaded["crypto"] = loaded_before.crypto
+    package.loaded["crypto.hkdf"] = loaded_before.crypto_hkdf
+    package.loaded["ipparse.lib.hkdf"] = loaded_before.hkdf
+    package.preload["crypto"] = preload_before.crypto
+    package.preload["crypto.hkdf"] = preload_before.crypto_hkdf
+    error err unless ok
+
+  test "hkdf: shash transform is created once", ->
+    loaded_before = {
+      crypto: package.loaded["crypto"]
+      crypto_hkdf: package.loaded["crypto.hkdf"]
+      hkdf: package.loaded["ipparse.lib.hkdf"]
+    }
+    preload_before = {
+      crypto: package.preload["crypto"]
+      crypto_hkdf: package.preload["crypto.hkdf"]
+    }
+    shash_count = 0
+    run = ->
+      package.loaded["crypto.hkdf"] = nil
+      package.preload["crypto.hkdf"] = -> error "absent"
+      package.loaded["crypto"] = {
+        shash: (alg) ->
+          assert alg == "hmac(sha256)", "unexpected shash algorithm: #{alg}"
+          shash_count += 1
+          key = nil
+          {
+            setkey: (k) => key = k
+            digest: (msg) => ref_hmac_bin key, msg
+          }
+      }
+      package.loaded["ipparse.lib.hkdf"] = nil
+      h = require "ipparse.lib.hkdf"
+      prk = h.hkdf_extract h.hex_to_bin("000102030405060708090a0b0c"), h.hex_to_bin("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b")
+      h.hkdf_expand prk, "", 32
+      h.hkdf_expand_label prk, "label", "", 16
+      assert shash_count == 1, "crypto.shash should be constructed once, got #{shash_count}"
+    ok, err = pcall run
+    package.loaded["crypto"] = loaded_before.crypto
+    package.loaded["crypto.hkdf"] = loaded_before.crypto_hkdf
+    package.loaded["ipparse.lib.hkdf"] = loaded_before.hkdf
+    package.preload["crypto"] = preload_before.crypto
+    package.preload["crypto.hkdf"] = preload_before.crypto_hkdf
+    error err unless ok
+
 -- RFC 5869 Test Case 2 (long inputs)
 test "hkdf: RFC 5869 test case 2", ->
   result = hkdf(
