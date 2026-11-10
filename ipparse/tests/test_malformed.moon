@@ -72,4 +72,34 @@ test "pack_compat: unpack on short data raises a clear error", ->
   ok, err = pcall su, ">I4", "\001\002", 1
   assert not ok and tostring(err)\match("too short"), "expected 'data string too short', got #{err}"
 
+test "tls: parse empty and truncated record returns nil", ->
+  tls = require "ipparse.l7.tls"
+  r, off = tls.parse "", 1
+  assert r == nil and off == 1, "empty record should return nil"
+  r, off = tls.parse "\022\003", 1
+  assert r == nil and off == 1, "truncated record should return nil"
+
+test "tls: handshake parse empty and truncated returns nil", ->
+  hs = require "ipparse.l7.tls.handshake"
+  r, off = hs.parse "", 1
+  assert r == nil and off == 1, "empty handshake should return nil"
+  r, off = hs.parse "\001\000", 1
+  assert r == nil and off == 1, "truncated handshake should return nil"
+
+test "tls: client_hello parse empty and truncated returns nil", ->
+  ch = require "ipparse.l7.tls.handshake.client_hello"
+  r, off = ch.parse "", 1
+  assert r == nil and off == 1, "empty ClientHello should return nil"
+  r, off = ch.parse "\003\003abc", 1
+  assert r == nil and off == 1, "truncated ClientHello should return nil"
+
+test "tls: valid ClientHello still parses", ->
+  ch = require "ipparse.l7.tls.handshake.client_hello"
+  body = sp ">H c32 s1 s2 s1 s2", 0x0303, string.rep("\000", 32), "", "\019\001", "\000", ""
+  msg = sp(">B BH", 0x01, 0, #body) .. body
+  r = ch.parse body, 1
+  assert r and r.version == 0x0303, "valid ClientHello body should parse"
+  h = require("ipparse.l7.tls.handshake").parse msg, 1
+  assert h and h.type == 0x01, "valid handshake should parse"
+
 util.summary "malformed"
