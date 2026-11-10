@@ -18,11 +18,27 @@
 --   true (each segment with payload is immediately complete). When provided,
 --   feed returns nil until the predicate passes, then auto-clears the session.
 -- @tparam[opt] table opts Options: `max_buf` (bytes per session, default 1 MiB),
---   `max_sessions` (default 1024).
+--   `max_sessions` (default 1024), `clock` (zero-arg function returning an
+--   integer instant in fixed units) and `clock_hz` (units per second).
 -- @treturn table State with :feed, :clear, :reset and :purge methods.
+-- @raise Error at creation when no clock is available and none is provided.
 new = (check_complete=(-> true), opts={}) ->
   max_buf = opts.max_buf or 0x100000
   max_sessions = opts.max_sessions or 1024
+  clock = opts.clock
+  clock_hz = opts.clock_hz
+  if not clock
+    if os and os.time
+      clock = os.time
+      clock_hz = clock_hz or 1
+    else
+      ok, linux = pcall require, "linux"
+      if ok and linux and linux.time
+        clock = linux.time
+        clock_hz = clock_hz or 1000000000
+      else
+        error "tcp_stream: no clock available (pass opts.clock/opts.clock_hz)"
+  clock_hz = 1 if not clock_hz
   sessions = {}
   count = 0
 
@@ -56,7 +72,7 @@ new = (check_complete=(-> true), opts={}) ->
       first_seg = entry == nil
       if first_seg
         drop_oldest! if count >= max_sessions
-        entry = { segments: {payload}, total: #payload, :init_seq, timestamp: os.time! }
+        entry = { segments: {payload}, total: #payload, :init_seq, timestamp: clock! }
         sessions[key] = entry
         count += 1
       else
@@ -87,9 +103,10 @@ new = (check_complete=(-> true), opts={}) ->
     --- Purge sessions older than max_age seconds.
     -- @tparam[opt=300] number max_age
     purge: (max_age=300) ->
-      now = os.time!
+      now = clock!
+      threshold = max_age * clock_hz
       for key, entry in pairs sessions
-        if now - entry.timestamp > max_age
+        if now - entry.timestamp > threshold
           drop key
   }
 
