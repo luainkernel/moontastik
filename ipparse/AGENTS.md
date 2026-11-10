@@ -69,6 +69,15 @@ Rules for entry modules (any module a user may `require` directly):
 - Do not add deeply nested function expressions to modules loaded
   everywhere: each nesting level counts against the loader's stack.
 
+`make install BYTECODE=1` installs the modules precompiled instead of as
+source, which skips the recursive Lua parser at load time. The compiler must
+be Lunatik's `lunatic` (from a Lunatik build; pass it with
+`LUNATIC=/path/to/bin/lunatic`), never the system `luac`, whose chunks the
+kernel rejects. `BYTECODE=1` keeps debug information, so kernel error messages
+remain readable; `BYTECODE=strip` strips it for smaller files, at the cost of
+`?:?:` locations in errors. The test VM plays the kernel suite twice: once
+from source, then again after reinstalling ipparse as bytecode.
+
 The mechanical guard is `tests/test_lunatik_kernel_stack_canary.moon` and its
 `REQUIRED_DEPTH` constant: it also checks that each entry module loaded the
 base first and did not drag in the heavy `fun` facade. Never lower
