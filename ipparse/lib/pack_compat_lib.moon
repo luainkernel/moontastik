@@ -22,19 +22,29 @@ return string if string.unpack
 
 tunpack = unpack or table.unpack
 
-ffi = require "ffi"
+-- FFI est facultatif : LuaJIT le fournit, Lua 5.1 (PUC) non. Les chemins
+-- rapides FFI ci-dessous restent inchangés pour LuaJIT ; les équivalents en
+-- Lua pur ne servent que lorsque `require "ffi"` échoue.
+ok, ffi = pcall require, "ffi"
+HAS_FFI = ok
+unless HAS_FFI
+  ffi = nil
 
-ffi.cdef [[
-  void *memcpy(void *dest, const void *src, size_t n);
-  void *memset(void *s, int c, size_t n);
-]]
+if HAS_FFI
+  ffi.cdef [[
+    void *memcpy(void *dest, const void *src, size_t n);
+    void *memset(void *s, int c, size_t n);
+  ]]
 
 -- ─── Détection de l'endianness native ───────────────────────────────────────
 
-NATIVE_LE = do
+-- Sans FFI, aucune sonde fiable n'est disponible : on suppose le
+-- petit-boutiste (x86/ARM), qui couvre les runtimes sans FFI visés.
+NATIVE_LE = true
+if HAS_FFI
   probe = ffi.new "uint16_t[1]", 0x0102
   pb    = ffi.cast "uint8_t *", probe
-  pb[0] == 0x02   -- little-endian si l'octet de poids faible est en premier
+  NATIVE_LE = pb[0] == 0x02   -- little-endian si l'octet de poids faible est en premier
 
 -- ─── Utilitaires ────────────────────────────────────────────────────────────
 
@@ -50,14 +60,26 @@ read_uint = (s, offset, size, le) ->
   if size == 4
     a, b, c, d = string.byte s, offset + 1, offset + 4
     return le and (d * 16777216 + c * 65536 + b * 256 + a) or (a * 16777216 + b * 65536 + c * 256 + d)
-  val = ffi.cast "uint64_t", 0
-  if le
-    for i = size - 1, 0, -1
-      val = val * 256 + string.byte(s, offset + i + 1)
+  if HAS_FFI
+    val = ffi.cast "uint64_t", 0
+    if le
+      for i = size - 1, 0, -1
+        val = val * 256 + string.byte(s, offset + i + 1)
+    else
+      for i = 0, size - 1
+        val = val * 256 + string.byte(s, offset + i + 1)
+    val
   else
-    for i = 0, size - 1
-      val = val * 256 + string.byte(s, offset + i + 1)
-  val
+    -- Arithmétique en double : exacte jusqu'à 2^53, comme `tonumber` sur un
+    -- uint64_t FFI pour les valeurs plus grandes.
+    val = 0
+    if le
+      for i = size - 1, 0, -1
+        val = val * 256 + string.byte(s, offset + i + 1)
+    else
+      for i = 0, size - 1
+        val = val * 256 + string.byte(s, offset + i + 1)
+    val
 
 -- Écrit un entier non signé vers un buffer ffi uint8_t* (offset 0-based)
 write_uint = (buf, offset, val, size, le) ->
@@ -73,13 +95,33 @@ write_uint = (buf, offset, val, size, le) ->
 
 -- Conversion unsigned → signed (complément à deux)
 to_signed = (val, size) ->
-  uval = tonumber(ffi.cast "uint64_t", val)
+  uval = if HAS_FFI then tonumber(ffi.cast "uint64_t", val) else val
   bits = size * 8
   limit = 2 ^ (bits - 1)
   if uval >= limit
     uval - 2 ^ bits
   else
     uval
+
+-- Lit un entier signé en complément à deux (Lua pur). Pour un octet de poids
+-- fort à 1, la magnitude est calculée par inversion + 1 octet par octet, ce
+-- qui garde exacts les petits négatifs même au-delà de 2^53 (ex. -2 = ff..fe).
+read_int = (s, offset, size, le) ->
+  u = read_uint s, offset, size, le
+  limit = 2 ^ (size * 8 - 1)
+  return u if u < limit
+  mag = 0
+  carry = 1
+  for i = 0, size - 1
+    idx = if le then offset + i + 1 else offset + size - i
+    b = 255 - string.byte(s, idx) + carry
+    if b >= 256
+      b -= 256
+      carry = 1
+    else
+      carry = 0
+    mag += b * 2 ^ (8 * i)
+  -mag
 
 -- ─── Parseur de format ───────────────────────────────────────────────────────
 
@@ -185,46 +227,165 @@ parse_format_to_ops = (fmt) ->
   _fmt_cache[fmt] = ops
   ops
 
--- ─── Encodage IEEE 754 double ────────────────────────────────────────────────
+-- ─── Encodage IEEE 754 ──────────────────────────────────────────────────────
 
-double_to_bytes = (n, le) ->
-  buf = ffi.new "double[1]", n
-  b   = ffi.cast "uint8_t *", buf
-  bytes = {b[i] for i = 0, 7}
-  if not le
-    bytes = {bytes[8], bytes[7], bytes[6], bytes[5],
-             bytes[4], bytes[3], bytes[2], bytes[1]}
+-- Arrondi au plus proche, pair en cas d'égalité (round-to-nearest-even).
+round_even = (x) ->
+  f = math.floor x
+  d = x - f
+  if d > 0.5 or (d == 0.5 and f % 2 == 1)
+    f + 1
+  else
+    f
+
+-- Encode un flottant binaire (expbits/fracbits/bias : 11/52/1023 pour un
+-- double, 8/23/127 pour un float). Produit les octets de poids fort d'abord,
+-- puis les inverse si `le`. Gère zéro, -0, infinis, NaN, normaux et dénormaux.
+ieee_encode = (n, expbits, fracbits, bias, le) ->
+  maxexp = 2 ^ expbits - 1
+  sign = 0
+  exp  = 0
+  frac = 0
+  if n ~= n   -- NaN (n'importe quel NaN convient)
+    exp  = maxexp
+    frac = 2 ^ (fracbits - 1)
+  elseif n == math.huge or n == -math.huge
+    sign = 1 if n < 0
+    exp  = maxexp
+    frac = 0
+  elseif n == 0
+    sign = 1 if 1 / n < 0
+    exp  = 0
+    frac = 0
+  else
+    sign = 1 if n < 0
+    a = math.abs n
+    m, e = math.frexp a
+    E = e - 1 + bias
+    if E <= 0
+      -- dénormal : fraction = a / 2^(1-bias-fracbits)
+      frac = round_even math.ldexp m, e + fracbits + bias - 1
+      if frac >= 2 ^ fracbits
+        exp = 1
+        frac -= 2 ^ fracbits
+      else
+        exp = 0
+    else
+      frac = round_even math.ldexp (m * 2 - 1), fracbits
+      if frac >= 2 ^ fracbits
+        frac -= 2 ^ fracbits
+        E += 1
+      if E >= maxexp
+        exp  = maxexp
+        frac = 0
+      else
+        exp = E
+
+  bytes = {}
+  if fracbits == 52
+    bytes[1] = sign * 128 + math.floor exp / 16
+    bytes[2] = (exp % 16) * 16 + math.floor frac / 2 ^ 48
+    bytes[3] = math.floor(frac / 2 ^ 40) % 256
+    bytes[4] = math.floor(frac / 2 ^ 32) % 256
+    bytes[5] = math.floor(frac / 2 ^ 24) % 256
+    bytes[6] = math.floor(frac / 2 ^ 16) % 256
+    bytes[7] = math.floor(frac / 2 ^ 8) % 256
+    bytes[8] = frac % 256
+  else
+    bytes[1] = sign * 128 + math.floor exp / 2
+    bytes[2] = (exp % 2) * 128 + math.floor frac / 2 ^ 16
+    bytes[3] = math.floor(frac / 2 ^ 8) % 256
+    bytes[4] = frac % 256
+  if le
+    out = {}
+    for i = 1, #bytes
+      out[i] = bytes[#bytes + 1 - i]
+    bytes = out
   bytes
 
-bytes_to_double = (s, offset, le) ->
-  buf = ffi.new "uint8_t[8]"
+-- Décode un flottant binaire. `bytes[1]` est l'octet de poids fort.
+ieee_decode = (s, offset, expbits, fracbits, bias, le) ->
+  nbytes = (expbits + fracbits + 1) / 8
+  error "data string too short" if offset + nbytes > #s
+  bytes = {}
   if le
-    for i = 0, 7
-      buf[i] = string.byte s, offset + i + 1
+    for i = 1, nbytes
+      bytes[i] = string.byte s, offset + nbytes - i + 1
   else
-    for i = 0, 7
-      buf[i] = string.byte s, offset + 7 - i + 1
-  d = ffi.cast "double *", buf
-  d[0]
-
-float_to_bytes = (n, le) ->
-  buf = ffi.new "float[1]", n
-  b   = ffi.cast "uint8_t *", buf
-  bytes = {b[i] for i = 0, 3}
-  if not le
-    bytes = {bytes[4], bytes[3], bytes[2], bytes[1]}
-  bytes
-
-bytes_to_float = (s, offset, le) ->
-  buf = ffi.new "uint8_t[4]"
-  if le
-    for i = 0, 3
-      buf[i] = string.byte s, offset + i + 1
+    for i = 1, nbytes
+      bytes[i] = string.byte s, offset + i
+  b0 = bytes[1]
+  sign = b0 >= 128 and -1 or 1
+  exp = 0
+  frac = 0
+  maxexp = 2 ^ expbits - 1
+  denorm_shift = 1 - bias - fracbits
+  if fracbits == 52
+    exp  = (b0 % 128) * 16 + math.floor bytes[2] / 16
+    frac = (bytes[2] % 16) * 2 ^ 48 + bytes[3] * 2 ^ 40 + bytes[4] * 2 ^ 32 + bytes[5] * 2 ^ 24 + bytes[6] * 2 ^ 16 + bytes[7] * 2 ^ 8 + bytes[8]
   else
-    for i = 0, 3
-      buf[i] = string.byte s, offset + 3 - i + 1
-  f = ffi.cast "float *", buf
-  tonumber f[0]
+    exp  = (b0 % 128) * 2 + math.floor bytes[2] / 128
+    frac = (bytes[2] % 128) * 2 ^ 16 + bytes[3] * 2 ^ 8 + bytes[4]
+  if exp == maxexp
+    if frac == 0
+      sign * math.huge
+    else
+      0 / 0   -- NaN
+  elseif exp == 0
+    sign * math.ldexp frac, denorm_shift
+  else
+    sign * math.ldexp (1 + frac / 2 ^ fracbits), exp - bias
+
+-- Déclarés ici pour rester visibles hors des blocs `if HAS_FFI` ci-dessous.
+double_to_bytes = nil
+bytes_to_double = nil
+float_to_bytes  = nil
+bytes_to_float  = nil
+
+if HAS_FFI
+  double_to_bytes = (n, le) ->
+    buf = ffi.new "double[1]", n
+    b   = ffi.cast "uint8_t *", buf
+    bytes = [b[i] for i = 0, 7]
+    if not le
+      bytes = {bytes[8], bytes[7], bytes[6], bytes[5],
+               bytes[4], bytes[3], bytes[2], bytes[1]}
+    bytes
+
+  bytes_to_double = (s, offset, le) ->
+    buf = ffi.new "uint8_t[8]"
+    if le
+      for i = 0, 7
+        buf[i] = string.byte s, offset + i + 1
+    else
+      for i = 0, 7
+        buf[i] = string.byte s, offset + 7 - i + 1
+    d = ffi.cast "double *", buf
+    d[0]
+
+  float_to_bytes = (n, le) ->
+    buf = ffi.new "float[1]", n
+    b   = ffi.cast "uint8_t *", buf
+    bytes = [b[i] for i = 0, 3]
+    if not le
+      bytes = {bytes[4], bytes[3], bytes[2], bytes[1]}
+    bytes
+
+  bytes_to_float = (s, offset, le) ->
+    buf = ffi.new "uint8_t[4]"
+    if le
+      for i = 0, 3
+        buf[i] = string.byte s, offset + i + 1
+    else
+      for i = 0, 3
+        buf[i] = string.byte s, offset + 3 - i + 1
+    f = ffi.cast "float *", buf
+    tonumber f[0]
+else
+  double_to_bytes = (n, le) -> ieee_encode n, 11, 52, 1023, le
+  bytes_to_double = (s, offset, le) -> ieee_decode s, offset, 11, 52, 1023, le
+  float_to_bytes  = (n, le) -> ieee_encode n, 8, 23, 127, le
+  bytes_to_float  = (s, offset, le) -> ieee_decode s, offset, 8, 23, 127, le
 
 -- ─── string.pack ─────────────────────────────────────────────────────────────
 
@@ -333,6 +494,23 @@ make_uint = (sz, le) ->
         for k = sz, 1, -1
           buf[n + k] = u % 256
           u = math.floor(u / 256)
+        n + sz
+  elseif not HAS_FFI
+    -- 7-8 octets : calcul octet par octet pour rester exact sur les petits
+    -- négatifs (2^64 - 2 n'est pas représentable en double).
+    if le
+      (buf, n, v) ->
+        p = 1
+        for k = 1, sz
+          buf[n + k] = math.floor(v / p) % 256
+          p *= 256
+        n + sz
+    else
+      (buf, n, v) ->
+        p = 256 ^ (sz - 1)
+        for k = 1, sz
+          buf[n + k] = math.floor(v / p) % 256
+          p /= 256
         n + sz
   else
     if le
@@ -533,9 +711,14 @@ unpack = (fmt, s, pos) ->
 
       when "i"   -- intN signé
         sz = count or 4
-        uv = read_uint s, pos, sz, le
         n += 1
-        _results[n] = to_signed uv, sz
+        if not HAS_FFI
+          _results[n] = read_int s, pos, sz, le
+        elseif sz == 8
+          _results[n] = tonumber(ffi.cast "int64_t", read_uint(s, pos, 8, le))
+        else
+          uv = read_uint s, pos, sz, le
+          _results[n] = to_signed uv, sz
         pos += sz
 
       when "I"   -- uintN non signé
@@ -545,9 +728,11 @@ unpack = (fmt, s, pos) ->
         pos += sz
 
       when "l"   -- int64 signé
-        uv = read_uint s, pos, 8, le
         n += 1
-        _results[n] = tonumber ffi.cast "int64_t", uv
+        if HAS_FFI
+          _results[n] = tonumber(ffi.cast "int64_t", read_uint(s, pos, 8, le))
+        else
+          _results[n] = read_int s, pos, 8, le
         pos += 8
 
       when "L", "J", "T"   -- uint64
@@ -556,9 +741,11 @@ unpack = (fmt, s, pos) ->
         pos += 8
 
       when "j"   -- lua_Integer (int64 signé)
-        uv = read_uint s, pos, 8, le
         n += 1
-        _results[n] = tonumber ffi.cast "int64_t", uv
+        if HAS_FFI
+          _results[n] = tonumber(ffi.cast "int64_t", read_uint(s, pos, 8, le))
+        else
+          _results[n] = read_int s, pos, 8, le
         pos += 8
 
       when "f"   -- float 32
