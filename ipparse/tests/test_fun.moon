@@ -159,4 +159,12 @@ test "protected only prints a traceback when leak_debug is set", ->
   _G.print = original_print
   assert ok, err
 
+test "zero_indexed shifts every element down by one index", ->
+  arr = {"a", "b", "c"}
+  zero_indexed arr
+  assert arr[0] == "a", "arr[0] should be 'a', got '#{arr[0]}'"
+  assert arr[1] == "b", "arr[1] should be 'b', got '#{arr[1]}'"
+  assert arr[2] == "c", "arr[2] should be 'c', got '#{arr[2]}'"
+  assert arr[3] == nil, "arr[3] should be nil, got '#{arr[3]}'"
+
 util.summary "fun"
