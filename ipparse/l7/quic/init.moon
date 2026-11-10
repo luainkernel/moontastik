@@ -28,11 +28,8 @@
 --
 -- @module l7.quic
 
-pack: sp, unpack: su = require"ipparse.lib.pack_compat"
 frames_mod = require"ipparse.l4.quic.frames"
-ch_mod     = require"ipparse.l7.tls.handshake.client_hello"
-ext_mod    = require"ipparse.l7.tls.handshake.extension"
-sn_mod     = require"ipparse.l7.tls.handshake.extension.server_name"
+Session    = require"ipparse.l7.quic.session"
 
 --- Reassembles TLS data from a list of QUIC CRYPTO frames.
 -- Handles retransmissions/overlaps by rebuilding a byte map from CRYPTO offsets.
@@ -69,30 +66,11 @@ reassemble_crypto = (frames) ->
 -- Parses TLS handshake messages: type (1 byte) + length (3 bytes BE) + body.
 -- In QUIC there is no TLS record wrapper (RFC 9001 §4.1).
 -- For ClientHello (type 0x01), iterates extensions for server_name (0x0000).
+-- Re-exported from `ipparse.l7.quic.session`, whose implementation bounds the
+-- message length and stops on malformed extensions.
 -- @tparam string tls_data Raw TLS handshake bytes.
 -- @treturn string|nil SNI hostname, or nil if not found.
-sni_from_tls = (tls_data) ->
-  return nil if #tls_data < 4
-  off = 1
-  while off + 3 <= #tls_data
-    msg_type = su "B", tls_data, off
-    b_hi     = su "B",  tls_data, off + 1
-    b_lo     = su ">H", tls_data, off + 2  -- returns (value, next_off); only value used
-    msg_len  = b_hi * 65536 + b_lo
-    body_off = off + 4
-    return nil if body_off + msg_len - 1 > #tls_data
-    if msg_type == 0x01  -- ClientHello
-      ch, _ = ch_mod.parse tls_data, body_off
-      if ch and ch.extensions and #ch.extensions > 0
-        ext_off = 1
-        while ext_off <= #ch.extensions
-          ext, next_off = ext_mod.parse ch.extensions, ext_off
-          if ext.type == 0x0000  -- server_name
-            sn, _ = sn_mod.parse ext.data, 1
-            return sn.name if sn and sn.name and #sn.name > 0
-          ext_off = next_off
-    off = body_off + msg_len
-  nil
+sni_from_tls = Session.sni_from_tls
 
 --- Extracts the SNI hostname from a list of QUIC CRYPTO frames.
 -- @tparam table frames List of parsed QUIC frame objects.
@@ -109,7 +87,5 @@ sni_from_plaintext = (plaintext) ->
   for f in frames_mod.iter_frames plaintext
     collected[#collected + 1] = f
   sni_from_frames collected
-
-Session = require "ipparse.l7.quic.session"
 
 {:reassemble_crypto, :sni_from_tls, :sni_from_frames, :sni_from_plaintext, :Session}

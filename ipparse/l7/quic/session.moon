@@ -290,4 +290,4 @@ new = (opts={}) ->
     sni_dirty: true
   }, session_mt
 
-{:new}
+{:new, :sni_from_tls}
