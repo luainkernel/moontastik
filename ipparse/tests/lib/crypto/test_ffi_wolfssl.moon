@@ -23,39 +23,39 @@ unless ok
 -- AES-128-GCM: RFC 8452 / NIST vectors (zero key, zero nonce, empty plaintext).
 -- AES-128-GCM(key=0^16, nonce=0^12, pt="", aad="") → tag = 58e2fccefa7e3061367f1d57a4e7455a
 test "ffi_wolfssl: GCM encrypt empty plaintext (NIST)", ->
-  key   = string.rep "\x00", 16
-  nonce = string.rep "\x00", 12
+  key   = string.rep "\000", 16
+  nonce = string.rep "\000", 12
   ct    = b.aes_128_gcm_encrypt key, nonce, "", ""
   assert #ct == 16, "ciphertext should be 16-byte tag only"
   assert bin2hex(ct) == "58e2fccefa7e3061367f1d57a4e7455a",
     "tag mismatch: #{bin2hex ct}"
 
 test "ffi_wolfssl: GCM decrypt empty plaintext (NIST)", ->
-  key   = string.rep "\x00", 16
-  nonce = string.rep "\x00", 12
+  key   = string.rep "\000", 16
+  nonce = string.rep "\000", 12
   tag   = hex_to_bin "58e2fccefa7e3061367f1d57a4e7455a"
   pt, err = b.aes_128_gcm_decrypt key, nonce, tag, ""
   assert pt == "", "plaintext should be empty, got: #{tostring err}"
 
 test "ffi_wolfssl: GCM encrypt/decrypt round-trip", ->
-  key   = string.rep "\x42", 16
-  nonce = string.rep "\x00", 12
+  key   = string.rep "\066", 16
+  nonce = string.rep "\000", 12
   plain = "hello, wolfssl!!"   -- 16 bytes
   ct    = b.aes_128_gcm_encrypt key, nonce, plain, "aad-data"
   pt, err = b.aes_128_gcm_decrypt key, nonce, ct, "aad-data"
   assert pt == plain, "round-trip failed: #{tostring err}"
 
 test "ffi_wolfssl: GCM decrypt fails on bad tag", ->
-  key   = string.rep "\x00", 16
-  nonce = string.rep "\x00", 12
-  tag   = string.rep "\xff", 16
+  key   = string.rep "\000", 16
+  nonce = string.rep "\000", 12
+  tag   = string.rep "\255", 16
   pt, err = b.aes_128_gcm_decrypt key, nonce, tag, ""
   assert pt == nil, "should return nil on bad tag"
   assert err ~= nil, "should return error message"
 
 test "ffi_wolfssl: GCM decrypt fails on tampered AAD", ->
-  key   = string.rep "\x42", 16
-  nonce = string.rep "\x00", 12
+  key   = string.rep "\066", 16
+  nonce = string.rep "\000", 12
   ct    = b.aes_128_gcm_encrypt key, nonce, "test data...!!!!", "correct-aad"
   pt, err = b.aes_128_gcm_decrypt key, nonce, ct, "wrong-aad"
   assert pt == nil, "should fail with wrong AAD"
@@ -71,8 +71,8 @@ test "ffi_wolfssl: ECB RFC 9001 §A.2 header-protection mask", ->
     "first 5 bytes mismatch: #{bin2hex(mask)\sub 1, 10}"
 
 test "ffi_wolfssl: ECB known NIST vector (key=0^16, block=0^16)", ->
-  key   = string.rep "\x00", 16
-  block = string.rep "\x00", 16
+  key   = string.rep "\000", 16
+  block = string.rep "\000", 16
   out   = b.aes_128_ecb_block key, block
   -- AES-128-ECB(0^16, 0^16) = 66e94bd4ef8a2c3b884cfa59ca342b2e
   assert bin2hex(out) == "66e94bd4ef8a2c3b884cfa59ca342b2e",
@@ -90,7 +90,7 @@ test "ffi_wolfssl: construct_nonce pn=1 XORs last byte", ->
   assert nonce\byte(12) == 0x5d, "last byte 0x5c XOR 0x01 = 0x5d"
 
 test "ffi_wolfssl: construct_nonce pn=0x0102 XORs last two bytes", ->
-  iv    = string.rep "\x00", 12
+  iv    = string.rep "\000", 12
   nonce = b.construct_nonce iv, 0x0102
   assert nonce\byte(11) == 0x01, "byte 11 should be 0x01"
   assert nonce\byte(12) == 0x02, "byte 12 should be 0x02"

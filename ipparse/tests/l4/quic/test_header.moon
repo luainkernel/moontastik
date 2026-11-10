@@ -20,7 +20,7 @@ v1   = require "ipparse.l4.quic.v1"
 -- token_length: 0 (VarInt 1-byte)
 -- length: 1 (VarInt 1-byte, represents pn(1) + empty payload)
 -- packet number: 0x00 (1 byte, unprotected for test)
-dcid = "\x01\x02\x03\x04\x05\x06\x07\x08"
+dcid = "\001\002\003\004\005\006\007\008"
 build_initial_pkt = ->
   sp(">B I4 s1 s1 B B B", 0xC0, 1, dcid, "", 0, 1, 0)
 
@@ -69,7 +69,7 @@ test "header: pn_off points past fixed fields", ->
 
 -- Short header: HEADER_FORM=0, FIXED_BIT=1
 test "header: parse short header", ->
-  pkt = "\x40" .. dcid  -- byte1=0x40 (short), then dst_connection_id
+  pkt = "\064" .. dcid  -- byte1=0x40 (short), then dst_connection_id
   h, _ = quic.parse pkt, 1, dcid
   assert h.long_header == nil or h.long_header == false, "expected short header"
 
@@ -97,7 +97,7 @@ test "header: split_datagrams splits coalesced Initial packets", ->
   assert datagrams[2].data == p2, "second datagram mismatch"
 
 test "header: split_datagrams rejects short header payload", ->
-  short_pkt = "\x40" .. dcid
+  short_pkt = "\064" .. dcid
   datagrams, err = quic.split_datagrams short_pkt, 1, dcid
   assert datagrams == nil, "expected split failure on short header"
   assert err and err\find("short header"), "expected short-header error, got #{err}"

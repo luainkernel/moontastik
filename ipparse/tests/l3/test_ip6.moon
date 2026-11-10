@@ -14,7 +14,7 @@ test "ip62s compresses zero runs per RFC 5952", ->
 
 test "s2ip6 converts address to 16 bytes", ->
   result = ip6.s2ip6 "0:0:0:0:0:0:0:1"
-  expected = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
+  expected = "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\001"
   assert result == expected, "s2ip6(0:0:0:0:0:0:0:1) mismatch"
 
 test "s2ip6 full address", ->
@@ -22,7 +22,7 @@ test "s2ip6 full address", ->
   assert #result == 16, "s2ip6 should return 16 bytes, got #{#result}"
 
 test "ip62s/s2ip6 round-trip preserves bytes", ->
-  original = "\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
+  original = "\032\001\013\184\000\000\000\000\000\000\000\000\000\000\000\001"
   s = ip6.ip62s original
   assert s == "2001:db8::1", "expected '2001:db8::1', got '#{s}'"
   converted = ip6.s2ip6 s

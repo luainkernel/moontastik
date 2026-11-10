@@ -9,27 +9,27 @@ eth = require"ipparse.l2.ethernet"
 sp = require("ipparse.lib.pack_compat").pack
 
 -- Build a 14-byte Ethernet header: dst=aa:bb:cc:dd:ee:ff, src=00:11:22:33:44:55, proto=0x0800
-eth_raw = sp("c6c6>H", "\xaa\xbb\xcc\xdd\xee\xff", "\x00\x11\x22\x33\x44\x55", 0x0800)
+eth_raw = sp("c6c6>H", "\170\187\204\221\238\255", "\000\017\034\051\068\085", 0x0800)
 
 test "mac2s converts binary to string", ->
-  result = eth.mac2s "\xaa\xbb\xcc\xdd\xee\xff"
+  result = eth.mac2s "\170\187\204\221\238\255"
   assert result == "aa:bb:cc:dd:ee:ff", "expected 'aa:bb:cc:dd:ee:ff', got '#{result}'"
 
 test "s2mac converts string to binary", ->
   result = eth.s2mac "aa:bb:cc:dd:ee:ff"
-  assert result == "\xaa\xbb\xcc\xdd\xee\xff", "s2mac failed"
+  assert result == "\170\187\204\221\238\255", "s2mac failed"
 
 test "mac2s/s2mac round-trip", ->
-  original = "\x12\x34\x56\x78\x9a\xbc"
+  original = "\018\052\086\120\154\188"
   assert eth.s2mac(eth.mac2s(original)) == original, "mac2s/s2mac round-trip failed"
 
 test "parse extracts dst MAC", ->
   frame, next_off = eth.parse eth_raw, 1
-  assert frame.dst == "\xaa\xbb\xcc\xdd\xee\xff", "dst MAC mismatch"
+  assert frame.dst == "\170\187\204\221\238\255", "dst MAC mismatch"
 
 test "parse extracts src MAC", ->
   frame, next_off = eth.parse eth_raw, 1
-  assert frame.src == "\x00\x11\x22\x33\x44\x55", "src MAC mismatch"
+  assert frame.src == "\000\017\034\051\068\085", "src MAC mismatch"
 
 test "parse extracts protocol", ->
   frame, next_off = eth.parse eth_raw, 1
@@ -54,18 +54,18 @@ test "proto IP6 == 0x86DD", ->
 
 test "new + tostring round-trip", ->
   frame = eth.new {
-    dst: "\xaa\xbb\xcc\xdd\xee\xff"
-    src: "\x00\x11\x22\x33\x44\x55"
+    dst: "\170\187\204\221\238\255"
+    src: "\000\017\034\051\068\085"
     protocol: 0x0800
   }
   raw = tostring frame
   parsed, _ = eth.parse raw, 1
-  assert parsed.dst == "\xaa\xbb\xcc\xdd\xee\xff", "round-trip dst mismatch"
-  assert parsed.src == "\x00\x11\x22\x33\x44\x55", "round-trip src mismatch"
+  assert parsed.dst == "\170\187\204\221\238\255", "round-trip dst mismatch"
+  assert parsed.src == "\000\017\034\051\068\085", "round-trip src mismatch"
   assert parsed.protocol == 0x0800, "round-trip protocol mismatch"
 
 -- Build an 18-byte 802.1Q-tagged frame: same MACs, VLAN 6, inner proto=0x0800
-eth_vlan_raw = sp("c6c6>HHH", "\xaa\xbb\xcc\xdd\xee\xff", "\x00\x11\x22\x33\x44\x55", 0x8100, 6, 0x0800)
+eth_vlan_raw = sp("c6c6>HHH", "\170\187\204\221\238\255", "\000\017\034\051\068\085", 0x8100, 6, 0x0800)
 
 test "parse detects 802.1Q tag and extracts vlan", ->
   frame, next_off = eth.parse eth_vlan_raw, 1
@@ -86,8 +86,8 @@ test "parse untagged frame: vlan is nil", ->
 
 test "new with vlan: tostring produces 802.1Q frame", ->
   frame = eth.new {
-    dst: "\xaa\xbb\xcc\xdd\xee\xff"
-    src: "\x00\x11\x22\x33\x44\x55"
+    dst: "\170\187\204\221\238\255"
+    src: "\000\017\034\051\068\085"
     protocol: 0x0800
     vlan: 6
   }
@@ -95,8 +95,8 @@ test "new with vlan: tostring produces 802.1Q frame", ->
 
 test "new with vlan=0: tostring produces plain frame (no tag)", ->
   frame = eth.new {
-    dst: "\xaa\xbb\xcc\xdd\xee\xff"
-    src: "\x00\x11\x22\x33\x44\x55"
+    dst: "\170\187\204\221\238\255"
+    src: "\000\017\034\051\068\085"
     protocol: 0x0800
     vlan: 0
   }
@@ -104,14 +104,14 @@ test "new with vlan=0: tostring produces plain frame (no tag)", ->
 
 test "new + tostring round-trip with vlan", ->
   frame = eth.new {
-    dst: "\xaa\xbb\xcc\xdd\xee\xff"
-    src: "\x00\x11\x22\x33\x44\x55"
+    dst: "\170\187\204\221\238\255"
+    src: "\000\017\034\051\068\085"
     protocol: 0x0800
     vlan: 42
   }
   parsed, _ = eth.parse tostring(frame), 1
   assert parsed.vlan == 42, "round-trip vlan mismatch: got #{parsed.vlan}"
   assert parsed.protocol == 0x0800, "round-trip protocol mismatch"
-  assert parsed.dst == "\xaa\xbb\xcc\xdd\xee\xff", "round-trip dst mismatch"
+  assert parsed.dst == "\170\187\204\221\238\255", "round-trip dst mismatch"
 
 util.summary "l2/ethernet"

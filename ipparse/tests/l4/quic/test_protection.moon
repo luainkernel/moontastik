@@ -57,13 +57,13 @@ test "protection: recover_packet_number lower half wraps back", ->
 test "protection: sample_from_packet 16 bytes at correct position", ->
   -- pkt = 40 zeros, enc_off = 20
   -- sample starts at 20+4=24, length 16 → bytes 24..39
-  pkt = (string.rep "\x00", 20) .. (string.rep "\xFF", 20)
+  pkt = (string.rep "\000", 20) .. (string.rep "\255", 20)
   sample = prot.sample_from_packet pkt, 20
   assert #sample == 16, "sample must be 16 bytes"
   -- bytes 24..39 of the packet: all 0xFF (we have 20 zeros then 20 FFs)
   -- wait: pkt[1..20]=0x00, pkt[21..40]=0xFF
   -- sample = pkt[24..39] = all 0xFF
-  assert sample == string.rep("\xFF", 16), "sample bytes mismatch"
+  assert sample == string.rep("\255", 16), "sample bytes mismatch"
 
 -- Backend-dependent tests (skip if libcrypto not available)
 ok_backend, backend = pcall require, "ipparse.lib.crypto.backend.ffi_openssl"
@@ -71,8 +71,8 @@ ok_backend, backend = pcall require, "ipparse.lib.crypto.backend.ffi_openssl"
 if ok_backend
   -- AES-128-GCM round-trip
   test "protection: AES-128-GCM encrypt/decrypt round-trip", ->
-    key   = string.rep "\x01", 16
-    iv    = string.rep "\x02", 12
+    key   = string.rep "\001", 16
+    iv    = string.rep "\002", 12
     plain = "Hello, QUIC!"
     aad   = "header"
     ct = backend.aes_128_gcm_encrypt key, iv, plain, aad
@@ -80,8 +80,8 @@ if ok_backend
     assert pt == plain, "round-trip failed: #{err}"
 
   test "protection: AES-128-GCM decrypt fails on bad tag", ->
-    key = string.rep "\x01", 16
-    iv  = string.rep "\x02", 12
+    key = string.rep "\001", 16
+    iv  = string.rep "\002", 12
     ct = backend.aes_128_gcm_encrypt key, iv, "plaintext", ""
     -- corrupt last byte (auth tag)
     bad_ct = ct\sub(1, #ct - 1) .. string.char((string.byte(ct, #ct) + 1) % 256)

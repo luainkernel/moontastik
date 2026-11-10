@@ -12,14 +12,14 @@ util = require"ipparse.lib.util"
 
 test "hex2bin converts hex to bytes", ->
   result = hex2bin "ff00"
-  assert result == "\xff\x00", "hex2bin failed"
+  assert result == "\255\000", "hex2bin failed"
 
 test "hex2bin single byte", ->
   result = hex2bin "ab"
-  assert result == "\xab", "hex2bin single byte failed"
+  assert result == "\171", "hex2bin single byte failed"
 
 test "filterascii replaces non-printable with dot", ->
-  result = filterascii "\x01hello\xff"
+  result = filterascii "\001hello\255"
   assert result == ".hello.", "expected '.hello.', got '#{result}'"
 
 test "filterascii keeps printable chars", ->

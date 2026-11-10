@@ -10,11 +10,11 @@ pack: sp = require "ipparse.lib.pack_compat"
 ip4 = require"ipparse.l3.ip4"
 
 test "checksum of 0xffff is 0", ->
-  result = checksum "\xff\xff"
+  result = checksum "\255\255"
   assert result == 0, "checksum(0xffff) should be 0, got #{result}"
 
 test "checksum of 0x0000 is 0xffff", ->
-  result = checksum "\x00\x00"
+  result = checksum "\000\000"
   assert result == 0xffff, "checksum(0x0000) should be 0xffff, got #{result}"
 
 test "checksum of packed header is 0", ->
@@ -32,9 +32,9 @@ test "checksum of packed header is 0", ->
   assert result == 0, "checksum of valid IP header should be 0, got #{result}"
 
 test "checksum odd-length pads with zero", ->
-  -- Odd-length input should be padded; "\xff" = "\xff\x00" padded → checksum = 0xff00 → bnot = 0x00ff
-  result = checksum "\xff"
-  assert result == 0x00ff, "checksum(\\xff) should be 0x00ff, got #{result}"
+  -- Odd-length input should be padded; "\255" = "\255\000" padded → checksum = 0xff00 → bnot = 0x00ff
+  result = checksum "\255"
+  assert result == 0x00ff, "checksum(\\255) should be 0x00ff, got #{result}"
 
 test "checksum6 matches IPv6 pseudo-header formula", ->
   src = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
