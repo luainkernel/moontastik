@@ -68,4 +68,27 @@ test "tcp_stream: clock_hz without clock raises", ->
   assert not ok, "expected an error when clock_hz is given without clock"
   assert tostring(err)\find("clock_hz"), "error should mention clock_hz, got #{err}"
 
+test "tcp_stream: empty payload is ignored", ->
+  s = tcp_stream.new!
+  assert s.feed("k", "", 0x10, 1) == nil, "empty payload should return nil"
+  buf, seq, first = s.feed "k", "hello", 0x10, 1
+  assert buf == "hello" and seq == 1 and first == true, "no session should have been created"
+
+test "tcp_stream: clear drops a single session", ->
+  s = tcp_stream.new (buf) -> #buf >= 6
+  s.feed "k", "abc", 0x10, 1
+  s.clear "k"
+  buf, seq, first = s.feed "k", "123456", 0x10, 2
+  assert buf == "123456", "expected fresh buffer after clear, got #{buf}"
+  assert seq == 2 and first == true, "clear should reset sequence state"
+
+test "tcp_stream: purge uses the default max_age", ->
+  now = 0
+  s = tcp_stream.new ((buf) -> #buf >= 6), clock: -> now, clock_hz: 1000
+  s.feed "old", "abc", 0x10, 1
+  now = 301000  -- 301 s later, past the default 300 s
+  s.purge!
+  buf = s.feed "old", "def", 0x10, 2
+  assert buf == nil, "default purge should have dropped the old session"
+
 util.summary "l4/tcp_stream"
