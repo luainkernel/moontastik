@@ -13,6 +13,9 @@ BUILD_DIR="$(realpath -m -- "${VMTEST_BUILD_DIR:-$VMTEST_DIR/build}")"
 
 KERNEL_SRC="$BUILD_DIR/linux-$KERNEL_VERSION"
 KERNEL_IMAGE="$KERNEL_SRC/arch/x86/boot/bzImage"
+# Remember whether LUNATIK_SRC came from the environment (user-provided
+# checkout, never altered) or is the harness-managed cache under BUILD_DIR.
+LUNATIK_SRC_USER="${LUNATIK_SRC:-}"
 LUNATIK_SRC="$(realpath -m -- "${LUNATIK_SRC:-$BUILD_DIR/lunatik}")"
 
 log() { printf '\033[1;34m[vmtest]\033[0m %s\n' "$*" >&2; }

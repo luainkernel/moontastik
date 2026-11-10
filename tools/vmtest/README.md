@@ -56,7 +56,7 @@ réserver à un usage séquentiel).
 
 | Fichier | Rôle |
 |---|---|
-| `versions.env` | Versions épinglées (noyau, dépôt/branche lunatik) |
+| `versions.env` | Versions épinglées (noyau, dépôt/étiquette/commit lunatik) |
 | `kernel.fragment` | Options de config noyau requises par Lunatik |
 | `flake.nix` | Toolchain reproductible (gcc, qemu, luajit, moonscript…) |
 | `ensure-vng.sh` | Installe virtme-ng dans `.venv/` (absent de nixpkgs) |
