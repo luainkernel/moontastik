@@ -40,6 +40,8 @@ ffi.cdef [[
   int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
                         const unsigned char *in, int inl);
   int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl);
+
+  int EVP_CIPHER_CTX_set_padding(EVP_CIPHER_CTX *c, int pad);
 ]]
 
 -- EVP_CIPHER_CTX_ctrl constants
@@ -159,7 +161,6 @@ aes_128_ecb_block = (key, block) ->
   return fail ctx, "EVP_EncryptInit_ex (ECB) failed" unless 1 == ssl.EVP_EncryptInit_ex ctx, ssl.EVP_aes_128_ecb!, nil, key, nil
 
   -- Disable padding so we get exactly 16 bytes back
-  ffi.cdef "int EVP_CIPHER_CTX_set_padding(EVP_CIPHER_CTX *c, int pad);" if not pcall -> ffi.C.EVP_CIPHER_CTX_set_padding
   ssl.EVP_CIPHER_CTX_set_padding ctx, 0
 
   outl = ffi.new "int[1]"
