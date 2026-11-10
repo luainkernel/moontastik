@@ -7,7 +7,7 @@ if path = (...)\match"(.*)%.[^%.]-"  -- Add subdirectory to package.path if appl
   path = package.path\match"^[^%?]+" .. path
   package.path ..= ";"..path.."/?.lua;"..path.."/?/init.lua"
 
-:char, :format, :gsub, :rep, :sub = string
+:byte, :char, :format, :gsub, :rep, :sub = string
 unpack: su = require "ipparse.lib.pack_compat"  -- string.unpack is absent on LuaJIT/Lua 5.1
 :concat = table
 :opairs = require"ipparse.fun"
@@ -37,12 +37,13 @@ need_bytes = (off, len) =>
 --- Converts a binary string to a hexadecimal string.
 -- @tparam string s Binary string.
 -- @treturn string Hexadecimal representation (lowercase).
-bin2hex = (s) -> format rep("%.2x", #s), su rep("B", #s), s
+bin2hex = (s) -> (gsub s, ".", (c) -> format "%.2x", byte c)
 
 --- Converts a binary string to its hexadecimal representation in chunks.
+-- Kept for backward compatibility; identical to `bin2hex`.
 -- @tparam string self The binary string to convert.
 -- @treturn string A string containing the hexadecimal representation of the input.
-lbin2hex = => concat [bin2hex sub(@, i+1, i+128) for i = 0, #@-1, 128]
+lbin2hex = bin2hex
 
 --- Converts a hexadecimal string to binary.
 -- @tparam string hex Hexadecimal string (even length).
