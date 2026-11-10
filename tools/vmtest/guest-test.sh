@@ -56,6 +56,21 @@ make -C "$REPO_ROOT/ipparse" test-nobuild || rc=1
 log "Running kernel test suite (lunatik)…"
 make -C "$REPO_ROOT/ipparse" test-lunatik-run || rc=1
 
+if [ "${VMTEST_BYTECODE:-1}" != "0" ]; then
+  if [ -x "$LUNATIK_SRC/bin/lunatic" ]; then
+    log "Reinstalling ipparse as bytecode…"
+    if make -C "$REPO_ROOT/ipparse" install-nobuild BYTECODE=1 \
+      LUNATIC="$LUNATIK_SRC/bin/lunatic" >/dev/null; then
+      log "Running kernel test suite (lunatik, bytecode)…"
+      make -C "$REPO_ROOT/ipparse" test-lunatik-run || rc=1
+    else
+      rc=1
+    fi
+  else
+    log "lunatic not available: bytecode pass skipped"
+  fi
+fi
+
 if [ "$rc" -ne 0 ]; then
   log "FAILURES — last kernel messages:"
   dmesg | tail -50 >&2
