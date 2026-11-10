@@ -71,13 +71,10 @@
 
 :bidirectional, :zero_indexed = require"ipparse.fun"
 pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
+{:need_bytes} = require "ipparse"
 :concat = table
 :byte = string
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
-
-need_bytes = (data, off, len) ->
-  return false if off < 1 or len < 0
-  (off + len - 1) <= #data
 
 --- Packs the DNS header into a binary string.
 -- @tparam table self The DNS header object.
