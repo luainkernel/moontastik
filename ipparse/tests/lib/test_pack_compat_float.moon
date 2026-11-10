@@ -16,7 +16,9 @@ pack_compat = require "ipparse.lib.pack_compat"
 pack = pack_compat.pack or string.pack
 unpack = pack_compat.unpack or string.unpack
 
-from_hex = (h) -> h\gsub "..", (cc) -> string.char tonumber cc, 16
+from_hex = (h) ->
+  out = h\gsub "..", (cc) -> string.char tonumber cc, 16
+  out
 
 -- 1.5 is exactly 0x3ff8000000000000; little-endian byte order.
 test "pack_compat_float: <d 1.5 bytes", ->
@@ -74,5 +76,40 @@ test "pack_compat_float: <d nan", ->
   nan = math.huge - math.huge
   v = unpack "<d", pack("<d", nan)
   assert v ~= v, "expected NaN, got: #{v}"
+
+-- Big-endian 32-bit float, and its round-trip (also exercises the BE
+-- float decoder branch).
+test "pack_compat_float: >f bytes and unpack", ->
+  got = pack ">f", -2.25
+  expected = from_hex "c0100000"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+  v, pos = unpack ">f", got
+  assert v == -2.25 and pos == 5, "got: #{v}, pos: #{pos}"
+
+-- n is an alias for d (both 64-bit doubles).
+test "pack_compat_float: n matches d", ->
+  for prefix in *{">", "<"}
+    for v in *{1.5, -2.5, 0.0}
+      assert pack(prefix .. "n", v) == pack(prefix .. "d", v),
+        "#{prefix}n differs from #{prefix}d for #{v}"
+      r, pos = unpack prefix .. "n", pack(prefix .. "n", v)
+      assert r == v and pos == 9, "#{prefix}n round-trip: #{r}, #{pos}"
+
+test "pack_compat_float: d/f in the middle of a format", ->
+  got = pack ">H d B", 1, 1.5, 2
+  expected = from_hex("0001") .. from_hex("3ff8000000000000") .. from_hex("02")
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+  a, b, c, pos = unpack ">H d B", got
+  assert a == 1 and b == 1.5 and c == 2 and pos == 12,
+    "got: #{a}, #{b}, #{c}, pos: #{pos}"
+
+-- packsize covers the float widths too.
+test "pack_compat_float: packsize f/d/n", ->
+  packsize = pack_compat.packsize or string.packsize
+  assert packsize("f") == 4, "f"
+  assert packsize("d") == 8, "d"
+  assert packsize("n") == 8, "n"
+  assert packsize(">H f d") == 14, ">H f d"
+  assert packsize(">H d B") == 11, ">H d B"
 
 util.summary "pack_compat_float"
