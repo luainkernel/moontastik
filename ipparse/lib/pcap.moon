@@ -276,7 +276,7 @@ filter_quic_packets = (packets) ->
         scid = bin2hex quic_pkt.src_connection_id
         log "  Long Header - Version: 0x#{string.format "%08x", quic_pkt.version}, DCID: #{dcid}, SCID: #{scid}"
       else
-        dcid = bin2hex quic_pkt.dst_connection_id
+        dcid = bin2hex (quic_pkt.dst_connection_id or "")
         log "  Short Header - DCID: #{dcid}"
 
   log "Found #{#quic_packets} QUIC packets"
