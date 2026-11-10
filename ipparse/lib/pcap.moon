@@ -115,6 +115,9 @@ parse_epb = (data, offset, endian) ->
   -- EPB format: block_type(4) + block_len(4) + interface_id(4) + timestamp_high(4) + timestamp_low(4) + captured_len(4) + original_len(4) + packet_data + options + block_len(4)
   block_type, block_len, interface_id, timestamp_high, timestamp_low, captured_len, original_len = su "#{endian}I4I4I4I4I4I4I4", data, offset
 
+  -- captured_len must fit inside the block: 28-byte header + data + 4-byte trailer.
+  return nil, offset + block_len if 28 + captured_len + 4 > block_len
+
   -- Extract packet data
   packet_start = offset + 28  -- After all the headers
   packet_data = data\sub packet_start, packet_start + captured_len - 1
@@ -129,18 +132,11 @@ parse_epb = (data, offset, endian) ->
 
   epb, offset + block_len
 
---- Parses a PCAPNG file and extracts all packets
--- @tparam string filename Path to the PCAPNG file
+--- Parses in-memory PCAPNG data and extracts all packets
+-- @tparam string data The whole PCAPNG file contents
 -- @treturn table Array of parsed packets with metadata
-parse_pcapng = (filename) ->
-  -- Read entire file into memory
-  file = io.open filename, "rb"
-  unless file
-    error "Could not open file: #{filename}"
-
-  data = file\read "*all"
-  file\close!
-
+-- @treturn table Array of all parsed blocks
+parse_pcapng_data = (data) ->
   packets = {}
   all_blocks = {}
   interfaces = {}
@@ -165,40 +161,72 @@ parse_pcapng = (filename) ->
       block_name = block_types[block_type] or "UNKNOWN"
       log "Trying little-endian: block_type=0x#{string.format "%08x", block_type} (#{block_name})"
 
+    -- The SHB byte-order magic tells the section endianness; determine it
+    -- before reading the block length (the magic itself is endian-agnostic).
+    if block_name == "SHB"
+      endian = su(">I4", data, offset + 8) == 0x1A2B3C4D and ">" or "<"
+      block_type = su "#{endian}I4", data, offset
+      log "Section Header Block byte-order magic, endian: #{endian}"
+
+    -- Reject malformed lengths before dispatching: a zero or misaligned
+    -- length would either loop forever or desynchronise the offset.
+    block_len = su "#{endian}I4", data, offset + 4
+    if block_len < 12 or block_len % 4 != 0 or offset + block_len - 1 > #data
+      log "Invalid block length #{block_len} at offset #{offset}, stopping"
+      break
+
     switch block_name
       when "SHB"
         shb_data, offset = parse_shb data, offset
+        break unless shb_data
         all_blocks[#all_blocks + 1] = {type: "SHB", data: shb_data}
         shb = shb_data
         endian = shb.endian
         log "Found Section Header Block - endian: #{endian}"
 
       when "IDB"
-        idb, offset = parse_idb data, offset, endian
+        idb, next_offset = parse_idb data, offset, endian
+        unless idb
+          offset += block_len
+          continue
+        offset = next_offset
         all_blocks[#all_blocks + 1] = {type: "IDB", data: idb}
         interfaces[#interfaces + 1] = idb
         log "Found Interface Description Block - linktype: #{idb.linktype_name}"
 
       when "EPB"
         epb, offset = parse_epb data, offset, endian
-        all_blocks[#all_blocks + 1] = {type: "EPB", data: epb}
-        epb.interface = interfaces[epb.interface_id + 1]  -- IDs are 0-based
-        packets[#packets + 1] = epb
-        log "Found Enhanced Packet Block - packet #{#packets}, len: #{epb.captured_len}, timestamp: #{epb.timestamp}"
+        if epb
+          all_blocks[#all_blocks + 1] = {type: "EPB", data: epb}
+          epb.interface = interfaces[epb.interface_id + 1]  -- IDs are 0-based
+          packets[#packets + 1] = epb
+          log "Found Enhanced Packet Block - packet #{#packets}, len: #{epb.captured_len}, timestamp: #{epb.timestamp}"
+        else
+          log "Skipping invalid EPB at offset #{offset}"
 
       else
         -- Store unknown block raw data
-        if offset + 8 <= #data
-          block_len = su "#{endian}I4", data, offset + 4
-          raw_data = data\sub offset, offset + block_len - 1
-          all_blocks[#all_blocks + 1] = {type: "UNKNOWN", :raw_data, :block_type}
-          log "Found unknown block type: 0x#{string.format "%08x", block_type}, len: #{block_len} at offset #{offset}"
-          offset += block_len
-        else
-          break
+        raw_data = data\sub offset, offset + block_len - 1
+        all_blocks[#all_blocks + 1] = {type: "UNKNOWN", :raw_data, :block_type}
+        log "Found unknown block type: 0x#{string.format "%08x", block_type}, len: #{block_len} at offset #{offset}"
+        offset += block_len
 
-  log "Parsed #{#packets} packets from #{filename}"
+  log "Parsed #{#packets} packets"
   packets, all_blocks
+
+--- Parses a PCAPNG file and extracts all packets
+-- @tparam string filename Path to the PCAPNG file
+-- @treturn table Array of parsed packets with metadata
+parse_pcapng = (filename) ->
+  -- Read entire file into memory
+  file = io.open filename, "rb"
+  unless file
+    error "Could not open file: #{filename}"
+
+  data = file\read "*all"
+  file\close!
+
+  parse_pcapng_data data
 
 --- Filters packets to find QUIC packets on standard ports
 -- @tparam table packets Array of parsed packets
@@ -329,6 +357,7 @@ parse_quic_from_pcapng = (filename="quic.pcapng") ->
   filter_quic_packets packets
 
 M.parse_pcapng = parse_pcapng
+M.parse_pcapng_data = parse_pcapng_data
 M.parse_quic_from_pcapng = parse_quic_from_pcapng
 M.filter_quic_packets = filter_quic_packets
 M.block_types = block_types
