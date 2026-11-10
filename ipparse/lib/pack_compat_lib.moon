@@ -410,6 +410,22 @@ compile_pack = (fmt) ->
     consumed += 1 if op.consume
     opt, count, le = iter!
   plan.count = consumed
+
+  -- Chemin rapide « une seule chaîne en dernière position » (cas de `s2` dans
+  -- pack_rr, `Hs2` de l'EDNS, ou une option `z`/`c`/`f`/`d` finale) : toutes
+  -- les options précédentes n'écrivent que des octets entiers, la dernière
+  -- produit une chaîne. On évite alors la table `parts` et `table.concat`.
+  tail = nil
+  if #plan > 0
+    last = plan[#plan]
+    if last.consume and last.emit and not last.write
+      ok = true
+      for k = 1, #plan - 1
+        prev = plan[k]
+        ok = false unless prev.write and not prev.emit
+      tail = last if ok
+  plan.tail = tail
+
   _pack_cache[fmt] = plan
   plan
 
@@ -428,7 +444,9 @@ pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
   parts = nil
 
   argi = 1
-  for j = 1, #plan
+  last = plan.tail
+  limit = last and (#plan - 1) or #plan
+  for j = 1, limit
     op = plan[j]
     if op.write
       if op.consume
@@ -450,7 +468,12 @@ pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
   -- whose return to the caller frame LuaJIT cannot record (NYI: return to
   -- lower frame), aborting the trace that exits the loop above.
   result = nil
-  if parts
+  if last
+    v = args[argi]
+    if last.write_len
+      n = last.write_len _buf, n, #v
+    result = buf_string(_buf, n) .. last.emit v
+  elseif parts
     if n > 0
       parts = append_string parts, buf_string(_buf, n)
     result = table.concat parts
