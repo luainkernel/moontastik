@@ -47,6 +47,12 @@ ldoc .              # Generate HTML docs in doc/  (uses config.ld)
 - Functional style: `fun.moon` primitives (`iter`, `memo`, `bidirectional`, …).
 - `bidirectional` tables map both `name→value` and `value→name`.
 
+## Test coverage
+
+`make coverage` runs the suite under LuaJIT and Lua 5.4 with luacov and prints
+a cumulative report. `tests/coverage_baseline` holds the reference total; the
+non-blocking CI `coverage` job warns (without failing) when it drops below it.
+
 See `.agents/moonscript.md` for MoonScript syntax, fat-arrow, scoping pitfalls.  
 See `.agents/architecture.md` for the parse/pack/new contract and OOP pattern.
 
