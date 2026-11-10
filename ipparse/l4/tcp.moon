@@ -35,7 +35,7 @@
 --
 -- @module l4.tcp
 
-pack: sp, unpack: su, :sub, :upper = require "ipparse.lib.pack_compat"
+pack: sp, unpack: su, :sub, :upper, :lower = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 {:need_bytes} = require "ipparse"
@@ -49,6 +49,15 @@ flags = bidirectional {
   URG: 0x20
 }
 :FIN, :SYN, :RST, :PSH, :ACK, :URG = flags
+
+-- Plain (metatable-free) name -> mask lookup for the hot metamethods below.
+-- Both all-upper and all-lower spellings map to the same mask; mixed case is
+-- deliberately not recognized.
+flag_masks = {}
+for name in *{"FIN", "SYN", "RST", "PSH", "ACK", "URG"}
+  mask = flags[name]
+  flag_masks[name] = mask
+  flag_masks[lower name] = mask
 
 --- Packs the TCP header and payload into a binary string.
 -- Constructs the binary representation of the TCP header and appends options and payload data.
@@ -66,18 +75,16 @@ _mt =
   -- @tparam string k The flag name (e.g., "SYN", "ACK").
   -- @treturn boolean `true` if the flag is set, `false` otherwise.
   __index: (k) =>
-    if flag = type(k) == "string" and upper k
-      if flag = flags[flag]
-        band(@flags, flag) ~= 0
+    if mask = flag_masks[k]
+      band(@flags, mask) ~= 0
 
   --- Sets or clears a specific TCP flag.
   -- @tparam string k The flag name (e.g., "SYN", "ACK").
   -- @tparam boolean v `true` to set the flag, `false` to clear it.
   __newindex: (k, v) =>
-    if flag = type(k) == "string" and upper k
-      if flag = flags[flag]
-        if v then @flags = bor(@flags, flag) else @flags = band(@flags, bnot(flag))
-        return
+    if mask = flag_masks[k]
+      if v then @flags = bor(@flags, mask) else @flags = band(@flags, bnot(mask))
+      return
     rawset @, k, v
 
 --- Parses a binary string into a TCP header structure.
