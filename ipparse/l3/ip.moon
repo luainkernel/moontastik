@@ -103,11 +103,10 @@ contains_ip = (i, nmask) =>
     return false if #@ ~= #i+1
     nmask = su "B", @
     return sub(@, 2) == i if nmask == lshift(#i, 3)
-  fmt, shft = "c#{rshift(nmask, 3)}B", 8 - band(nmask, 0x7)
-  nbytes, nbits = su fmt, @, 2
-  sbytes, sbits = su fmt, i
-  return true if nbytes == sbytes and rshift(nbits, shft) == rshift(sbits, shft)
-  false
+  n = rshift(nmask, 3)
+  shft = 8 - band(nmask, 0x7)
+  return false if sub(@, 2, 1 + n) ~= sub(i, 1, n)
+  rshift(@\byte(2 + n), shft) == rshift(i\byte(1 + n), shft)
 
 --- Checks whether a network contains a specific subnet.
 -- @tparam string subnet The binary subnet address.

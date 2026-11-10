@@ -92,4 +92,47 @@ test "ip.pack packs an IPv6 header as 40 bytes", ->
   parsed, _ = ip.parse raw, 1
   assert parsed ~= nil, "packed IPv6 header should parse back"
   assert parsed.version == 6, "version should be 6, got #{parsed.version}"
+test "contains_ip: /0 contains every IPv4 address", ->
+  net = ip.s2net "0.0.0.0/0"
+  assert ip.contains_ip(net, ip.s2ip("1.2.3.4")) == true, "1.2.3.4 should be in 0.0.0.0/0"
+  assert ip.contains_ip(net, ip.s2ip("255.255.255.255")) == true, "255.255.255.255 should be in 0.0.0.0/0"
+
+test "contains_ip: /8 included and excluded", ->
+  net = ip.s2net "10.0.0.0/8"
+  assert ip.contains_ip(net, ip.s2ip("10.1.2.3")) == true, "10.1.2.3 should be in 10.0.0.0/8"
+  assert ip.contains_ip(net, ip.s2ip("11.1.2.3")) == false, "11.1.2.3 should NOT be in 10.0.0.0/8"
+
+test "contains_ip: /13 included and excluded", ->
+  net = ip.s2net "192.168.0.0/13"
+  assert ip.contains_ip(net, ip.s2ip("192.175.255.255")) == true, "192.175.255.255 should be in 192.168.0.0/13"
+  assert ip.contains_ip(net, ip.s2ip("192.184.0.1")) == false, "192.184.0.1 should NOT be in 192.168.0.0/13"
+
+test "contains_ip: /32 included and excluded", ->
+  net = ip.s2net "1.2.3.4/32"
+  assert ip.contains_ip(net, ip.s2ip("1.2.3.4")) == true, "1.2.3.4 should be in 1.2.3.4/32"
+  assert ip.contains_ip(net, ip.s2ip("1.2.3.5")) == false, "1.2.3.5 should NOT be in 1.2.3.4/32"
+
+test "contains_ip: /64 included and excluded (IPv6)", ->
+  net = ip.s2net "2001:db8::/64"
+  assert ip.contains_ip(net, ip.s2ip("2001:db8::1")) == true, "2001:db8::1 should be in 2001:db8::/64"
+  assert ip.contains_ip(net, ip.s2ip("2001:db9::1")) == false, "2001:db9::1 should NOT be in 2001:db8::/64"
+
+test "contains_ip: /65 included and excluded (IPv6)", ->
+  net = ip.s2net "2001:db8::/65"
+  assert ip.contains_ip(net, ip.s2ip("2001:db8:0:0:4000::")) == true, "4000:: should be in 2001:db8::/65"
+  assert ip.contains_ip(net, ip.s2ip("2001:db8:0:0:8000::")) == false, "8000:: should NOT be in 2001:db8::/65"
+
+test "contains_ip: /128 included and excluded (IPv6)", ->
+  net = ip.s2net "2001:db8::/128"
+  assert ip.contains_ip(net, ip.s2ip("2001:db8::")) == true, "2001:db8:: should be in 2001:db8::/128"
+  assert ip.contains_ip(net, ip.s2ip("2001:db8::1")) == false, "2001:db8::1 should NOT be in 2001:db8::/128"
+
+test "contains_ip: explicit nmask is honoured", ->
+  net = ip.s2net "192.168.1.0/24"
+  assert ip.contains_ip(net, ip.s2ip("192.168.1.5"), 24) == true, "explicit /24 should contain 192.168.1.5"
+  assert ip.contains_ip(net, ip.s2ip("192.168.2.5"), 24) == false, "explicit /24 should NOT contain 192.168.2.5"
+  net6 = ip.s2net "2001:db8::/64"
+  assert ip.contains_ip(net6, ip.s2ip("2001:db8::1"), 64) == true, "explicit /64 should contain 2001:db8::1"
+  assert ip.contains_ip(net6, ip.s2ip("2001:db9::1"), 64) == false, "explicit /64 should NOT contain 2001:db9::1"
+
 util.summary "l3/ip"
