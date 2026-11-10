@@ -25,15 +25,13 @@
 -- ```
 --
 -- References:
--- - RFC 2838: Pcap File Format
 -- - PCAPNG Specification: https://github.com/pcapng/pcapng
 --
 -- @module lib.pcap
 
-{:unpack, :pack} = require "ipparse.lib.pack_compat"
+{:unpack} = require "ipparse.lib.pack_compat"
 su = unpack
-sp = pack
-:bin2hex, :hex2bin, :need_bytes = require "ipparse.init"
+:bin2hex, :need_bytes = require "ipparse.init"
 
 --- PCAPNG Block Types
 -- Mapping of block type codes to their names
@@ -284,70 +282,6 @@ filter_quic_packets = (packets) ->
   log "Found #{#quic_packets} QUIC packets"
   quic_packets
 
---- Packs a PCAPNG Section Header Block (SHB)
--- @tparam table shb The SHB structure to pack
--- @treturn string Packed SHB binary data
-pack_shb = (shb) ->
-  endian = shb.endian or "<"
-  block_len = 28  -- SHB is always 28 bytes (no options)
-  header = sp "#{endian}I4I4I4I2I2I8", shb.block_type, block_len, shb.byte_order_magic, shb.major_version, shb.minor_version, shb.section_length
-  header .. sp "#{endian}I4", block_len
-
---- Packs a PCAPNG Interface Description Block (IDB)
--- @tparam table idb The IDB structure to pack
--- @treturn string Packed IDB binary data
-pack_idb = (idb) ->
-  endian = idb.endian or "<"
-  block_len = 20  -- IDB is 20 bytes without options
-  header = sp "#{endian}I4I4I2I2I4", idb.block_type, block_len, idb.linktype, idb.reserved, idb.snaplen
-  header .. sp "#{endian}I4", block_len
-
---- Packs a PCAPNG Enhanced Packet Block (EPB)
--- @tparam table epb The EPB structure to pack
--- @treturn string Packed EPB binary data
-pack_epb = (epb) ->
-  endian = epb.endian or "<"
-  -- Calculate block length: header(12) + packet_data + options + padding + block_len(4)
-  packet_data = epb.packet_data
-  packet_len = #packet_data
-  -- Padding to 4-byte boundary
-  padding_len = (4 - (packet_len % 4)) % 4
-  padding = string.rep "\0", padding_len
-
-  block_len = 12 + packet_len + padding_len + 4  -- header + data + padding + block_len
-  header = sp "#{endian}I4I4I4I8I4", epb.block_type, block_len, epb.interface_id, epb.timestamp_hi, epb.timestamp_lo, epb.captured_len
-  header .. packet_data .. padding .. sp "#{endian}I4", block_len
-
---- Writes a PCAPNG file from all blocks
--- @tparam string filename Output filename
--- @tparam table all_blocks Array of all blocks
-write_pcapng = (filename, all_blocks) ->
-  parts = {}
-
-  for block in *all_blocks
-    switch block.type
-      when "SHB"
-        parts[#parts + 1] = pack_shb block.data
-      when "IDB"
-        parts[#parts + 1] = pack_idb block.data
-      when "EPB"
-        parts[#parts + 1] = pack_epb block.data
-      else
-        parts[#parts + 1] = block.raw_data
-
-  -- Combine all parts
-  data = table.concat parts
-
-  -- Write to file
-  f = io.open filename, "wb"
-  unless f
-    return nil, "Cannot open file for writing: #{filename}"
-
-  f\write data
-  f\close!
-
-  true
-
 --- Main function to parse QUIC packets from a PCAPNG file
 -- @tparam string filename Path to the PCAPNG file
 -- @treturn table Array of QUIC packets with full parsing
@@ -361,8 +295,4 @@ M.parse_quic_from_pcapng = parse_quic_from_pcapng
 M.filter_quic_packets = filter_quic_packets
 M.block_types = block_types
 M.link_types = link_types
-M.pack_shb = pack_shb
-M.pack_idb = pack_idb
-M.pack_epb = pack_epb
-M.write_pcapng = write_pcapng
 M
