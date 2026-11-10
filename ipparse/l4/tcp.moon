@@ -89,6 +89,7 @@ parse = (off=1) =>
   return nil, off unless need_bytes @, off, 20
   spt, dpt, seq_n, ack_n, header_len, _flags, window, checksum, urg_ptr, _off = su ">H H I4 I4 B B H H H", @, off
   data_off = off + rshift(band(header_len, 0xf0), 2)
+  return nil, off if data_off - off < 20
   return nil, off unless need_bytes @, off, data_off - off
   options = sub @, _off, data_off-1
   setmetatable({

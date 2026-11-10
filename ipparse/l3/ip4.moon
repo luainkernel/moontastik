@@ -98,6 +98,7 @@ parse = (off=1) =>
   return nil, off unless need_bytes @, off, 20
   v_ihl, tos, total_len, id, ff, ttl, protocol, cksum, src, dst, _off = su ">BBHHHBBH c4c4", @, off
   version, ihl = rshift(v_ihl, 4), band(v_ihl, 0x0f)
+  return nil, off if ihl < 5
   payload_off = lshift(ihl, 2)
   data_off = off + payload_off
   return nil, off unless need_bytes @, off, data_off - off

@@ -115,6 +115,12 @@ test "pack works when options is omitted", ->
   }
   assert #raw == 20, "header without options should be 20 bytes, got #{#raw}"
 
+test "parse rejects ihl below 5", ->
+  raw = "\064" .. ("\000")\rep 19
+  parsed, off = ip4.parse raw, 1
+  assert parsed == nil, "parse should reject ihl < 5"
+  assert off == 1, "off should be 1 on rejection, got #{off}"
+
 if has_data and fragmented_ip4
   test "fragmented_ip4 exposes collect", ->
     assert type(fragmented_ip4.collect) == "function", "collect should be a function"
