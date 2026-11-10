@@ -54,13 +54,14 @@ hex2bin = => (gsub @, "%x%x", => char tonumber @, 16)
 --- Produces a formatted hexadecimal and ASCII dump of the input data.
 -- Each row contains `cols` columns of `len` bytes, with both hex and ASCII representations.
 -- Non-printable ASCII bytes are shown as `.` in the ASCII section.
--- The function handles incomplete rows and aligns output accordingly.
+-- Incomplete rows pad the hex section so the ASCII column stays aligned.
 -- @tparam[opt=1] number off The starting offset in the input data.
 -- @tparam[opt=8] number len The number of bytes per row.
 -- @tparam[opt=2] number cols The number of columns per row.
 -- @tparam[opt="%.2x"] string f The format string for each byte.
 -- @treturn string A string containing the formatted hex and ASCII dump.
 hexdump = (off=1, len=8, cols=2, f="%.2x") =>
+  width = cols * len * #format(f, 0) + cols - 1
   res = {}
   for i = off, #@, len * cols
     row = sub @, i, i + len * cols - 1
@@ -69,7 +70,8 @@ hexdump = (off=1, len=8, cols=2, f="%.2x") =>
       part = sub row, j, j + len - 1
       hex[#hex+1] = format(rep(f, #part), su(rep("B", #part), part))
       ascii[#ascii+1] = filterascii part
-    res[#res+1] = format("%04x: %s %s", i-1, concat(hex, " "), concat(ascii, rep(" ", len - #ascii[#ascii])))
+    hexstr = concat hex, " "
+    res[#res+1] = format("%04x: %s%s %s", i-1, hexstr, rep(" ", width - #hexstr), concat ascii)
   concat res, "\n"
 
 
