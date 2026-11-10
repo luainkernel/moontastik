@@ -25,8 +25,17 @@ export PATH="$VMTEST_DIR/.venv/bin:$PATH"
 # code into a shared writable directory instead.
 BASH_ABS="$(command -v bash)"
 # Must live OUTSIDE the repository: nested inside --rodir it would be
-# shadowed by the read-only mount.
-RW_DIR="${VMTEST_RW_DIR:-${TMPDIR:-/tmp}/vmtest-rw}"
+# shadowed by the read-only mount. Default to a fresh directory per run so
+# concurrent invocations do not clobber each other's out/rc/console.log.
+if [ -n "${VMTEST_RW_DIR:-}" ]; then
+  RW_DIR="$VMTEST_RW_DIR"
+  RW_DIR_OWNED=0
+else
+  RW_DIR="$(mktemp -d "${TMPDIR:-/tmp}/vmtest-rw.XXXXXX")"
+  RW_DIR_OWNED=1
+  # Keep the console log around on failure (the error message points to it).
+  trap 'st=$?; if [ "$st" -eq 0 ] && [ "$RW_DIR_OWNED" -eq 1 ]; then rm -rf "$RW_DIR"; fi' EXIT
+fi
 # vng bind-mounts the kernel's module dir read-only over /lib/modules;
 # lunatik and ipparse need to install there, so mount a writable 9p
 # (host-backed, reusable across boots) on top instead.
