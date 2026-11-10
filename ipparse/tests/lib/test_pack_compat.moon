@@ -8,7 +8,7 @@
 
 util = require "ipparse.lib.util"
 {:test} = util
-pack_compat = require "ipparse.lib.pack_compat_lib"
+pack_compat = require "ipparse.lib.pack_compat"
 pack = pack_compat.pack or string.pack
 -- Native string.pack rejects the two fallback-only behaviours tested below.
 is_fallback = pack != string.pack
