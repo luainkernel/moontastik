@@ -81,9 +81,19 @@ read_uint = (s, offset, size, le) ->
         val = val * 256 + string.byte(s, offset + i + 1)
     val
 
+-- Convertit un nombre en uint64_t sans conversion indéfinie pour un négatif :
+-- la conversion double → int64_t est définie dans la plage représentable, puis
+-- on réinterprète les mêmes bits en non signé. Certains LuaJIT saturaient la
+-- conversion directe double négatif → uint64_t à 0x8000000000000000.
+cast_uint = (val) ->
+  if val < 0
+    ffi.cast "uint64_t", ffi.cast("int64_t", val)
+  else
+    ffi.cast "uint64_t", val
+
 -- Écrit un entier non signé vers un buffer ffi uint8_t* (offset 0-based)
 write_uint = (buf, offset, val, size, le) ->
-  v = ffi.cast "uint64_t", val
+  v = cast_uint val
   if le
     for i = 0, size - 1
       buf[offset + i] = tonumber(v % 256)
@@ -515,14 +525,14 @@ make_uint = (sz, le) ->
   else
     if le
       (buf, n, v) ->
-        u = ffi.cast "uint64_t", v
+        u = cast_uint v
         for k = 1, sz
           buf[n + k] = tonumber(u % 256)
           u = u / 256
         n + sz
     else
       (buf, n, v) ->
-        u = ffi.cast "uint64_t", v
+        u = cast_uint v
         for k = sz, 1, -1
           buf[n + k] = tonumber(u % 256)
           u = u / 256

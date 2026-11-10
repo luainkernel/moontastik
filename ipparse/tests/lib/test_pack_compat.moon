@@ -132,6 +132,18 @@ test "pack_compat: >i8 negative bytes", ->
   expected = from_hex "fffffffffffffffe"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
+-- -1 as a signed 64-bit value is all ones in two's complement.
+test "pack_compat: <i8 negative one bytes", ->
+  got = pack "<i8", -1
+  expected = from_hex "ffffffffffffffff"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- -(2^53), exactly representable as a double, keeps its low 64-bit pattern.
+test "pack_compat: >i8 negative 2^53 bytes", ->
+  got = pack ">i8", -9007199254740992
+  expected = from_hex "ffe0000000000000"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
 test "pack_compat: <I8 above 32-bit range bytes", ->
   got = pack "<I8", 0x100000000
   expected = from_hex "0000000001000000"
