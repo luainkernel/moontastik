@@ -433,6 +433,37 @@ parse_connection_close_frame = (data, offset, frame_type) ->
 parse_handshake_done_frame = (data, offset) ->
   {type: 0x1e, name: "HANDSHAKE_DONE"}, offset
 
+--- Dispatch table mapping frame type codes to their parser functions.
+-- Built once at module load. Every parser accepts `(data, offset, frame_type)`;
+-- those that do not need the type simply ignore the third argument.
+frame_parsers = {
+  [0x00]: parse_padding_frame
+  [0x01]: parse_ping_frame
+  [0x02]: parse_ack_frame
+  [0x03]: parse_ack_frame
+  [0x04]: parse_reset_stream_frame
+  [0x05]: parse_stop_sending_frame
+  [0x06]: parse_crypto_frame
+  [0x07]: parse_new_token_frame
+  [0x10]: parse_max_data_frame
+  [0x11]: parse_max_stream_data_frame
+  [0x12]: parse_max_streams_frame
+  [0x13]: parse_max_streams_frame
+  [0x14]: parse_data_blocked_frame
+  [0x15]: parse_stream_data_blocked_frame
+  [0x16]: parse_streams_blocked_frame
+  [0x17]: parse_streams_blocked_frame
+  [0x18]: parse_new_connection_id_frame
+  [0x19]: parse_retire_connection_id_frame
+  [0x1a]: parse_path_challenge_frame
+  [0x1b]: parse_path_response_frame
+  [0x1c]: parse_connection_close_frame
+  [0x1d]: parse_connection_close_frame
+  [0x1e]: parse_handshake_done_frame
+}
+for t = 0x08, 0x0f
+  frame_parsers[t] = parse_stream_frame
+
 --- Parses a generic frame header and delegates to specific parsers.
 -- Returns nil only when offset is past end-of-data; returns an UNKNOWN frame
 -- for unrecognised types (advances by 1 byte to avoid infinite loops).
@@ -446,34 +477,10 @@ parse_frame = (data, offset) ->
   frame_type, new_offset = parse_varint data, offset
   return nil, offset, "truncated frame type varint" unless frame_type
 
-  parser = switch frame_type
-    when 0x00  then parse_padding_frame
-    when 0x01  then parse_ping_frame
-    when 0x02, 0x03 then (d, o) -> parse_ack_frame d, o, frame_type
-    when 0x04  then parse_reset_stream_frame
-    when 0x05  then parse_stop_sending_frame
-    when 0x06  then parse_crypto_frame
-    when 0x07  then parse_new_token_frame
-    when 0x10  then parse_max_data_frame
-    when 0x11  then parse_max_stream_data_frame
-    when 0x12, 0x13 then (d, o) -> parse_max_streams_frame d, o, frame_type
-    when 0x14  then parse_data_blocked_frame
-    when 0x15  then parse_stream_data_blocked_frame
-    when 0x16, 0x17 then (d, o) -> parse_streams_blocked_frame d, o, frame_type
-    when 0x18  then parse_new_connection_id_frame
-    when 0x19  then parse_retire_connection_id_frame
-    when 0x1a  then parse_path_challenge_frame
-    when 0x1b  then parse_path_response_frame
-    when 0x1c, 0x1d then (d, o) -> parse_connection_close_frame d, o, frame_type
-    when 0x1e  then parse_handshake_done_frame
-    else
-      if frame_type >= 0x08 and frame_type <= 0x0f
-        (d, o) -> parse_stream_frame d, o, frame_type
-      else
-        nil
+  parser = frame_parsers[frame_type]
 
   return {type: frame_type, name: "UNKNOWN"}, new_offset unless parser
-  frame, parsed_off, err = parser data, new_offset
+  frame, parsed_off, err = parser data, new_offset, frame_type
   return nil, offset, err unless frame
   frame, parsed_off
 
