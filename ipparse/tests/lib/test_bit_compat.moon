@@ -8,7 +8,7 @@
 
 util = require "ipparse.lib.util"
 {:test} = util
-{ :band, :bor, :bxor } = require "ipparse.lib.bit_compat"
+{ :band, :bor, :bxor, :arshift } = require "ipparse.lib.bit_compat"
 -- Test the pure-Lua fallback directly wherever it can run, so it is exercised
 -- even when the host has LuaJIT's `bit` or Lua 5.2+'s `bit32`.
 -- It is only the last-resort fallback of `bit_compat` (Lua 5.1 without `bit`)
@@ -36,6 +36,10 @@ test "bit_compat: band with 3 arguments", ->
 
 test "bit_compat: bxor with 3 arguments", ->
   assert bxor(0xF0, 0x3C, 0xFF) == 51, "bxor(0xF0,0x3C,0xFF) != 51"
+
+test "bit_compat: arshift sign-extends", ->
+  assert arshift(-8, 1) == -4, "arshift(-8,1) != -4"
+  assert arshift(8, 1) == 4, "arshift(8,1) != 4"
 
 -- Expected values below are hardcoded from LuaJIT's `bit` library, which
 -- returns SIGNED 32-bit results (e.g. bit.bor(0x80000000, 0) == -2147483648).
