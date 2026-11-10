@@ -95,6 +95,18 @@ test "parse round-trip preserves ihl=5", ->
   parsed, _ = ip4.parse raw, 1
   assert parsed.ihl == 5, "ihl should be 5, got #{parsed.ihl}"
 
+test "raw DF key does not bypass __newindex", ->
+  hdr = ip4.new {
+    src: ip4.s2ip4 "1.2.3.4"
+    dst: ip4.s2ip4 "5.6.7.8"
+    protocol: 6
+    DF: true
+  }
+  assert hdr.DF == true, "DF flag should be true after new"
+  hdr.DF = false
+  assert hdr.ff == 0, "clearing DF should reset ff, got #{hdr.ff}"
+  assert hdr.DF == false, "DF flag should be false after clearing"
+
 test "pack works when options is omitted", ->
   raw = ip4.pack ip4.new {
     src: ip4.s2ip4 "1.2.3.4"

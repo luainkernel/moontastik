@@ -139,6 +139,7 @@ new = =>
   -- Initialize ff from DF, MF, frag_offset if ff isn't already set.
   -- If DF, MF, frag_offset are also nil/false, ff will default to 0.
   @ff or= bor((@DF and flags.DF or 0), (@MF and flags.MF or 0), @frag_offset or 0)
+  @DF, @MF = nil, nil
   -- Set common defaults for other optional fields if not provided
   @tos or= 0
   @id or= 0 -- Could be randomized, but 0 is a simple default for construction
