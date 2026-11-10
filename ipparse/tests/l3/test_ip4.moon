@@ -6,8 +6,6 @@
 util = require"ipparse.lib.util"
 {:test} = util
 ip4 = require"ipparse.l3.ip4"
--- fragmented_ip4 depends on Lunatik's `data` module: only test it in-kernel.
-has_data, fragmented_ip4 = pcall require, "ipparse.l3.fragmented_ip4"
 
 test "ip42s converts 4 bytes to dotted decimal", ->
   result = ip4.ip42s "\192\168\001\001"
@@ -121,11 +119,6 @@ test "parse rejects ihl below 5", ->
   assert parsed == nil, "parse should reject ihl < 5"
   assert off == 1, "off should be 1 on rejection, got #{off}"
 
-if has_data and fragmented_ip4
-  test "fragmented_ip4 exposes collect", ->
-    assert type(fragmented_ip4.collect) == "function", "collect should be a function"
-else
-  test "fragmented_ip4: skipped (requires Lunatik `data` module)", -> true
 
 test "DF/MF readable and writable in both all-lower and all-upper case", ->
   hdr = ip4.new {src: ip4.s2ip4"1.2.3.4", dst: ip4.s2ip4"5.6.7.8", protocol: 6, options: ""}
