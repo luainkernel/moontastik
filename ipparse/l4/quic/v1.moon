@@ -38,7 +38,7 @@
 -- @module l4.quic.v1
 
 :upper = string
-:bidirectional, :zero_indexed = require"ipparse.fun"
+:bidirectional, :zero_indexed = require "ipparse.fun.tables"
 {:band, :bor, :bnot, :lshift} = require"ipparse.lib.bit_compat"
 
 --- QUIC version number as found in the long-header version field (0x01 for version 1).

@@ -20,7 +20,7 @@
 --
 -- @module l3.ip
 
-:bidirectional = require"ipparse.fun"
+:bidirectional = require "ipparse.fun.tables"
 :IP6, :IP4 = require"ipparse.l2.ethernet".proto
 parse: ip6, new: ip6_new, pack: ip6_pack, :ip62s, :s2ip6, :net62s, :s2net6 = require"ipparse.l3.ip6"
 parse: ip4, new: ip4_new, pack: ip4_pack, :ip42s, :s2ip4, :net42s, :s2net4 = require"ipparse.l3.ip4"

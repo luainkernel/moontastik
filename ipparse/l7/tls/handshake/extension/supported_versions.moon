@@ -13,7 +13,7 @@
 -- @module l7.tls.handshake.extension.supported_versions
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
-:bidirectional = require "ipparse.fun"
+:bidirectional = require "ipparse.fun.tables"
 {:need_bytes} = require "ipparse"
 :concat = table
 
