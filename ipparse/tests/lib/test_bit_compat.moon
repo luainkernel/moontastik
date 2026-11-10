@@ -129,4 +129,127 @@ test_pure "bit_pure: IPv6 version/traffic class/flow label round-trip", ->
   assert pure.band(pure.rshift(vtf, 20), 0xFF) == 18, "traffic class != 18"
   assert pure.band(vtf, 0xFFFFF) == 214375, "flow label != 214375"
 
+-- ─── Backend selection with simulated libraries ────────────────────────────
+--
+-- These reload `bit_compat` with fake `bit`/`bit32`/`bit53`/`bit_pure`
+-- backends registered in `package.preload`. Every touched entry is saved and
+-- restored, even when the load raises. The simulation relies on
+-- `package.preload` and `math.floor`, so it is skipped on the integer-only
+-- kernel runtime (which the module comment in test_lunatik_kernel_portable
+-- also excludes: "no simulated package.preload").
+
+backend_keys = {
+  "bit"
+  "bit32"
+  "ipparse.lib.bit53"
+  "ipparse.lib.bit_pure"
+  "ipparse.lib.bit_compat"
+}
+
+load_bit_compat_with = (preloads) ->
+  saved_loaded = {}
+  saved_preload = {}
+  for k in *backend_keys
+    saved_loaded[k] = package.loaded[k]
+    saved_preload[k] = package.preload[k]
+  mod = nil
+  ok = false
+  err = nil
+  ok, err = pcall ->
+    for k in *backend_keys
+      package.loaded[k] = nil
+      package.preload[k] = nil
+    for k, v in pairs preloads
+      package.preload[k] = if type(v) == "function" then v else -> v
+    mod = require "ipparse.lib.bit_compat"
+  for k in *backend_keys
+    package.loaded[k] = saved_loaded[k]
+    package.preload[k] = saved_preload[k]
+  unless ok
+    error err, 0
+  mod
+
+pow2_test = (n) ->
+  p = 1
+  for _ = 1, n
+    p *= 2
+  p
+
+-- Backend exposing the Lua 5.1 `blshift`/`brshift` names.
+fake_named = {
+  blshift: (a, n) -> if n <= 0 then a else a * pow2_test(n)
+  brshift: (a, n) -> if n <= 0 then a else math.floor(a / pow2_test(n))
+}
+
+-- Sentinel backends: distinct return values prove which one was selected.
+fake32 = {
+  blshift: (a, n) -> 111
+  brshift: (a, n) -> 222
+}
+fake53 = {
+  lshift: (a, n) -> 333
+  rshift: (a, n) -> 444
+}
+fake_pure = {
+  blshift: (a, n) -> 555
+  brshift: (a, n) -> 666
+}
+bad_backend = -> error "backend unavailable"
+
+userspace_backends = package and package.loaded and package.preload and math.floor
+
+test_backends = (name, fn) ->
+  if userspace_backends
+    test name, fn
+
+test_backends "bit_compat: fallback shifts when 'bit' lacks shifts", ->
+  m = load_bit_compat_with { ["bit"]: {} }
+  assert m.lshift(3, 2) == 12, "lshift(3,2) != 12"
+  assert m.lshift(3, 0) == 3, "lshift by 0 must be identity"
+  assert m.lshift(3, -2) == 3, "lshift by a negative count must be identity"
+  assert m.rshift(8, 2) == 2, "rshift(8,2) != 2"
+  assert m.rshift(8, 0) == 8, "rshift by 0 must be identity"
+  assert m.rshift(8, -1) == 8, "rshift by a negative count must be identity"
+  assert m.rshift(0x100000004, 2) == 1, "rshift must mask its input to 32 bits"
+  assert m.arshift == m.rshift, "arshift should alias rshift"
+  assert m.lshift(1, 4) == 16, "lshift(1,4) != 16"
+
+test_backends "bit_compat: blshift/brshift preferred over fallback", ->
+  m = load_bit_compat_with { ["bit"]: fake_named }
+  assert m.lshift(2, 3) == 16, "lshift(2,3) != 16"
+  assert m.rshift(32, 3) == 4, "rshift(32,3) != 4"
+  assert m.arshift == m.rshift, "arshift should alias rshift"
+
+test_backends "bit_compat: bit32 backend selection", ->
+  m = load_bit_compat_with { ["bit32"]: fake32 }
+  assert m.lshift(1, 1) == 111, "bit32 backend not selected for lshift"
+  assert m.rshift(1, 1) == 222, "bit32 backend not selected for rshift"
+  assert m.arshift == m.rshift, "arshift should alias rshift"
+
+test_backends "bit_compat: bit53 backend selection", ->
+  m = load_bit_compat_with { ["ipparse.lib.bit53"]: fake53 }
+  assert m.lshift(1, 1) == 333, "bit53 backend not selected for lshift"
+  assert m.rshift(1, 1) == 444, "bit53 backend not selected for rshift"
+
+test_backends "bit_compat: bit_pure last-resort backend selection", ->
+  m = load_bit_compat_with {
+    ["bit"]: bad_backend
+    ["bit32"]: bad_backend
+    ["ipparse.lib.bit53"]: bad_backend
+    ["ipparse.lib.bit_pure"]: fake_pure
+  }
+  assert m.lshift(1, 1) == 555, "bit_pure backend not selected for lshift"
+  assert m.rshift(1, 1) == 666, "bit_pure backend not selected for rshift"
+
+test_backends "bit_compat: no backend raises", ->
+  ok, err = pcall load_bit_compat_with, {
+    ["bit"]: bad_backend
+    ["bit32"]: bad_backend
+    ["ipparse.lib.bit53"]: bad_backend
+    ["ipparse.lib.bit_pure"]: bad_backend
+  }
+  assert not ok, "loading with no backend should raise"
+  assert (tostring(err)\match "no bitwise compatibility backend"),
+    "unexpected error: #{tostring err}"
+
 util.summary "bit_compat"
