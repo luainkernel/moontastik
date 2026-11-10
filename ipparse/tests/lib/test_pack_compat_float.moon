@@ -103,6 +103,21 @@ test "pack_compat_float: d/f in the middle of a format", ->
   assert a == 1 and b == 1.5 and c == 2 and pos == 12,
     "got: #{a}, #{b}, #{c}, pos: #{pos}"
 
+-- Truncated floating-point input must raise, as native string.unpack does.
+test "pack_compat_float: unpack short f/d/n raises", ->
+  cases = {
+    {"f", from_hex "0000"}
+    {"d", from_hex "00000000000000"}
+    {"n", from_hex "00000000000000"}
+    {">f", from_hex "c01000"}
+  }
+  for item in *cases
+    fmt, s = item[1], item[2]
+    ok, err = pcall unpack, fmt, s, 1
+    assert not ok, "unpack('#{fmt}') on short data should raise"
+    assert (tostring(err)\match "too short"),
+      "unpack('#{fmt}'): expected 'data string too short', got: #{tostring err}"
+
 -- packsize covers the float widths too.
 test "pack_compat_float: packsize f/d/n", ->
   packsize = pack_compat.packsize or string.packsize
