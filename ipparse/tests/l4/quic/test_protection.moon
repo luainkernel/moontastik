@@ -141,4 +141,9 @@ else
     -- not a failure, just informational
     true
 
+test "protection: remove_header_protection returns nil, err on bad packet", ->
+  hdr, err = prot.remove_header_protection "abcdef", 3, string.rep("k", 16), true, 0, {}
+  assert hdr == nil, "expected nil header"
+  assert type(err) == "string", "expected error string, got #{type err}"
+
 util.summary "protection"
