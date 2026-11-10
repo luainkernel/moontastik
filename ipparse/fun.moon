@@ -13,6 +13,7 @@ unpack or= table.unpack
 --- Creates a memoized version of a single-argument function.
 -- The cache uses the input argument as the key.
 -- If the argument is `nil` or not provided, the original function is called directly without caching.
+-- The cache is a weak table on purpose: entries may be dropped by the garbage collector, trading recomputation for bounded memory.
 -- @treturn function The memoized function.
 -- @usage
 -- -- The memoized function takes:
@@ -34,6 +35,7 @@ memo = =>
 --- Creates a memoized version of a multi-argument function.
 -- The cache is hierarchical, using arguments as keys at successive levels.
 -- `nil` arguments are handled by using a special internal `_nil` placeholder.
+-- The cache is a weak table on purpose: entries may be dropped by the garbage collector, trading recomputation for bounded memory.
 -- @treturn function The memoized function.
 -- @usage
 -- -- The memoized function takes:
@@ -83,12 +85,12 @@ bidirmt_gen = ->
 bidirectional = => setmetatable @, __index: bidirmt_gen!
 
 --- Modifies an array-like table in-place to make it zero-indexed.
--- It copies `@[i+1]` to `@[i]` for `i` from `0` to `#@-1`.
--- The original 1-indexed elements are preserved.
+-- It copies `@[i+1]` to `@[i]` for `i` from `0` to `#@`, shifting every
+-- element down by one index and clearing the last slot.
 -- @treturn table self
 -- @usage
 -- local arr = {"a", "b", "c"} -- arr[1]="a", arr[2]="b", arr[3]="c"
--- fun.zero_indexed(arr) -- arr[0]="a", arr[1]="b", arr[2]="c" (original elements still there)
+-- fun.zero_indexed(arr) -- arr[0]="a", arr[1]="b", arr[2]="c", arr[3]=nil
 zero_indexed = =>
   @[i] = @[i+1] for i = 0, #@
   @
