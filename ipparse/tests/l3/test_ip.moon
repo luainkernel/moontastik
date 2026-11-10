@@ -79,4 +79,17 @@ test "contains_subnet: 192.168.2.0/24 not in 192.168.1.0/24 is false", ->
 test "s2net/net2s round-trip for IPv4", ->
   original = "10.0.0.0/8"
   assert ip.net2s(ip.s2net(original)) == original, "net2s/s2net round-trip failed"
+
+test "ip.pack packs an IPv6 header as 40 bytes", ->
+  hdr = ip.new {
+    version: 6
+    src: ip6.s2ip6 "::1"
+    dst: ip6.s2ip6 "::2"
+    next_header: 17
+  }
+  raw = ip.pack hdr
+  assert #raw == 40, "packed IPv6 header should be 40 bytes, got #{#raw}"
+  parsed, _ = ip.parse raw, 1
+  assert parsed ~= nil, "packed IPv6 header should parse back"
+  assert parsed.version == 6, "version should be 6, got #{parsed.version}"
 util.summary "l3/ip"
