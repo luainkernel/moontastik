@@ -2,3 +2,5 @@
 *.o
 vmlinux.h*
 *.zip
+luacov.stats.out
+luacov.report.out
