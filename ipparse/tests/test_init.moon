@@ -18,6 +18,10 @@ test "hex2bin single byte", ->
   result = hex2bin "ab"
   assert result == "\171", "hex2bin single byte failed"
 
+test "hex2bin returns exactly one value", ->
+  n = select "#", hex2bin "00ff"
+  assert n == 1, "expected 1 return value, got #{n}"
+
 test "filterascii replaces non-printable with dot", ->
   result = filterascii "\001hello\255"
   assert result == ".hello.", "expected '.hello.', got '#{result}'"
