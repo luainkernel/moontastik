@@ -94,6 +94,8 @@ generate_mt = (byte1) -> {
       if mask = byte1[upper k]
         v = mask if v == true
         @byte1 = bor(band(@byte1, bnot(mask)), v or 0)
+        return
+    rawset @, k, v
 }
 
 {
