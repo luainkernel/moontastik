@@ -342,6 +342,7 @@ if HAS_FFI
     bytes
 
   bytes_to_double = (s, offset, le) ->
+    error "data string too short" if offset + 8 > #s
     buf = ffi.new "uint8_t[8]"
     if le
       for i = 0, 7
@@ -361,6 +362,7 @@ if HAS_FFI
     bytes
 
   bytes_to_float = (s, offset, le) ->
+    error "data string too short" if offset + 4 > #s
     buf = ffi.new "uint8_t[4]"
     if le
       for i = 0, 3
