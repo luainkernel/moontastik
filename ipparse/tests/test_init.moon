@@ -46,6 +46,15 @@ test "lbin2hex handles the empty string", ->
   result = lbin2hex ""
   assert result == "", "expected '', got '#{result}'"
 
+test "bin2hex handles a 4096-byte string", ->
+  result = bin2hex string.rep "a", 4096
+  assert #result == 8192, "expected 8192 hex chars, got #{#result}"
+  assert result == string.rep("61", 4096), "bin2hex content mismatch"
+
+test "bin2hex converts non-printable bytes", ->
+  result = bin2hex "\000\010\255"
+  assert result == "000aff", "expected '000aff', got '#{result}'"
+
 test "hexdump prints offset and hex for a 16-byte line", ->
   result = hexdump "abcdefghijklmnop", 1, 8, 2
   assert result\sub(1, 6) == "0000: ", "expected '0000: ' prefix, got '#{result\sub(1, 6)}'"
