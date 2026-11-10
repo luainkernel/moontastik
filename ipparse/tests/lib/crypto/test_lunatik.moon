@@ -29,6 +29,7 @@ for k in pairs package.loaded
 calls = {
   aead_new: 0
   aead_close: 0
+  aead_setkey: 0
   ecb_new: 0
   ecb_close: 0
 }
@@ -36,7 +37,9 @@ calls = {
 mk_aead = ->
   key, authsize = nil, nil
   {
-    setkey: (k) => key = k
+    setkey: (k) =>
+      calls.aead_setkey += 1
+      key = k
     setauthsize: (n) => authsize = n
     encrypt: (nonce, plaintext, aad="") =>
       assert key == string.rep("\017", 16), "unexpected test key"
@@ -241,6 +244,17 @@ test "lunatik: AES-128-GCM decrypt returns nil,error on non-auth error", ->
   pt, err = b.aes_128_gcm_decrypt key, nonce, ("BROKEN" .. string.rep("T", 16)), ""
   assert pt == nil, "pt should be nil on non-auth failure"
   assert tostring(err)\find("aead(gcm(aes)) decrypt failed", 1, true), "unexpected error: #{tostring err}"
+
+test "lunatik: AES-128-GCM decrypt reuses transform for same key", ->
+  key_a = string.rep "\020", 16
+  key_b = string.rep "\021", 16
+  nonce = string.rep "\000", 12
+  before = calls.aead_setkey
+  b.aes_128_gcm_decrypt key_a, nonce, ("first" .. string.rep("T", 16)), ""
+  b.aes_128_gcm_decrypt key_a, nonce, ("second" .. string.rep("T", 16)), ""
+  assert calls.aead_setkey == before + 1, "same key should call setkey once, got #{calls.aead_setkey - before}"
+  b.aes_128_gcm_decrypt key_b, nonce, ("third" .. string.rep("T", 16)), ""
+  assert calls.aead_setkey == before + 2, "a new key should call setkey once more, got #{calls.aead_setkey - before}"
 
 test "lunatik: AES-128-ECB encrypt uses crypto.skcipher", ->
   key = string.rep "\034", 16

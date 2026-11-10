@@ -49,31 +49,20 @@ ebadmsg_error = (err) ->
   return unless is_ebadmsg err
   "AES-128-GCM authentication failed (tag mismatch)"
 
-cached_gcm_enc_tfm = nil
-cached_gcm_enc_key = nil
-cached_gcm_dec_tfm = nil
-cached_gcm_dec_key = nil
+gcm_cache = {encrypt: {}, decrypt: {}}
 cached_ecb_tfm = nil
 cached_ecb_key = nil
 ecb_fail_streak = 0
 
 get_gcm_tfm = (mode, key) ->
-  if mode == "encrypt"
-    unless cached_gcm_enc_tfm
-      cached_gcm_enc_tfm = aead "gcm(aes)"
-      cached_gcm_enc_tfm\setauthsize 16
-    if cached_gcm_enc_key != key
-      cached_gcm_enc_tfm\setkey key
-      cached_gcm_enc_key = key
-    return cached_gcm_enc_tfm
-  else
-    unless cached_gcm_dec_tfm
-      cached_gcm_dec_tfm = aead "gcm(aes)"
-      cached_gcm_dec_tfm\setauthsize 16
-    if cached_gcm_dec_key != key
-      cached_gcm_dec_tfm\setkey key
-      cached_gcm_dec_key = key
-    return cached_gcm_dec_tfm
+  entry = gcm_cache[mode]
+  unless entry.tfm
+    entry.tfm = aead "gcm(aes)"
+    entry.tfm\setauthsize 16
+  if entry.key != key
+    entry.tfm\setkey key
+    entry.key = key
+  entry.tfm
 
 --- Encrypts with AES-128-GCM.
 -- @tparam string key 16-byte key
@@ -107,7 +96,7 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad = "") ->
   --   * upstream v5.1+ (lib/luacrypto_aead.c: luacrypto_aead_decrypt calls
   --     lunatik_pushfail(L, -EBADMSG)): decrypt returns nil, "EBADMSG" and
   --     nothing is raised. Only non-EBADMSG failures still raise.
-  ok, pt, err = pcall -> c\decrypt nonce, ciphertext_with_tag, aad
+  ok, pt, err = pcall c.decrypt, c, nonce, ciphertext_with_tag, aad
   unless ok
     msg = ebadmsg_error pt
     return nil, msg if msg
@@ -126,20 +115,22 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad = "") ->
 -- @tparam string key 16-byte key
 -- @tparam string block 16-byte plaintext block
 -- @treturn string 16-byte ciphertext block, or nil if ECB unavailable
+ecb_encrypt = (key, block) ->
+  unless cached_ecb_tfm
+    cached_ecb_tfm = skcipher "ecb(aes)"
+    cached_ecb_key = nil
+  if cached_ecb_key != key
+    cached_ecb_tfm\setkey key
+    cached_ecb_key = key
+  -- ECB doesn't use IV, but skcipher API requires it
+  -- For ECB, ivsize should be 0, so we pass empty string
+  cached_ecb_tfm\encrypt "", block
+
 aes_128_ecb_block = (key, block) ->
   validate_ecb_key key
   validate_ecb_block block
 
-  ok, result = pcall ->
-    unless cached_ecb_tfm
-      cached_ecb_tfm = skcipher "ecb(aes)"
-      cached_ecb_key = nil
-    if cached_ecb_key != key
-      cached_ecb_tfm\setkey key
-      cached_ecb_key = key
-    -- ECB doesn't use IV, but skcipher API requires it
-    -- For ECB, ivsize should be 0, so we pass empty string
-    cached_ecb_tfm\encrypt "", block
+  ok, result = pcall ecb_encrypt, key, block
   unless ok
     -- Keep cached tfm/key to avoid churn under memory pressure.
     -- Reallocating tfm on each transient failure tends to make ENOMEM worse.
