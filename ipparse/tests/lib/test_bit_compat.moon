@@ -19,6 +19,18 @@ pure = require "ipparse.lib.bit_pure"
 test_pure = (name, fn) ->
   test name, fn if math.floor
 
+test "bit_compat: band with 1 argument", ->
+  assert band(5) == 5, "band(5) != 5"
+
+test "bit_compat: band with 7 arguments", ->
+  assert band(0xFF, 0xFF, 0xFF, 0x3C, 0xFF, 0x1E, 0xFF) == 28, "band of 7 arguments != 28"
+
+test "bit_compat: bxor with 1 argument", ->
+  assert bxor(5) == 5, "bxor(5) != 5"
+
+test "bit_compat: bxor with 7 arguments", ->
+  assert bxor(0xFF, 0x0F, 0xF0, 0x3C, 0xC3, 0x55, 0xAA) == 0, "bxor of 7 arguments != 0"
+
 test "bit_compat: bor with 1 argument", ->
   assert bor(5) == 5, "bor(5) != 5"
 
