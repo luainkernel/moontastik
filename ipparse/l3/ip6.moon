@@ -47,8 +47,8 @@ pack = =>
     data.checksum = checksum6 @src, @dst, @next_header, d
     data = "#{data}"
   @payload_len = #data
-  @vtf or= bor(lshift(@version, 28), lshift(@traffic_class or 0, 20), @flow_label or 0)
-  sp(">I4 I2 I1 I1 c16 c16", @vtf, @payload_len, @next_header, @hop_limit, @src, @dst) .. "#{@data or ''}"
+  @vtf = bor(lshift(@version, 28), lshift(@traffic_class or 0, 20), @flow_label or 0)
+  sp(">I4 I2 I1 I1 c16 c16", @vtf, @payload_len, @next_header, @hop_limit, @src, @dst) .. data
 
 _mt = __tostring: pack
 
