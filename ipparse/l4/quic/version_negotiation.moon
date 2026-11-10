@@ -4,20 +4,25 @@
 --
 
 -- Version negotiation packets
-pack: sp, unpack: su, :rep = require "ipparse.lib.pack_compat"
-:remove = table
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 
 version = 0
 
 pack = =>
-  sp rep(">H", #@supported_versions), @supported_versions
+  parts = {}
+  for v in *@supported_versions
+    parts[#parts + 1] = sp ">I4", v
+  table.concat parts
 
 _mt =
   __tostring: pack
 
 parse_payload = (off=1) =>
-  supported_versions = {su rep(">H", #@/2), @, off}
-  _off = remove supported_versions
-  setmetatable({:supported_versions}, _mt), _off
+  supported_versions = {}
+  while off + 3 <= #@
+    v, _off = su ">I4", @, off
+    supported_versions[#supported_versions + 1] = v
+    off = _off
+  setmetatable({:supported_versions}, _mt), off
 
 :version, :pack, :parse_payload
