@@ -8,7 +8,7 @@
 
 util = require "ipparse.lib.util"
 {:test} = util
-{:parse_frame, :iter_frames, :validate_frames, :encode_varint} = require "ipparse.l4.quic.frames"
+{:parse_frame, :iter_frames, :validate_frames, :encode_varint, :parse_varint} = require "ipparse.l4.quic.frames"
 
 -- PADDING frame (0x00)
 test "frame: PADDING parsed", ->
@@ -228,5 +228,195 @@ test "frame: validate_frames counts a PADDING run once", ->
   ok, msg = validate_frames string.rep("\000", 1000)
   assert ok == true, "expected valid, got: #{msg}"
   assert msg\match("1 frames validated"), "expected 1 frame, got: #{msg}"
+
+-- encode_varint covers all four size classes and parse_varint reads them back.
+test "frame: encode_varint four sizes round-trip", ->
+  for value in *{63, 16383, 1073741823, 1073741824}
+    enc = encode_varint value
+    assert #enc >= 1 and #enc <= 8, "bad length #{#enc} for #{value}"
+    dec, off = parse_varint enc, 1
+    assert dec == value, "expected #{value}, got #{dec}"
+    assert off == #enc + 1, "offset should be past the varint"
+
+test "frame: parse_varint truncated inputs return nil", ->
+  cases = {
+    {"", 1}                    -- offset past data
+    {"\064", 1}                -- 2-byte varint, no second byte
+    {"\128\000\000", 1}        -- 4-byte varint, only 3 bytes
+    {"\192\000\000\000\000\000\000", 1} -- 8-byte varint, only 7 bytes
+  }
+  for c in *cases
+    v, off = parse_varint c[1], c[2]
+    assert v == nil, "expected nil for truncated varint"
+    assert off == c[2], "offset should be unchanged"
+
+test "frame: parse_frame on empty input returns nil", ->
+  f, off = parse_frame "", 1
+  assert f == nil and off == 1, "expected nil at offset 1"
+
+test "frame: parse_frame truncated frame type varint", ->
+  f, _, err = parse_frame "\064", 1
+  assert f == nil, "expected nil frame"
+  assert err and err\match("truncated frame type"), "expected truncated type error, got #{err}"
+
+test "frame: ACK with one range parses gap and length", ->
+  data = "\002\000\000\001\000\000\005"
+  f, off = parse_frame data, 1
+  assert f and f.name == "ACK", "expected ACK"
+  assert f.ack_range_count == 1, "expected 1 range"
+  assert #f.ack_ranges == 1, "expected one parsed range"
+  assert f.ack_ranges[1].gap == 0 and f.ack_ranges[1].length == 5, "range mismatch"
+  assert off == #data + 1, "offset should be past the frame"
+
+test "frame: ACK truncated fields return nil", ->
+  cases = {
+    {"\002"}                     -- missing ack_delay, range_count, first_range
+    {"\002\000"}                 -- missing range_count, first_range
+    {"\002\000\000"}             -- missing first_range
+    {"\002\000\000\000\000"}   -- all four varints present
+  }
+  -- The first three are truncated; the fourth has all four varints.
+  for i = 1, 3
+    f, _, err = parse_frame cases[i][1], 1
+    assert f == nil and err, "expected truncation for case #{i}"
+  f = parse_frame cases[4][1], 1
+  assert f and f.name == "ACK", "four zero varints should parse"
+
+test "frame: ACK range count too large rejected", ->
+  f, _, err = parse_frame "\002\000\000\005\000", 1
+  assert f == nil, "expected nil frame"
+  assert err and err\match("ack_range_count"), "expected range count error, got #{err}"
+
+test "frame: ACK_ECN truncated ECN counters return nil", ->
+  base = "\003\000\000\000\000"
+  for i = 1, 3
+    f, _, err = parse_frame base .. string.rep("\000", i - 1), 1
+    assert f == nil and err, "expected truncation for ECN counter #{i}"
+
+test "frame: RESET_STREAM truncated fields return nil", ->
+  for data in *{"\004", "\004\001", "\004\001\001"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected truncation for RESET_STREAM"
+
+test "frame: STOP_SENDING truncated fields return nil", ->
+  for data in *{"\005", "\005\001"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected truncation for STOP_SENDING"
+
+test "frame: CRYPTO truncated offset and length return nil", ->
+  for data in *{"\006", "\006\000"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected truncation for CRYPTO"
+
+test "frame: NEW_TOKEN parsed", ->
+  token = "tok123"
+  data = "\007" .. encode_varint(#token) .. token
+  f, off = parse_frame data, 1
+  assert f and f.name == "NEW_TOKEN", "expected NEW_TOKEN"
+  assert f.token == token and f.token_length == #token, "token mismatch"
+  assert off == #data + 1, "offset should be past the frame"
+
+test "frame: NEW_TOKEN truncated length and payload return nil", ->
+  f, _, err = parse_frame "\007", 1
+  assert f == nil and err, "expected truncated length error"
+  f, _, err = parse_frame "\007\005ab", 1
+  assert f == nil, "expected nil on short payload"
+  assert err and err\match("NEW_TOKEN"), "expected NEW_TOKEN error, got #{err}"
+
+test "frame: STREAM variants without offset/length and with FIN", ->
+  -- 0x08: no offset, no length, data is the rest
+  f, _ = parse_frame "\008\001abc", 1
+  assert f and f.name == "STREAM", "expected STREAM"
+  assert f.offset == 0 and f.data == "abc" and f.fin == false, "0x08 mismatch"
+  -- 0x09: FIN added
+  f, _ = parse_frame "\009\001abc", 1
+  assert f.fin == true, "0x09 should set fin"
+  -- 0x0a: length, no offset
+  f, _ = parse_frame ("\010\001\003abc"), 1
+  assert f.offset == 0 and f.length == 3 and f.data == "abc", "0x0a mismatch"
+  -- 0x0c: offset, no length
+  f, _ = parse_frame ("\012\001\007abc"), 1
+  assert f.offset == 7 and f.data == "abc", "0x0c mismatch"
+  -- 0x0f: offset, length, fin
+  f, _ = parse_frame ("\015\001\007\003abc"), 1
+  assert f.offset == 7 and f.length == 3 and f.fin == true, "0x0f mismatch"
+
+test "frame: STREAM truncated fields and payload return nil", ->
+  for data in *{"\014", "\014\001", "\014\001\000", "\014\001\000\005ab"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected STREAM truncation"
+
+test "frame: MAX_DATA truncated returns nil", ->
+  f, _, err = parse_frame "\016", 1
+  assert f == nil and err, "expected MAX_DATA truncation"
+
+test "frame: MAX_STREAM_DATA truncated fields return nil", ->
+  for data in *{"\017", "\017\001"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected MAX_STREAM_DATA truncation"
+
+test "frame: MAX_STREAMS truncated returns nil", ->
+  for t in *{"\018", "\019"}
+    f, _, err = parse_frame t, 1
+    assert f == nil and err, "expected MAX_STREAMS truncation"
+
+test "frame: DATA_BLOCKED truncated returns nil", ->
+  f, _, err = parse_frame "\020", 1
+  assert f == nil and err, "expected DATA_BLOCKED truncation"
+
+test "frame: STREAM_DATA_BLOCKED parsed and truncated", ->
+  data = "\021" .. encode_varint(4) .. encode_varint(900)
+  f, off = parse_frame data, 1
+  assert f and f.name == "STREAM_DATA_BLOCKED", "expected STREAM_DATA_BLOCKED"
+  assert f.stream_id == 4 and f.maximum_stream_data == 900, "fields mismatch"
+  assert off == #data + 1, "offset should be past the frame"
+  for bad in *{"\021", "\021\004"}
+    f, _, err = parse_frame bad, 1
+    assert f == nil and err, "expected STREAM_DATA_BLOCKED truncation"
+
+test "frame: STREAMS_BLOCKED truncated returns nil", ->
+  for t in *{"\022", "\023"}
+    f, _, err = parse_frame t, 1
+    assert f == nil and err, "expected STREAMS_BLOCKED truncation"
+
+test "frame: NEW_CONNECTION_ID truncated fields return nil", ->
+  cases = {
+    "\024"                              -- missing retire_prior_to
+    "\024\001"                          -- missing cid_length
+    "\024\001\000\004\001\002"          -- cid longer than remaining
+    "\024\001\000\001\170"              -- missing 16-byte reset token
+  }
+  for i = 1, #cases
+    f, _, err = parse_frame cases[i], 1
+    assert f == nil and err, "expected NEW_CONNECTION_ID truncation for case #{i}"
+
+test "frame: RETIRE_CONNECTION_ID truncated returns nil", ->
+  f, _, err = parse_frame "\025", 1
+  assert f == nil and err, "expected RETIRE_CONNECTION_ID truncation"
+
+test "frame: PATH_RESPONSE truncated returns nil", ->
+  f, _, err = parse_frame "\027\170", 1
+  assert f == nil, "expected nil frame"
+  assert err and err\match("PATH_RESPONSE"), "expected PATH_RESPONSE error, got #{err}"
+
+test "frame: CONNECTION_CLOSE truncated fields return nil", ->
+  -- 0x1c needs error_code, frame_type, reason_length
+  for data in *{"\028", "\028\000", "\028\000\000"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected CONNECTION_CLOSE truncation"
+  -- reason length beyond frame data
+  f, _, err = parse_frame "\028\000\000\005ab", 1
+  assert f == nil, "expected nil on short reason"
+  assert err and err\match("CONNECTION_CLOSE"), "expected CONNECTION_CLOSE error, got #{err}"
+  -- 0x1d needs error_code and reason_length only
+  for data in *{"\029", "\029\000"}
+    f, _, err = parse_frame data, 1
+    assert f == nil and err, "expected CONNECTION_CLOSE_APP truncation"
+
+test "frame: iter_frames stops on a malformed frame", ->
+  count = 0
+  for f in iter_frames "\006"
+    count += 1
+  assert count == 0, "expected no frames from malformed data, got #{count}"
 
 util.summary "frames"
