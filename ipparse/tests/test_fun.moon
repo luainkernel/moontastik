@@ -167,4 +167,28 @@ test "zero_indexed shifts every element down by one index", ->
   assert arr[2] == "c", "arr[2] should be 'c', got '#{arr[2]}'"
   assert arr[3] == nil, "arr[3] should be nil, got '#{arr[3]}'"
 
+test "protected forwards multiple arguments and returns with nil holes", ->
+  p = fun.protected (a, b, c) -> c, b, a
+  r1, r2, r3 = p 1, nil, 3
+  assert r1 == 3, "first return should be 3, got '#{r1}'"
+  assert r2 == nil, "second return should be nil, got '#{r2}'"
+  assert r3 == 1, "third return should be 1, got '#{r3}'"
+
+test "protected returns no value on error and calls op", ->
+  original_print = _G.print
+  _G.print = -> 0
+  op_calls = 0
+  p = fun.protected (-> error "boom"), (-> op_calls += 1)
+  n = select "#", p!
+  _G.print = original_print
+  assert n == 0, "protected should return no value on error, got #{n}"
+  assert op_calls == 1, "op should be called once, got #{op_calls}"
+
+test "protected forwards 26 arguments and returns", ->
+  p = fun.protected (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) -> a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+  r = {p(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26)}
+  assert #r == 26, "expected 26 returns, got #{#r}"
+  assert r[1] == 1, "r[1] should be 1, got '#{r[1]}'"
+  assert r[26] == 26, "r[26] should be 26, got '#{r[26]}'"
+
 util.summary "fun"
