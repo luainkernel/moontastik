@@ -201,4 +201,32 @@ test "frame: type-dependent parsers dispatch correctly", ->
     f, _ = parse_frame (string.char(t) .. "\001\000\000\000"), 1
     assert f and f.type == t and f.name == "STREAM", "expected STREAM for type #{t}"
 
+-- PADDING runs are coalesced into a single frame (RFC 9000 §12.1: PADDING
+-- frames may be arbitrarily many consecutive zero bytes).
+test "frame: PADDING run coalesced into one frame", ->
+  data = string.rep("\000", 1000)
+  count = 0
+  f = nil
+  for frame in iter_frames data
+    count += 1
+    f = frame
+  assert count == 1, "expected 1 PADDING frame, got #{count}"
+  assert f.type == 0x00 and f.name == "PADDING", "expected PADDING"
+  assert f.length == 1000, "expected length 1000, got #{f.length}"
+
+test "frame: PADDING run interrupted by other frames", ->
+  data = "\000\000\001\000"  -- PADDING(2), PING, PADDING(1)
+  frames = {}
+  for frame in iter_frames data
+    frames[#frames + 1] = frame
+  assert #frames == 3, "expected 3 frames, got #{#frames}"
+  assert frames[1].name == "PADDING" and frames[1].length == 2, "expected PADDING(2)"
+  assert frames[2].name == "PING", "expected PING"
+  assert frames[3].name == "PADDING" and frames[3].length == 1, "expected PADDING(1)"
+
+test "frame: validate_frames counts a PADDING run once", ->
+  ok, msg = validate_frames string.rep("\000", 1000)
+  assert ok == true, "expected valid, got: #{msg}"
+  assert msg\match("1 frames validated"), "expected 1 frame, got: #{msg}"
+
 util.summary "frames"
