@@ -110,6 +110,12 @@ test "raw flag key does not bypass __newindex", ->
   assert t.SYN == false, "SYN should be false after clearing"
   assert t.ack_n == 42, "ack_n should be untouched"
 
+test "parse rejects data offset below 20 bytes", ->
+  raw = "\000\000\000\000\048" .. ("\000")\rep 15
+  parsed, off = tcp.parse raw, 1
+  assert parsed == nil, "parse should reject data offset < 20"
+  assert off == 1, "off should be 1 on rejection, got #{off}"
+
 test "options empty in standard header", ->
   t = mk_tcp {}
   raw = tostring t
