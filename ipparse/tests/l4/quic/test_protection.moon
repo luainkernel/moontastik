@@ -146,4 +146,69 @@ test "protection: remove_header_protection returns nil, err on bad packet", ->
   assert hdr == nil, "expected nil header"
   assert type(err) == "string", "expected error string, got #{type err}"
 
+-- recover_packet_number: RFC 9000 §A.3 truncated example.
+test "protection: recover_packet_number RFC 9000 A.3 two-byte", ->
+  pn = prot.recover_packet_number 0x9b32, 0xa82f30ea, 2
+  assert pn == 0xa82f9b32, "expected 0xa82f9b32, got #{string.format('%x', pn)}"
+
+test "protection: recover_packet_number adds window below half", ->
+  -- expected % 256 = 0xea >= hwin, truncated 0 → candidate is in the
+  -- lower half and gets one window added.
+  pn = prot.recover_packet_number 0, 0xa82f30ea, 1
+  assert pn == 0xa82f3100, "expected 0xa82f3100, got #{string.format('%x', pn)}"
+
+test "protection: recover_packet_number subtracts window above half", ->
+  -- candidate 0xa82f30f0 is above expected + hwin (0xa82f3081).
+  pn = prot.recover_packet_number 0xf0, 0xa82f3001, 1
+  assert pn == 0xa82f2ff0, "expected 0xa82f2ff0, got #{string.format('%x', pn)}"
+
+test "protection: sample_from_packet too short returns nil", ->
+  sample, err = prot.sample_from_packet "xx", 1
+  assert sample == nil, "expected nil sample"
+  assert type(err) == "string", "expected an error string"
+
+zero_mask = {
+  aes_128_ecb_block: (k, s) -> string.rep "\000", 16
+}
+
+test "protection: unprotect_header with zero mask leaves header unchanged", ->
+  pkt = string.rep "\000", 40
+  aad, pn, pn_len = prot.unprotect_header pkt, 2, "hp", true, 0, zero_mask
+  assert aad == "\000\000", "aad should be first byte + one PN byte"
+  assert pn == 0, "expected pn 0, got #{pn}"
+  assert pn_len == 1, "expected pn_len 1, got #{pn_len}"
+
+test "protection: unprotect_header rejects invalid pn_off", ->
+  aad, err = prot.unprotect_header string.rep("\000", 40), 0, "hp", true, 0, zero_mask
+  assert aad == nil, "expected nil aad"
+  assert err and err\match("pn_off"), "expected pn_off error, got #{err}"
+
+test "protection: unprotect_header rejects short mask", ->
+  short_mask = {
+    aes_128_ecb_block: (k, s) -> "\000"
+  }
+  aad, err = prot.unprotect_header (string.rep "\000", 40), 2, "hp", true, 0, short_mask
+  assert aad == nil, "expected nil aad"
+  assert err and err\match("mask"), "expected mask error, got #{err}"
+
+echo_backend = {
+  aes_128_gcm_encrypt: (key, nonce, plaintext, aad) -> nonce, plaintext, aad
+  aes_128_gcm_decrypt: (key, nonce, ciphertext, aad) -> nonce, ciphertext, aad
+}
+
+test "protection: encrypt_payload builds nonce from iv and pn", ->
+  iv = string.rep "\002", 12
+  nonce, plaintext, aad = prot.encrypt_payload "payload", "key", iv, 5, "hdr", echo_backend
+  assert nonce == prot.construct_nonce(iv, 5), "nonce should be construct_nonce(iv, pn)"
+  assert plaintext == "payload", "plaintext should be forwarded"
+  assert aad == "hdr", "aad should be forwarded"
+
+test "protection: decrypt_payload builds nonce and slices from payload offset", ->
+  iv = string.rep "\003", 12
+  pkt = "HEAD" .. "ciphertext"
+  nonce, ciphertext, aad = prot.decrypt_payload pkt, 5, "key", iv, 7, "hdr", echo_backend
+  assert nonce == prot.construct_nonce(iv, 7), "nonce should be construct_nonce(iv, pn)"
+  assert ciphertext == "ciphertext", "payload should start at payload_off"
+  assert aad == "hdr", "aad should be forwarded"
+
 util.summary "protection"
