@@ -4,6 +4,38 @@
 NAME = ipparse
 LUA_MODULE_DIR = /lib/modules/lua
 LUA ?= luajit
+BYTECODE ?=
+LUNATIC ?= lunatic
+
+# Bytecode install: Lunatik ships `lunatic`, a `luac` built from the same
+# sources and configuration as lunatik.ko (integers only); the system `luac`
+# produces chunks the kernel rejects, so never use it. BYTECODE=1 keeps debug
+# info (readable error messages), BYTECODE=strip drops it (smaller files, but
+# errors report `?:?:`). Empty BYTECODE installs source (default).
+ifeq ($(BYTECODE),)
+BYTECODE_INSTALL =
+else
+ifeq ($(BYTECODE),strip)
+BYTECODE_FLAGS = -s
+else
+BYTECODE_FLAGS =
+endif
+define BYTECODE_INSTALL
+@if ! command -v "$(LUNATIC)" >/dev/null 2>&1; then \
+	echo "ERROR: $(LUNATIC) not found: it is Lunatik's bytecode compiler (run make in the Lunatik tree, or pass LUNATIC=/path/to/bin/lunatic)." >&2; \
+	exit 1; \
+fi
+@for f in `find "${LUA_MODULE_DIR}/${NAME}" -name \*.lua`; do \
+	tmp="$$f.lunatic.tmp"; \
+	if ! $(LUNATIC) $(BYTECODE_FLAGS) -o "$$tmp" "$$f"; then \
+		rm -f "$$tmp"; \
+		echo "WARNING: $$f is not kernel-compatible, kept as source" >&2; \
+		continue; \
+	fi; \
+	mv "$$tmp" "$$f" || { echo "ERROR: cannot replace $$f" >&2; exit 1; }; \
+done
+endef
+endif
 
 
 all:
@@ -18,6 +50,7 @@ install-nobuild:
 	cp --parents `find . -name \*.lua` ${LUA_MODULE_DIR}/${NAME}
 	cp quic.pcapng ${LUA_MODULE_DIR}/${NAME}/quic.pcapng 2>/dev/null || true
 	cp quic_google.pcapng ${LUA_MODULE_DIR}/${NAME}/quic_google.pcapng 2>/dev/null || true
+	$(BYTECODE_INSTALL)
 
 uninstall:
 	rm -rf ${LUA_MODULE_DIR}/${NAME}
