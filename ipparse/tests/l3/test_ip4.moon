@@ -95,6 +95,14 @@ test "parse round-trip preserves ihl=5", ->
   parsed, _ = ip4.parse raw, 1
   assert parsed.ihl == 5, "ihl should be 5, got #{parsed.ihl}"
 
+test "pack works when options is omitted", ->
+  raw = ip4.pack ip4.new {
+    src: ip4.s2ip4 "1.2.3.4"
+    dst: ip4.s2ip4 "5.6.7.8"
+    protocol: 17
+  }
+  assert #raw == 20, "header without options should be 20 bytes, got #{#raw}"
+
 if has_data and fragmented_ip4
   test "fragmented_ip4 exposes collect", ->
     assert type(fragmented_ip4.collect) == "function", "collect should be a function"
