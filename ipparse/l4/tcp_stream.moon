@@ -10,6 +10,7 @@
 -- flood of never-completing streams cannot grow state without limit.
 -- @module l4.tcp_stream
 
+require "ipparse"  -- kernel stack budget: load the shared base first (see AGENTS.md)
 {:band} = require "ipparse.lib.bit_compat"
 :concat = table
 

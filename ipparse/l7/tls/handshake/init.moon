@@ -26,11 +26,11 @@
 --
 -- @module l7.tls.handshake
 
+{:need_bytes} = require "ipparse"
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require "ipparse.fun.tables"
 parse: parse_extension = require"ipparse.l7.tls.handshake.extension"
 {:band, :rshift, :lshift} = require"ipparse.lib.bit_compat"
-{:need_bytes} = require "ipparse"
 
 --- Packs a TLS handshake message into a binary string.
 -- Constructs the binary representation of the handshake message.

@@ -29,6 +29,7 @@
 --
 -- @module l7.tls.handshake.client_hello
 
+require "ipparse"  -- kernel stack budget: load the shared base first (see AGENTS.md)
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 
 --- Packs a TLS ClientHello message into a binary string.

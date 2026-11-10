@@ -31,9 +31,9 @@
 --
 -- @module l4.quic
 
+{:need_bytes} = require "ipparse"
 pack: sp, unpack: su, :byte = require "ipparse.lib.pack_compat"
 unpack = table.unpack or unpack
-{:need_bytes} = require "ipparse"
 :bidirectional = require "ipparse.fun.tables"
 {:band} = require"ipparse.lib.bit_compat"
 {:parse_varint} = require"ipparse.l4.quic.frames"

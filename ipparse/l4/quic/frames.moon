@@ -28,8 +28,8 @@
 --
 -- @module l4.quic.frames
 
-pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
+pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require "ipparse.fun.tables"
 byte = string.byte
 {:band, :bor, :rshift} = require"ipparse.lib.bit_compat"

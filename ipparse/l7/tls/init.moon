@@ -27,9 +27,9 @@
 --
 -- @module l7.tls
 
+{:need_bytes} = require "ipparse"
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require "ipparse.fun.tables"
-{:need_bytes} = require "ipparse"
 
 --- Packs a TLS record into a binary string.
 -- Constructs the binary representation of the TLS record.

@@ -15,6 +15,7 @@
 -- @module l3.fragmented_ip4
 
 :sort = table
+require "ipparse"  -- kernel stack budget: load the shared base first (see AGENTS.md)
 pack: sp = require"ipparse.lib.pack_compat"
 {:band, :lshift} = require"ipparse.lib.bit_compat"
 
