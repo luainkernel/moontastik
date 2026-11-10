@@ -26,9 +26,9 @@ make_hs = (hs_type, body) ->
 -- Build a minimal ClientHello body ready to be wrapped in make_hs.
 -- extensions_bin: raw concatenated extension bytes (already packed).
 make_ch_body = (extensions_bin) ->
-  client_random = string.rep "\x00", 32
-  ciphers       = "\x13\x01"   -- TLS_AES_128_GCM_SHA256
-  compressions  = "\x00"
+  client_random = string.rep "\000", 32
+  ciphers       = "\019\001"   -- TLS_AES_128_GCM_SHA256
+  compressions  = "\000"
   sp ">H c32 s1 s2 s1 s2", 0x0303, client_random, "", ciphers, compressions, extensions_bin
 
 -- Build a server_name extension (ext type = 0x0000).
@@ -65,7 +65,7 @@ test "reassemble_crypto: two frames out of order", ->
 
 test "reassemble_crypto: non-CRYPTO frames are ignored", ->
   frames = {
-    {name: "PADDING", offset: 0, data: "\x00\x00"}
+    {name: "PADDING", offset: 0, data: "\000\000"}
     {name: "CRYPTO",  offset: 0, data: "data"}
     {name: "ACK",     offset: 0, data: "ack"}
   }

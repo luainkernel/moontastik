@@ -77,16 +77,16 @@ ip_total = 20 + udp_len
 
 -- IPv4 header: placeholder checksum
 ip_no_csum = sp(">BBHHHBBH", 0x45, 0, ip_total, 0x1234, 0x4000, 64, 17, 0) ..
-  "\xc0\xa8\x01\x01" ..  -- src 192.168.1.1
-  "\x01\x01\x01\x01"     -- dst 1.1.1.1
+  "\192\168\001\001" ..  -- src 192.168.1.1
+  "\001\001\001\001"     -- dst 1.1.1.1
 ip_csum   = checksum ip_no_csum
 ip_hdr    = sp(">BBHHHBBH", 0x45, 0, ip_total, 0x1234, 0x4000, 64, 17, ip_csum) ..
-  "\xc0\xa8\x01\x01" .. "\x01\x01\x01\x01"
+  "\192\168\001\001" .. "\001\001\001\001"
 
 -- Ethernet header
-eth_hdr = "\xaa\xbb\xcc\xdd\xee\xff" ..  -- dst mac
-          "\x11\x22\x33\x44\x55\x66" ..  -- src mac
-          "\x08\x00"                      -- ethertype IPv4
+eth_hdr = "\170\187\204\221\238\255" ..  -- dst mac
+          "\017\034\051\068\085\102" ..  -- src mac
+          "\008\000"                      -- ethertype IPv4
 
 -- UDP header
 udp_hdr = sp ">HHHH", 1234, 443, udp_len, 0
@@ -110,10 +110,10 @@ pn_off_quic = q.pn_off - off3 + 1   -- 1-based offset within the QUIC packet
 
 -- ── Layer 2 ──────────────────────────────────────────────────────────────────
 test "integration: L2 dst MAC = aa:bb:cc:dd:ee:ff", ->
-  assert e.dst == "\xaa\xbb\xcc\xdd\xee\xff", "dst MAC mismatch"
+  assert e.dst == "\170\187\204\221\238\255", "dst MAC mismatch"
 
 test "integration: L2 src MAC = 11:22:33:44:55:66", ->
-  assert e.src == "\x11\x22\x33\x44\x55\x66", "src MAC mismatch"
+  assert e.src == "\017\034\051\068\085\102", "src MAC mismatch"
 
 test "integration: L2 EtherType = 0x0800 (IPv4)", ->
   assert e.protocol == 0x0800, "expected 0x0800, got #{string.format('0x%04x', e.protocol)}"

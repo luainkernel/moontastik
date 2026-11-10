@@ -43,7 +43,7 @@ test "sha: NIST long message", ->
 
 -- HMAC-SHA256 (RFC 4231).
 test "hmac: RFC 4231 test case 1", ->
-  key = string.rep "\x0b", 20
+  key = string.rep "\011", 20
   digest = hmac sha256, key, "Hi There"
   assert #digest == 32, "hmac must return a 32-byte binary digest"
   assert hex(digest) ==

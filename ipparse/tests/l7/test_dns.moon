@@ -98,7 +98,7 @@ test "answer ttl is 3600", ->
 
 test "answer rdata is 93.184.216.34", ->
   msg, _ = dns.parse dns_response, 1, false
-  assert msg.answers[1].rdata == "\x5d\xb8\xd8\x22", "rdata mismatch"
+  assert msg.answers[1].rdata == "\093\184\216\034", "rdata mismatch"
 
 test "types bidirectional: types[1] == 'A'", ->
   assert dns.types[1] == "A", "types[1] should be 'A', got '#{dns.types[1]}'"

@@ -10,26 +10,26 @@ ip4 = require"ipparse.l3.ip4"
 has_data, fragmented_ip4 = pcall require, "ipparse.l3.fragmented_ip4"
 
 test "ip42s converts 4 bytes to dotted decimal", ->
-  result = ip4.ip42s "\xc0\xa8\x01\x01"
+  result = ip4.ip42s "\192\168\001\001"
   assert result == "192.168.1.1", "expected '192.168.1.1', got '#{result}'"
 
 test "s2ip4 converts dotted decimal to 4 bytes", ->
   result = ip4.s2ip4 "192.168.1.1"
-  assert result == "\xc0\xa8\x01\x01", "s2ip4 failed"
+  assert result == "\192\168\001\001", "s2ip4 failed"
 
 test "ip42s/s2ip4 round-trip", ->
-  original = "\x0a\x00\x00\x01"
+  original = "\010\000\000\001"
   assert ip4.s2ip4(ip4.ip42s(original)) == original, "ip42s/s2ip4 round-trip failed"
 
 test "net42s converts 5 bytes to CIDR notation", ->
   -- mask=24, then 192.168.1.0
-  bin = "\x18\xc0\xa8\x01\x00"
+  bin = "\024\192\168\001\000"
   result = ip4.net42s bin
   assert result == "192.168.1.0/24", "expected '192.168.1.0/24', got '#{result}'"
 
 test "s2net4 converts CIDR to 5 bytes", ->
   result = ip4.s2net4 "192.168.1.0/24"
-  assert result == "\x18\xc0\xa8\x01\x00", "s2net4 failed"
+  assert result == "\024\192\168\001\000", "s2net4 failed"
 
 test "net42s/s2net4 round-trip", ->
   original = "10.0.0.0/8"

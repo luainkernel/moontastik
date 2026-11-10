@@ -22,7 +22,7 @@ test "extension: parse round-trips pack", ->
   assert tostring(e) == raw, "pack should round-trip"
 
 test "extension: truncated header returns nil", ->
-  e, off = ext.parse "\x00", 1
+  e, off = ext.parse "\000", 1
   assert e == nil and off == 1, "should return nil, input offset"
 
 test "extension: truncated data returns nil", ->
@@ -40,11 +40,11 @@ test "server_name: parses single host_name", ->
   assert not s.incomplete, "should be complete"
 
 test "server_name: truncated list returns nil with error", ->
-  s, off, err = sn.parse "\x00", 1
+  s, off, err = sn.parse "\000", 1
   assert s == nil and err, "should return nil, off, err"
 
 test "server_name: truncated entry flagged incomplete", ->
-  bad = sp(">H", 20) .. "\x00\x00\x10ab"  -- announces 16-byte name, has 2
+  bad = sp(">H", 20) .. "\000\000\016ab"  -- announces 16-byte name, has 2
   s = sn.parse bad, 1
   assert s and s.incomplete, "should be flagged incomplete"
 
