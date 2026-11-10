@@ -11,7 +11,7 @@
 -- Context struct sizes are opaque upper bounds validated against the installed
 -- headers (424 bytes for gcm_context, 288 bytes for aes_context).
 -- If mbedTLS is compiled with MBEDTLS_GCM_LARGE_TABLE the GCM context
--- grows to ~4200 bytes; in that case the GCM_CTX_SIZE constant below must
+-- grows to ~4200 bytes; in that case the `512` in the cdef below must
 -- be raised accordingly.
 --
 -- Implements:
@@ -25,9 +25,8 @@
 ffi = require "ffi"
 
 -- Opaque struct sizes (safe upper bounds for default build config).
--- Raise GCM_CTX_SIZE to 4608 if MBEDTLS_GCM_LARGE_TABLE is enabled.
-GCM_CTX_SIZE = 512
-AES_CTX_SIZE = 512
+-- Raise the GCM `512` in the cdef below to 4608 if MBEDTLS_GCM_LARGE_TABLE
+-- is enabled.
 
 pcall ffi.cdef, [[
   /* Opaque context structs */
