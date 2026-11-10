@@ -77,4 +77,49 @@ if is_fallback
     expected = from_hex "2c"
     assert got == expected, "got: #{got}\nexp: #{expected}"
 
+-- More than eight arguments exercises the generic vararg path.
+test "pack_compat: >B x10 more than 8 args", ->
+  got = pack ">B B B B B B B B B B", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+  expected = from_hex "0102030405060708090a"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- Padding byte between integers.
+test "pack_compat: >H x H", ->
+  got = pack ">H x H", 1, 2
+  expected = from_hex "0001000002"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- String options in the middle of integer fields.
+test "pack_compat: >H c2 H", ->
+  got = pack ">H c2 H", 1, "ab", 2
+  expected = from_hex "000161620002"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+test "pack_compat: >H z H", ->
+  got = pack ">H z H", 1, "ab", 2
+  expected = from_hex "00016162000002"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+test "pack_compat: >H s2 H", ->
+  got = pack ">H s2 H", 1, "ab", 2
+  expected = from_hex "0001000261620002"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- Signed 32-bit negative value wraps to two's complement.
+test "pack_compat: >i4 negative", ->
+  got = pack ">i4", -2
+  expected = from_hex "fffffffe"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- 64-bit little-endian value above 2^32 keeps its high word.
+test "pack_compat: <I8 above 2^32", ->
+  got = pack "<I8", 0x100000000
+  expected = from_hex "0000000001000000"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- Empty format yields an empty string.
+test "pack_compat: empty format", ->
+  got = pack ""
+  assert got == "", "got: #{got}"
+
 util.summary "pack_compat"
