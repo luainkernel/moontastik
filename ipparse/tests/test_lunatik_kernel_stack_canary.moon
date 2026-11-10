@@ -13,6 +13,10 @@
 -- chain, has already overflowed twice in practice. This test simulates nested
 -- first loads of every entry module and requires a minimum depth margin.
 --
+-- Probes run under `pcall`, which itself consumes C stack, so the measured
+-- depths describe a consumer that loads under `pcall`: they are pessimistic by
+-- roughly one level compared with a bare `require`.
+--
 -- Run with: lunatik run ipparse/tests/test_lunatik_kernel_stack_canary
 
 -- Number of nested requires a consumer may go through before first touching an
@@ -37,6 +41,7 @@ ENTRY_MODULES = {
   "ipparse.l7.dns"
   "ipparse.l7.tls"
   "ipparse.l7.tls.handshake"
+  "ipparse.l7.tls.handshake.client_hello"
   "ipparse.l7.quic"
   "ipparse.l7.quic.session"
   "ipparse.lib.hkdf"
@@ -94,13 +99,29 @@ is_stack_error = (err) ->
 
 min_max = nil
 
+truncate = (err) ->
+  msg = (tostring err)\gsub "%s+", " "
+  msg\sub 1, 120
+
+HEAVY_FUN = { "ipparse.fun", "ipparse.fun.iter", "ipparse.fun.memo", "ipparse.fun.protected" }
+BASE_EXEMPT = {
+  ["ipparse"]: true
+  ["ipparse.fun"]: true
+  ["ipparse.lib.hkdf"]: true
+  ["ipparse.lib.crypto.backend.lunatik"]: true
+}
+
 for i = 1, #ENTRY_MODULES
   mod = ENTRY_MODULES[i]
   max_depth = 0
   skipped = false
   skip_err = nil
+  first_err = nil
+  first_fail_depth = nil
   ok0, err0 = probe mod, 0
   if not ok0
+    first_err = err0
+    first_fail_depth = 0
     if is_stack_error err0
       max_depth = 0
     else
@@ -108,21 +129,52 @@ for i = 1, #ENTRY_MODULES
       skip_err = err0
   if not skipped
     for d = 1, MAX_PROBE
-      ok, _err = probe mod, d
+      ok, err = probe mod, d
       if ok
         max_depth = d
       else
+        if first_err == nil
+          first_err = err
+          first_fail_depth = d
         break
 
-  total += 1
-  if max_depth >= MAX_PROBE
+  -- Base-first guard: every entry module must load the shared base `ipparse`
+  -- first, and a protocol module must not drag in the heavy `ipparse.fun`
+  -- facade or its submodules. See AGENTS.md "Kernel stack budget".
+  base_err = nil
+  exempt_base = BASE_EXEMPT[mod] or false
+  exempt_fun = mod == "ipparse.fun"
+  unload_ipparse!
+  ok_mod, err_mod = pcall require, mod
+  if not ok_mod
+    base_err = "reload failed: #{truncate err_mod}"
+  else
+    if not exempt_base and package.loaded["ipparse"] == nil
+      base_err = "did not load ipparse first"
+    if not exempt_fun
+      for k = 1, #HEAVY_FUN
+        if package.loaded[HEAVY_FUN[k]] != nil
+          base_err = "pulled in #{HEAVY_FUN[k]}"
+          break
+  unload_ipparse!
+
+  if first_err != nil
+    stop_kind = is_stack_error(first_err) and "stack" or "other"
+    print "CANARY\t#{mod}\tmax_depth=#{max_depth}\tstop=#{stop_kind}\t#{truncate first_err}"
+  elseif max_depth >= MAX_PROBE
     print "CANARY\t#{mod}\tmax_depth>=#{MAX_PROBE}"
   else
     print "CANARY\t#{mod}\tmax_depth=#{max_depth}"
   if skipped
     print "SKIP\t#{mod}\t#{skip_err}"
   else
-    if max_depth >= REQUIRED_DEPTH
+    total += 1
+    non_stack_fail = first_err != nil and first_fail_depth >= 1 and not is_stack_error(first_err)
+    if base_err != nil
+      print "FAIL\tstack canary: #{mod} #{base_err}"
+    elseif non_stack_fail
+      print "FAIL\tstack canary: #{mod} failed at depth #{first_fail_depth} with a non-stack error: #{first_err}"
+    elseif max_depth >= REQUIRED_DEPTH
       pass += 1
       print "PASS\tstack canary: #{mod} loads from depth #{max_depth}"
     else
