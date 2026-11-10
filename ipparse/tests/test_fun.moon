@@ -191,4 +191,80 @@ test "protected forwards 26 arguments and returns", ->
   assert r[1] == 1, "r[1] should be 1, got '#{r[1]}'"
   assert r[26] == 26, "r[26] should be 26, got '#{r[26]}'"
 
+test "iter with a positive step yields every other element", ->
+  arr = iter({10, 20, 30, 40}, 2)\toarray!
+  assert #arr == 2, "expected 2 elements, got #{#arr}"
+  assert arr[1] == 20 and arr[2] == 40, "step iteration mismatch"
+
+test "iter any returns the first match", ->
+  v = iter({1, 2, 3, 4})\any (x) -> x % 2 == 0
+  assert v == 2, "expected 2, got #{v}"
+
+test "iter getn returns the nth matching element", ->
+  v = iter({10, 20, 30})\getn 2, (x) -> true
+  assert v == 20, "expected 20, got #{v}"
+
+test "iter each visits every element and returns the iterator", ->
+  seen = { }
+  it = iter {1, 2, 3}
+  r = it\each (v) -> seen[#seen + 1] = v
+  assert #seen == 3, "expected 3 visited elements, got #{#seen}"
+  assert seen[1] == 1 and seen[3] == 3, "visited values mismatch"
+  assert r == it, "each should return the iterator"
+
+test "iter imap exposes a one-based index", ->
+  arr = iter({10, 20, 30})\imap((v, i) -> v + i)\toarray!
+  assert arr[1] == 11 and arr[2] == 22 and arr[3] == 33, "imap mismatch"
+
+test "iter reduce with an initial value", ->
+  sum = iter({1, 2, 3})\reduce ((acc, v) -> acc + v), 10
+  assert sum == 16, "sum should be 16, got #{sum}"
+
+test "range with a step", ->
+  arr = { }
+  for i in range 1, 10, 3
+    arr[#arr + 1] = i
+  assert #arr == 4, "expected 4 elements, got #{#arr}"
+  assert arr[1] == 1 and arr[4] == 10, "stepped range mismatch"
+
+test "generate wraps a producer function", ->
+  n = 0
+  gen = fun.generate ->
+    n += 1
+    if n <= 3
+      n
+  arr = gen\toarray!
+  assert #arr == 3, "expected 3 elements, got #{#arr}"
+  assert arr[1] == 1 and arr[3] == 3, "generated values mismatch"
+
+test "memo forwards nil without caching", ->
+  fn = memo (x) ->
+    if x == nil
+      42
+    else
+      x * 2
+  assert fn(nil) == 42, "nil should be forwarded to the original"
+  assert fn(5) == 10, "non-nil should still be cached"
+
+test "memoN handles nil arguments", ->
+  count = 0
+  fn = memoN (a, b) ->
+    count += 1
+    (a or 0) + (b or 0)
+  assert fn(1, nil) == 1, "expected 1"
+  assert fn(1, nil) == 1, "expected cached 1"
+  assert fn(nil, nil) == 0, "expected 0 for two nils"
+  assert count == 2, "original called #{count} times, expected 2"
+
+test "opairs sorts mixed key types without error", ->
+  keys = { }
+  for k in opairs {[1]: "number", a: "string"}
+    keys[#keys + 1] = k
+  assert #keys == 2, "expected 2 keys, got #{#keys}"
+
+test "fun.map table shortcut maps an array", ->
+  arr = fun.map({1, 2, 3}, (x) -> x * 2)\toarray!
+  assert #arr == 3, "expected 3 elements, got #{#arr}"
+  assert arr[1] == 2 and arr[3] == 6, "table shortcut map mismatch"
+
 util.summary "fun"
