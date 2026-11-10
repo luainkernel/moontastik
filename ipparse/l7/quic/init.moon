@@ -28,6 +28,11 @@
 --
 -- @module l7.quic
 
+-- Kernel stack is only 16 KiB and Lunatik's C-call guard follows the stack
+-- actually consumed: `ipparse.fun` fails to load if first required too deep in a
+-- require chain, so load it first. See `protected`'s note in `ipparse/fun.moon`.
+require "ipparse"  -- load ipparse/fun first, at shallow require depth (Lunatik's C-stack guard)
+
 frames_mod = require"ipparse.l4.quic.frames"
 Session    = require"ipparse.l7.quic.session"
 
