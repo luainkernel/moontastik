@@ -24,10 +24,6 @@ do
     "#{module_root}/?/init.lua"
   }, ";"
 
-  ok_ffi = pcall require, "ffi"
-  unless ok_ffi
-    package.preload.ffi = -> require "ipparse.lib.ffi_stub"
-
 pack_compat = require "ipparse.lib.pack_compat"
 pack_compat.inject!
 
