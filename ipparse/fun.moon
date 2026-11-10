@@ -269,6 +269,15 @@ _ = nil
 -- on the hot path (per-packet), and a vararg implementation would allocate a
 -- table and call `unpack` on every invocation. The trade-off is a hard limit
 -- of 26 arguments and 26 return values.
+--
+-- Implementation note: the error handler and the returned function are defined
+-- as flat locals rather than inline in the `xpcall` call. The Lua parser is
+-- recursive in C, and Lunatik runs on a 16 KiB kernel stack with a C-call
+-- guard derived from the stack actually consumed: inline function expressions
+-- nested two deep here pushed `require "ipparse.fun"` over that guard when the
+-- module was loaded one `require` level deeper than the top level. Defining
+-- them at block level reduces the parser's C recursion; the API and semantics
+-- are unchanged.
 -- @tparam function fn
 -- @tparam[opt] function op
 -- @treturn function A new, protected function (max 26 args/returns).
@@ -278,15 +287,16 @@ _ = nil
 -- -- @treturn ...any|nil Results from `fn` or `op` (see main description for conditions).
 protected = (fn, op) ->
   leak_debug = _ and _.leak_debug
-  (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
-    ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall (
-      -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
-    ), (err) ->
-      print err
-      print debug.traceback! if leak_debug
-      op! if op
+  onerror = (err) ->
+    print err
+    print debug.traceback! if leak_debug
+    op! if op
+  run = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
+    call = -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+    ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall call, onerror
     if ok
       a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+  run
 
 
 --- The main export table for the `fun` module.
