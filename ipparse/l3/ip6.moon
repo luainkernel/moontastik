@@ -44,7 +44,9 @@ pack = =>
   if type(data) == "table"
     data.checksum = 0
     d = "#{data}"  -- Let the L4 payload recalculate its length
-    data.checksum = checksum6 @src, @dst, @next_header, d
+    csum = checksum6 @src, @dst, @next_header, d
+    csum = 0xffff if @next_header == 17 and csum == 0
+    data.checksum = csum
     data = "#{data}"
   @payload_len = #data
   @vtf = bor(lshift(@version, 28), lshift(@traffic_class or 0, 20), @flow_label or 0)
