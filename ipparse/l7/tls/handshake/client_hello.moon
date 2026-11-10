@@ -50,7 +50,8 @@ _mt =
 -- @treturn table Parsed ClientHello message as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
-  version, client_random, session_id, ciphers, compressions, extensions, _off = su ">H c32 s1 s2 s1 s2", @, off
+  ok, version, client_random, session_id, ciphers, compressions, extensions, _off = pcall su, ">H c32 s1 s2 s1 s2", @, off
+  return nil, off unless ok
   setmetatable({
     :version, :client_random, :session_id, :ciphers, :compressions, :extensions
   }, _mt), _off

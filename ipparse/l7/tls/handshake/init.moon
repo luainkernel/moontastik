@@ -30,6 +30,7 @@ pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
 parse: parse_extension = require"ipparse.l7.tls.handshake.extension"
 {:band, :rshift, :lshift} = require"ipparse.lib.bit_compat"
+{:need_bytes} = require "ipparse"
 
 --- Packs a TLS handshake message into a binary string.
 -- Constructs the binary representation of the handshake message.
@@ -50,6 +51,7 @@ _mt =
 -- @treturn table Parsed handshake message as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
+  return nil, off unless need_bytes @, off, 4
   _type, _len, len, _off = su ">B BH", @, off
   len += lshift(_len, 16)
   setmetatable({type: _type, :len}, _mt), _off
