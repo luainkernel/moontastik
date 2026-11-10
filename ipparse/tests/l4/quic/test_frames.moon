@@ -175,4 +175,30 @@ test "frame: UNKNOWN frame does not get stuck", ->
   f2, off2 = parse_frame data, off1
   assert f2.name == "PING", "expected PING after UNKNOWN, got #{f2.name}"
 
+-- Dispatch: type-dependent parsers receive their frame type
+test "frame: type-dependent parsers dispatch correctly", ->
+  -- ACK_ECN (0x03): 4 base varints + 3 ECN counts
+  data = "\003\000\000\000\000\000\000\000"
+  f, _ = parse_frame data, 1
+  assert f.type == 0x03 and f.name == "ACK_ECN", "expected ACK_ECN"
+
+  -- MAX_STREAMS_UNI (0x13)
+  f, _ = parse_frame "\019\001", 1
+  assert f.type == 0x13 and f.name == "MAX_STREAMS_UNI", "expected MAX_STREAMS_UNI"
+
+  -- STREAMS_BLOCKED_BIDI (0x16) / UNI (0x17)
+  f, _ = parse_frame "\022\001", 1
+  assert f.type == 0x16 and f.name == "STREAMS_BLOCKED_BIDI", "expected STREAMS_BLOCKED_BIDI"
+  f, _ = parse_frame "\023\001", 1
+  assert f.type == 0x17 and f.name == "STREAMS_BLOCKED_UNI", "expected STREAMS_BLOCKED_UNI"
+
+  -- CONNECTION_CLOSE_APP (0x1d): error_code, reason_length (no frame_type field)
+  f, _ = parse_frame "\029\000\000", 1
+  assert f.type == 0x1d and f.name == "CONNECTION_CLOSE_APP", "expected CONNECTION_CLOSE_APP"
+
+  -- STREAM types 0x08..0x0f all dispatch to parse_stream_frame
+  for t = 0x08, 0x0f
+    f, _ = parse_frame (string.char(t) .. "\001\000\000\000"), 1
+    assert f and f.type == t and f.name == "STREAM", "expected STREAM for type #{t}"
+
 util.summary "frames"
