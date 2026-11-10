@@ -191,6 +191,6 @@ net62s = =>
 -- @treturn string Binary string representing the IPv6 network address.
 s2net6 = =>
   @, mask = @match"([^/]*)/?([^/]*)$"
-  sp ">B HHHH HHHH", (tonumber mask or 128), unpack parse_ip6 @
+  sp ">B HHHH HHHH", (tonumber(mask) or 128), unpack parse_ip6 @
 
 :parse, :new, :pack, :ip62s, :s2ip6, :net62s, :s2net6

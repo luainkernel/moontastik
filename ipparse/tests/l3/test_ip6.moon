@@ -84,6 +84,12 @@ test "round-trip preserves src and dst", ->
   assert parsed.src == src, "src mismatch after round-trip"
   assert parsed.dst == dst, "dst mismatch after round-trip"
 
+test "s2net6 defaults to /128 when no mask given", ->
+  result = ip6.s2net6 "::1"
+  assert #result == 17, "s2net6 should return 17 bytes, got #{#result}"
+  mask = result\byte 1
+  assert mask == 128, "default mask should be 128, got #{mask}"
+
 test "data_off is off+40 for IPv6 header", ->
   hdr = ip6.new {
     src: ip6.s2ip6 "::1"
