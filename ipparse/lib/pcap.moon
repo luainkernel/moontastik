@@ -30,8 +30,6 @@
 --
 -- @module lib.pcap
 
-{:lshift} = require"ipparse.lib.bit_compat"
-
 {:unpack, :pack} = require "ipparse.lib.pack_compat"
 su = unpack
 sp = pack
@@ -122,8 +120,9 @@ parse_epb = (data, offset, endian) ->
   packet_start = offset + 28  -- After all the headers
   packet_data = data\sub packet_start, packet_start + captured_len - 1
 
-  -- Calculate timestamp (microseconds since epoch, split into high/low 32-bit words)
-  timestamp = lshift(timestamp_high, 32) + timestamp_low
+  -- Calculate timestamp (microseconds since epoch, split into high/low 32-bit words).
+  -- Multiplication, not lshift: LuaJIT/bit_pure shifts are modulo 32.
+  timestamp = timestamp_high * 4294967296 + timestamp_low
 
   epb = {
     :block_type, :block_len, :interface_id, timestamp_hi: timestamp_high, timestamp_lo: timestamp_low, :timestamp
