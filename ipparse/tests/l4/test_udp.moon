@@ -62,4 +62,23 @@ test "checksum6 computes IPv6 UDP pseudo-header checksum", ->
   expected = 0xFFFF if expected == 0
   assert got == expected, "checksum6 mismatch: got #{got}, expected #{expected}"
 
+test "pack serializes string data once and round-trips it", ->
+  u = udp.new {spt: 1000, dpt: 2000, checksum: 0, data: "hello"}
+  raw = tostring u
+  parsed, _ = udp.parse raw, 1
+  assert parsed.len == 13, "len should be 13, got #{parsed.len}"
+  assert raw\sub(parsed.data_off) == "hello", "payload should round-trip"
+
+test "pack calls __tostring of data exactly once", ->
+  calls = 0
+  obj = setmetatable {}, __tostring: =>
+    calls += 1
+    "payload"
+  u = udp.new {spt: 1000, dpt: 2000, checksum: 0, data: obj}
+  raw = tostring u
+  assert calls == 1, "__tostring should be called once, got #{calls}"
+  parsed, _ = udp.parse raw, 1
+  assert parsed.len == 15, "len should be 15 (8+7), got #{parsed.len}"
+  assert raw\sub(parsed.data_off) == "payload", "object payload should round-trip"
+
 util.summary "l4/udp"

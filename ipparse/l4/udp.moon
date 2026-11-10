@@ -32,8 +32,9 @@ checksum6: l3_checksum6 = require "ipparse.l3.lib"
 -- @tparam table self The UDP header object.
 -- @treturn string Binary string representing the packed UDP header and payload.
 pack = =>
-  @len = 8 + (@data and #"#{@data}" or 0)
-  sp(">H H H H", @spt, @dpt, @len, @checksum) .. "#{@data or ''}"
+  data = @data and "#{@data}" or ""
+  @len = 8 + #data
+  sp(">H H H H", @spt, @dpt, @len, @checksum) .. data
 
 _mt = __tostring: pack
 
