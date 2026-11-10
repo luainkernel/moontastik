@@ -41,4 +41,7 @@ return normalize(bit) if ok and bit
 -- Use native operators for Lua 5.3+ (through helper module)
 ok, bit = pcall require, "ipparse.lib.bit53"
 return normalize(bit) if ok and bit
+-- Pure-Lua arithmetic fallback (Lua 5.1 without LuaJIT's `bit`)
+ok, bit = pcall require, "ipparse.lib.bit_pure"
+return normalize(bit) if ok and bit
 error "no bitwise compatibility backend available"
