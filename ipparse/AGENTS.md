@@ -9,7 +9,12 @@ but usable in plain LuaJIT/Lua 5.1+.
 ```
 ipparse/
 ├── init.moon          # Shared helpers: bin2hex, hexdump, hex2bin, dump, …
-├── fun.moon           # Functional primitives: iter, memo, bidirectional, …
+├── fun.moon           # Facade re-exporting fun/ primitives: iter, memo, bidirectional, …
+├── fun/               # Functional primitives, loadable separately
+│   ├── tables.moon    #   bidirectional, zero_indexed, opairs (used by protocols)
+│   ├── memo.moon      #   memo, memoN
+│   ├── iter.moon      #   iter, wrap, range, generate
+│   └── protected.moon #   protected, leak_debug
 ├── l2/                # Layer 2 — Ethernet
 ├── l3/                # Layer 3 — IPv4, IPv6, fragmented IP
 ├── l4/                # Layer 4 — TCP, UDP, QUIC (with crypto/frames)

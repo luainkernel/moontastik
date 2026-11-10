@@ -11,12 +11,12 @@
 
 util = require "ipparse.lib.util"
 
--- Preload ipparse.fun at the first level: almost every module below requires
--- it (often two or three `require` levels down), and Lunatik's 16 KiB kernel
--- stack makes loading it from inside a pcall(require …) chain tight. Loading
--- it once here, where the C stack is shallowest, keeps the suite independent
--- of the chain depth. Real usage requires ipparse.fun at depth 3 at most
--- (e.g. script → ipparse.l7.quic.session → ipparse.l4.quic → fun).
+-- Preload ipparse.fun at the first level: protocol modules below now require
+-- only the small `ipparse.fun.tables` subset, but `test_fun` exercises the
+-- full facade and all four submodules. Lunatik's 16 KiB kernel stack makes
+-- loading them from inside a pcall(require …) chain tight, so loading the
+-- facade once here, where the C stack is shallowest, keeps the suite
+-- independent of the chain depth.
 require "ipparse.fun"
 
 mods = {
