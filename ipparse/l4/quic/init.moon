@@ -51,7 +51,7 @@ flags = bidirectional {
 -- @treturn string Binary string representing the packed QUIC header and payload.
 pack = =>
   if @long_header
-    sp(">BH s1 s1", @byte1, @version, @dst_connection_id, @src_connection_id)..(@data and "#{@data}" or "")
+    sp(">B I4 s1 s1", @byte1, @version, @dst_connection_id, @src_connection_id)..(@data and "#{@data}" or "")
   else
     sp(">B", @byte1) .. @dst_connection_id
 

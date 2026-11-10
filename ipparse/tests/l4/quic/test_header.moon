@@ -114,4 +114,14 @@ test "header: FIXED_BIT accessible", ->
   h, _ = quic.parse pkt, 1
   assert h.FIXED_BIT == 0x40, "FIXED_BIT should be 0x40"
 
+test "header: pack long header round-trips version and CIDs", ->
+  pkt = "\192\000\000\000\001\004abcd\002ef\000\005\001\002\003\004\005"
+  h = quic.parse pkt, 1
+  packed = quic.pack(h) .. "\000\005\001\002\003\004\005"
+  h2 = quic.parse packed, 1
+  assert h2, "round-trip parse failed"
+  assert h2.version == 1, "expected version 1, got #{h2.version}"
+  assert h2.dst_connection_id == "abcd", "dcid mismatch"
+  assert h2.src_connection_id == "ef", "scid mismatch"
+
 util.summary "header"
