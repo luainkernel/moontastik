@@ -11,6 +11,21 @@ util = require "ipparse.lib.util"
 {:test, :summary} = util
 {:hex_to_bin} = require "ipparse.lib.hkdf"
 
+-- Snapshot package state before installing the stubs below, so nothing leaks
+-- into the modules loaded after this one in the same test run.
+preload_before = {
+  crypto: package.preload.crypto
+  crypto_ecb: package.preload["crypto.ecb"]
+}
+loaded_before = {
+  crypto: package.loaded["crypto"]
+  crypto_ecb: package.loaded["crypto.ecb"]
+  backend: package.loaded["ipparse.lib.crypto.backend.lunatik"]
+}
+loaded_keys_before = {}
+for k in pairs package.loaded
+  loaded_keys_before[k] = true
+
 calls = {
   aead_new: 0
   aead_close: 0
@@ -118,5 +133,17 @@ test "lunatik: AES-128-ECB encrypt uses crypto.ecb", ->
   out = b.aes_128_ecb_block key, block
   assert #out == 16, "output must be 16 bytes"
   assert out\byte(1) == string.byte("Z"), "first byte should be transformed by stub"
+
+-- Restore package state altered by the stubs above.
+leaked = {}
+for k in pairs package.loaded
+  leaked[#leaked + 1] = k unless loaded_keys_before[k]
+for k in *leaked
+  package.loaded[k] = nil
+package.preload.crypto = preload_before.crypto
+package.preload["crypto.ecb"] = preload_before.crypto_ecb
+package.loaded["crypto"] = loaded_before.crypto
+package.loaded["crypto.ecb"] = loaded_before.crypto_ecb
+package.loaded["ipparse.lib.crypto.backend.lunatik"] = loaded_before.backend
 
 summary "lib.crypto.lunatik"
