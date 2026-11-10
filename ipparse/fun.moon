@@ -63,8 +63,10 @@ memoN = =>
 bidirmt_gen = ->
   _mem = setmetatable {}, __mode: "kv"
   (val) =>
-    if _k = _mem[val]
-      return _k
+    _k = _mem[val]
+    -- rawget (not @[_k]) validates without re-entering __index, which would
+    -- recurse on an absent key.
+    return _k if _k and rawget(@, _k) == val
     for k, v in pairs @
       if v == val
         _mem[val] = k
