@@ -90,6 +90,30 @@ test "s2net6 defaults to /128 when no mask given", ->
   mask = result\byte 1
   assert mask == 128, "default mask should be 128, got #{mask}"
 
+test "pack recomputes vtf from traffic_class", ->
+  p = ip6.new {
+    src: ip6.s2ip6 "::1"
+    dst: ip6.s2ip6 "::2"
+    next_header: 17
+  }
+  p.traffic_class = 0xff
+  raw = tostring p
+  second = raw\byte 2
+  assert second == 0xf0, "second octet should be 0xf0, got #{second}"
+
+test "re-packed parsed IPv6 header is byte-identical", ->
+  hdr = ip6.new {
+    src: ip6.s2ip6 "2001:db8::1"
+    dst: ip6.s2ip6 "2001:db8::2"
+    next_header: 17
+    traffic_class: 0xab
+    flow_label: 0x12345
+  }
+  raw1 = tostring hdr
+  parsed, _ = ip6.parse raw1, 1
+  raw2 = tostring parsed
+  assert raw2 == raw1, "re-packed parsed header should be identical"
+
 test "data_off is off+40 for IPv6 header", ->
   hdr = ip6.new {
     src: ip6.s2ip6 "::1"
