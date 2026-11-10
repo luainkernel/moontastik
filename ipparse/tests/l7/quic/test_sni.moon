@@ -128,4 +128,24 @@ test "sni_from_plaintext: RFC 9001 §A.2 payload -> 'example.com'", ->
   assert sni == "example.com",
     "expected 'example.com', got: #{tostring sni}"
 
+-- ── Group D : adversarial input must never raise ─────────────────────────────
+
+-- Minimal ClientHello body prefix: version, 32-byte random, empty session id,
+-- one cipher, one compression method. `ext` is appended as the s2 extensions.
+ch_prefix = "\003\003" .. ("r")\rep(32) .. "\000" .. "\000\002\019\001" .. "\001\000"
+
+-- Wrap a handshake body: type 0x01 + 3-byte big-endian length.
+hs_msg = (body) ->
+  "\001\000" .. string.char(math.floor(#body / 256), #body % 256) .. body
+
+test "sni_from_tls: truncated extension -> nil, no exception", ->
+  ok, res = pcall sni_from_tls, hs_msg(ch_prefix .. "\000\003\000\000\009")
+  assert ok, "sni_from_tls must not raise on a truncated extension"
+  assert res == nil, "expected nil, got: #{tostring res}"
+
+test "sni_from_tls: truncated ClientHello -> nil, no exception", ->
+  ok, res = pcall sni_from_tls, hs_msg("\003\003abc")
+  assert ok, "sni_from_tls must not raise on a truncated ClientHello"
+  assert res == nil, "expected nil, got: #{tostring res}"
+
 util.summary "l7.quic.sni"
