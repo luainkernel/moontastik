@@ -57,8 +57,9 @@ mk_ecb = ->
   key = nil
   {
     setkey: (k) => key = k
-    encryptblock: (block) =>
+    encrypt: (iv, block) =>
       assert key == string.rep("\x22", 16), "unexpected ECB key"
+      assert iv == "", "ECB expects an empty IV"
       assert #block == 16, "ECB block must be 16 bytes"
       "Z" .. block\sub(2)
     __close: =>
@@ -71,11 +72,8 @@ package.preload.crypto = ->
       assert name == "gcm(aes)", "unexpected AEAD algorithm: #{name}"
       calls.aead_new += 1
       mk_aead!
-  }
-
-package.preload["crypto.ecb"] = ->
-  {
-    new: ->
+    skcipher: (name) ->
+      assert name == "ecb(aes)", "unexpected skcipher algorithm: #{name}"
       calls.ecb_new += 1
       mk_ecb!
   }
@@ -120,14 +118,14 @@ test "lunatik: AES-128-GCM ciphertext too short returns nil", ->
   assert pt == nil, "pt should be nil"
   assert err ~= nil, "err should be provided"
 
-test "lunatik: AES-128-GCM decrypt raises on non-auth error", ->
+test "lunatik: AES-128-GCM decrypt returns nil,error on non-auth error", ->
   key = string.rep "\x11", 16
   nonce = string.rep "\x00", 12
-  ok, err = pcall b.aes_128_gcm_decrypt, key, nonce, ("BROKEN" .. string.rep("T", 16)), ""
-  assert not ok, "decrypt should raise on non-auth failure"
+  pt, err = b.aes_128_gcm_decrypt key, nonce, ("BROKEN" .. string.rep("T", 16)), ""
+  assert pt == nil, "pt should be nil on non-auth failure"
   assert tostring(err)\find("aead(gcm(aes)) decrypt failed", 1, true), "unexpected error: #{tostring err}"
 
-test "lunatik: AES-128-ECB encrypt uses crypto.ecb", ->
+test "lunatik: AES-128-ECB encrypt uses crypto.skcipher", ->
   key = string.rep "\x22", 16
   block = string.rep "\x33", 16
   out = b.aes_128_ecb_block key, block
