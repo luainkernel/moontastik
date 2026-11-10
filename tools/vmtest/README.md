@@ -44,6 +44,14 @@ Variables utiles :
   du clone épinglé ;
 - `VMTEST_BUILD_DIR` — déplacer le cache de build.
 
+Les deux sont résolus en chemins absolus et transmis à l'invité, qui monte le
+système de fichiers de l'hôte en lecture seule : un cache situé hors du dépôt
+(par exemple `tools/vmtest/build` en lien symbolique vers un cache partagé)
+fonctionne tel quel. Chaque lancement utilise son propre répertoire temporaire
+pour rapatrier sortie/code de retour, donc deux `run.sh` simultanés ne se
+marchèvent pas (`VMTEST_RW_DIR` permet de forcer un répertoire commun, à
+réserver à un usage séquentiel).
+
 ## Fichiers
 
 | Fichier | Rôle |
