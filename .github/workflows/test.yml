@@ -5,6 +5,8 @@
 #    virtme-ng microVM on the pinned LTS kernel (tools/vmtest/)
 #  - kernel-lunatik-head: same as kernel, but against a Lunatik ref supplied
 #    via workflow_dispatch (default: upstream master); non-blocking.
+#  - coverage: cumulative LuaJIT + Lua 5.4 luacov report, compared against
+#    ipparse/tests/coverage_baseline; non-blocking (warns only).
 #
 # Lunatik upgrade procedure:
 #  1. run kernel-lunatik-head with lunatik_ref=<new tag>;
@@ -47,6 +49,36 @@ jobs:
             lua5.5) pkg=lua5_5; bin=lua ;;
           esac
           nix-shell -p "$pkg" --run "make -C ipparse test-nobuild LUA=$bin"
+
+  coverage:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Compile MoonScript sources
+        run: nix-shell -p luajitPackages.moonscript --run "make -C ipparse all"
+      - name: Measure coverage
+        run: |
+          nix-shell -p 'luajit.withPackages (p: [p.luacov])' \
+                    'lua5_4.withPackages (p: [p.luacov])' \
+                    --run 'make -C ipparse coverage-nobuild' > coverage.out
+          total=$(grep -E '^COVERAGE_TOTAL=' coverage.out | tail -n 1 | cut -d= -f2)
+          baseline=$(cat ipparse/tests/coverage_baseline)
+          {
+            echo "## Test coverage"
+            echo ""
+            echo "Total: ${total}% (baseline: ${baseline}%)"
+            echo ""
+            echo '```'
+            sed -n '/^Summary$/,$p' coverage.out
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if awk -v t="$total" -v b="$baseline" 'BEGIN { exit !(t < b) }'; then
+            echo "::warning title=Test coverage::Coverage ${total}% is below the baseline ${baseline}%"
+          fi
 
   kernel:
     runs-on: ubuntu-latest
