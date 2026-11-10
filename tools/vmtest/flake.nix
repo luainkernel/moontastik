@@ -43,6 +43,9 @@
             git
             curl
             kmod
+            # Lunatik master builds its eBPF loader against libbpf.
+            libbpf
+            pkg-config
           ];
           shellHook = ''
             # Nix binaries carry their rpath; an inherited LD_LIBRARY_PATH only

@@ -1,13 +1,28 @@
 # Unified test pipeline:
-#  - userspace: fast LuaJIT run of the ipparse suite (no VM)
+#  - userspace: fast Lua suite (LuaJIT, 5.1, 5.4, 5.5) of the ipparse tests
+#    (no VM)
 #  - kernel: full suite (userspace + lunatik kernel modules) inside a
 #    virtme-ng microVM on the pinned LTS kernel (tools/vmtest/)
+#  - kernel-lunatik-head: same as kernel, but against a Lunatik ref supplied
+#    via workflow_dispatch (default: upstream master); non-blocking.
+#
+# Lunatik upgrade procedure:
+#  1. run kernel-lunatik-head with lunatik_ref=<new tag>;
+#  2. once green, update LUNATIK_REF and LUNATIK_COMMIT in
+#     tools/vmtest/versions.env to that tag and its commit.
 name: test
 
 on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      lunatik_ref:
+        description: Lunatik ref to test in kernel-lunatik-head
+        required: false
+        default: master
+        type: string
 
 jobs:
   userspace:
@@ -90,4 +105,66 @@ jobs:
           path: |
             ${{ runner.temp }}/vmtest-rw/console.log
             ${{ runner.temp }}/vmtest-rw/out
+          if-no-files-found: ignore
+
+  kernel-lunatik-head:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      LUNATIK_REF: ${{ github.event.inputs.lunatik_ref || 'master' }}
+      LUNATIK_COMMIT: ''
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential flex bison bc libelf-dev libssl-dev dwarves \
+            ccache cpio zstd qemu-system-x86 busybox-static \
+            python3-venv rustc cargo \
+            luajit luarocks lua5.4 git curl kmod \
+            libbpf-dev pkg-config
+          sudo luarocks install moonscript
+
+      - name: Enable KVM on the runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' \
+            | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+
+      - name: Read pinned kernel version
+        id: pinned
+        run: |
+          . tools/vmtest/versions.env
+          echo "kernel=$KERNEL_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore kernel build cache
+        uses: actions/cache@v5
+        with:
+          path: tools/vmtest/build/linux-*
+          key: vmtest-kernel-${{ steps.pinned.outputs.kernel }}-${{ hashFiles('tools/vmtest/kernel.fragment') }}
+
+      - name: Restore ccache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ccache
+          key: vmtest-ccache-${{ hashFiles('tools/vmtest/versions.env') }}
+          restore-keys: vmtest-ccache-
+
+      - name: Run full suite in VM
+        env:
+          LUNATIK_SRC: ${{ runner.temp }}/lunatik-head
+          VMTEST_RW_DIR: ${{ runner.temp }}/vmtest-rw-head
+        run: make vm-test
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vm-logs-lunatik-head
+          path: |
+            ${{ runner.temp }}/vmtest-rw-head/console.log
+            ${{ runner.temp }}/vmtest-rw-head/out
           if-no-files-found: ignore
