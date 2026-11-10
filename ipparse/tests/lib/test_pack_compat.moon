@@ -72,3 +72,5 @@ test "pack_compat: B 300 wraps", ->
   got = pack "B", 300
   expected = from_hex "2c"
   assert got == expected, "got: #{got}\nexp: #{expected}"
+
+util.summary "pack_compat"
