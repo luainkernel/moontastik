@@ -117,10 +117,13 @@ _header_mt =
         if val then @qr_opcode_aa_tc_rd = bor(@qr_opcode_aa_tc_rd, 0x02) else @qr_opcode_aa_tc_rd = band(@qr_opcode_aa_tc_rd, bnot(0x02))
       when "rd"
         if val then @qr_opcode_aa_tc_rd = bor(@qr_opcode_aa_tc_rd, 0x01) else @qr_opcode_aa_tc_rd = band(@qr_opcode_aa_tc_rd, bnot(0x01))
+      when "ra"
+        if val then @ra_z_rcode = bor(@ra_z_rcode, 0x80) else @ra_z_rcode = band(@ra_z_rcode, bnot(0x80))
       when "z"
         @ra_z_rcode = bor(band(@ra_z_rcode, bnot(0x70)), lshift(band(val, 0x07), 4))
       when "rcode"
         @ra_z_rcode = bor(band(@ra_z_rcode, bnot(0x0f)), band(val, 0x0f))
+      else rawset @, flag, val
 
 --- Parses a DNS header from a binary string.
 -- @tparam number off The offset to start parsing from.
@@ -352,7 +355,7 @@ pack = =>
     n += 1
     parts[n] = s
     body_len += #s
-  @header.size = 12 + body_len
+  @header.size = 12 + body_len if rawget @header, "size"
   parts[1] = pack_header @header
   concat parts
 
