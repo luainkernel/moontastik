@@ -8,7 +8,10 @@
 
 util = require "ipparse.lib.util"
 {:test} = util
-{:hkdf, :hkdf_extract, :hkdf_expand, :hkdf_expand_label, :hex_to_bin} = require "ipparse.lib.hkdf"
+{:hkdf, :hkdf_extract, :hkdf_expand, :hkdf_expand_label, :hkdf_expand_bin, :hkdf_expand_label_bin, :hex_to_bin} = require "ipparse.lib.hkdf"
+
+bin_to_hex = (s) ->
+  (s\gsub ".", (c) -> string.format "%02x", string.byte c)
 
 -- RFC 5869 Test Case 1
 test "hkdf: RFC 5869 test case 1", ->
@@ -233,5 +236,18 @@ test "hkdf: QUIC test vector with DCID 0001020304050607", ->
   key = hkdf_expand_label hex_to_bin(csecret), "quic key", "", 16
   expected = "b14b918124fda5c8d79847602fa3520b"
   assert key == expected, "quic key mismatch:\ngot: #{key}\nexp: #{expected}"
+
+test "hkdf: hkdf_expand_bin matches hkdf_expand", ->
+  prk = hkdf_extract quic_salt, hex_to_bin dcid_hex
+  info = hex_to_bin "f0f1f2f3f4f5f6f7f8f9"
+  bin = hkdf_expand_bin prk, info, 42
+  assert #bin == 42, "binary output must be 42 bytes, got #{#bin}"
+  assert bin_to_hex(bin) == hkdf_expand(prk, info, 42), "binary/hex expand mismatch"
+
+test "hkdf: hkdf_expand_label_bin matches hkdf_expand_label", ->
+  prk = hkdf_extract quic_salt, hex_to_bin dcid_hex
+  bin = hkdf_expand_label_bin prk, "client in", "", 32
+  assert #bin == 32, "binary output must be 32 bytes, got #{#bin}"
+  assert bin_to_hex(bin) == hkdf_expand_label(prk, "client in", "", 32), "binary/hex label mismatch"
 
 util.summary "hkdf"

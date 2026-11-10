@@ -22,17 +22,7 @@
 --
 -- @module l4.quic.v1.keys
 
-load_hkdf = ->
-  mod_name = "ipparse.lib.hkdf"
-  cached = package.loaded[mod_name]
-  if type(cached) == "table" and cached.hkdf_extract and cached.hkdf_expand_label and cached.hex_to_bin
-    return cached
-  package.loaded[mod_name] = nil
-  ok, mod_or_err = pcall require, mod_name
-  error "quic_hkdf_load_failed: #{mod_or_err}" unless ok and mod_or_err
-  mod_or_err
-
-{:hkdf_extract, :hkdf_expand_label, :hex_to_bin} = load_hkdf!
+{:hkdf_extract, :hkdf_expand_label_bin, :hex_to_bin} = require "ipparse.lib.hkdf"
 
 --- QUIC v1 initial salt (RFC 9001 §5.2)
 INITIAL_SALT = hex_to_bin "38762cf7f55934b34d179ae6a4c80cadccbb7f0a"
@@ -43,9 +33,8 @@ INITIAL_SALT = hex_to_bin "38762cf7f55934b34d179ae6a4c80cadccbb7f0a"
 -- @treturn string server_secret  32-byte binary secret
 derive_initial_secrets = (dcid) ->
   initial_secret = hkdf_extract INITIAL_SALT, dcid
-  -- hkdf_expand_label returns a hex string; convert to binary
-  client_secret = hex_to_bin hkdf_expand_label initial_secret, "client in", "", 32
-  server_secret = hex_to_bin hkdf_expand_label initial_secret, "server in", "", 32
+  client_secret = hkdf_expand_label_bin initial_secret, "client in", "", 32
+  server_secret = hkdf_expand_label_bin initial_secret, "server in", "", 32
   client_secret, server_secret
 
 --- Derives packet protection keys from a per-direction secret.
@@ -54,9 +43,9 @@ derive_initial_secrets = (dcid) ->
 -- @treturn string iv   12-byte packet protection IV
 -- @treturn string hp   16-byte header protection key
 derive_keys = (secret) ->
-  key = hex_to_bin hkdf_expand_label secret, "quic key", "", 16
-  iv  = hex_to_bin hkdf_expand_label secret, "quic iv",  "", 12
-  hp  = hex_to_bin hkdf_expand_label secret, "quic hp",  "", 16
+  key = hkdf_expand_label_bin secret, "quic key", "", 16
+  iv  = hkdf_expand_label_bin secret, "quic iv",  "", 12
+  hp  = hkdf_expand_label_bin secret, "quic hp",  "", 16
   key, iv, hp
 
 {:INITIAL_SALT, :derive_initial_secrets, :derive_keys}

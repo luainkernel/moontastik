@@ -71,7 +71,6 @@ hmac_bin = (key, msg) ->
   else
     d
 
-hmac_hex = (key, msg) -> bin_to_hex hmac_bin key, msg
 pack: sp, :char, :rep, :sub = require "ipparse.lib.pack_compat"
 
 
@@ -87,6 +86,24 @@ hkdf_extract = (salt="", ikm) ->
   hmac_bin salt, ikm
 
 
+--- HKDF-Expand step, binary output.
+-- Expands the pseudorandom key (PRK) to produce output keying material.
+-- @tparam string prk Pseudorandom key from HKDF-Extract.
+-- @tparam[opt=""] string info Context and application specific information.
+-- @tparam number len Length of output keying material in bytes.
+-- @treturn string Output keying material (OKM) as binary string.
+hkdf_expand_bin = (prk, info="", len) ->
+  if crypto_hkdf
+    return get_hkdf!\expand prk, info, len
+  i, total, t, parts = 1, 0, "", {}
+  while total < len
+    t = hmac_bin prk, t .. info .. char(i)
+    parts[i] = t
+    total += #t
+    i += 1
+  sub table.concat(parts), 1, len
+
+
 --- HKDF-Expand step.
 -- Expands the pseudorandom key (PRK) to produce output keying material.
 -- @tparam string prk Pseudorandom key from HKDF-Extract.
@@ -94,16 +111,7 @@ hkdf_extract = (salt="", ikm) ->
 -- @tparam number len Length of output keying material in bytes.
 -- @treturn string Output keying material (OKM) as hex string.
 hkdf_expand = (prk, info="", len) ->
-  if crypto_hkdf
-    return bin_to_hex get_hkdf!\expand prk, info, len
-  len *= 2
-  i, total, t, parts = 1, 0, "", {}
-  while total < len
-    t = hmac_hex prk, hex_to_bin(t) .. info .. char(i)
-    parts[i] = t
-    total += #t
-    i += 1
-  sub table.concat(parts), 1, len
+  bin_to_hex (hkdf_expand_bin prk, info, len)
 
 
 --- Complete HKDF operation (Extract + Expand).
@@ -119,8 +127,12 @@ hkdf = (salt, ikm, info, len) ->
   hkdf_expand hkdf_extract(salt, ikm), info, len
 
 
+hkdf_expand_label_bin = (prk, label, context, len) ->
+  hkdf_expand_bin prk, sp(">Hs1s1", len, "tls13 "..label, context), len
+
+
 hkdf_expand_label = (prk, label, context, len) ->
-  hkdf_expand prk, sp(">Hs1s1", len, "tls13 "..label, context), len
+  bin_to_hex (hkdf_expand_label_bin prk, label, context, len)
 
 
-:hkdf, :hkdf_extract, :hkdf_expand, :hkdf_expand_label, :hex_to_bin
+:hkdf, :hkdf_extract, :hkdf_expand, :hkdf_expand_label, :hkdf_expand_bin, :hkdf_expand_label_bin, :hex_to_bin
