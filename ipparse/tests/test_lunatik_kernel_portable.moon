@@ -25,6 +25,7 @@ mods = {
   "ipparse.tests.l2.test_ethernet"
   "ipparse.tests.l3.test_checksum"
   "ipparse.tests.l3.test_ip4"
+  "ipparse.tests.l3.test_fragmented_ip4"
   "ipparse.tests.l3.test_ip6"
   "ipparse.tests.l3.test_ip"
   "ipparse.tests.l4.test_tcp"
