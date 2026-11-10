@@ -30,6 +30,7 @@
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
+byte = string.byte
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
 -- True when values are native 64-bit integers (Lua 5.3+/Lunatik kernel), where
@@ -159,14 +160,21 @@ encode_varint = (value) ->
         band(low, 0xFF)
       )
 
---- Parses a PADDING frame
--- PADDING frames consist only of the frame type (0x00)
+--- Parses a run of PADDING frames
+-- PADDING frames consist only of the frame type (0x00). Consecutive zero
+-- bytes are coalesced into a single frame whose `length` counts every
+-- padding byte, including the leading type byte.
 -- @tparam string data The binary data containing the frame
--- @tparam number offset Starting offset in the data
--- @treturn table Parsed PADDING frame
--- @treturn number Next offset after the frame
+-- @tparam number offset Offset just after the leading frame type byte
+-- @treturn table Parsed PADDING frame with `length`
+-- @treturn number Next offset after the run
 parse_padding_frame = (data, offset) ->
-  {type: 0x00, name: "PADDING"}, offset
+  len = #data
+  padding = 1
+  while offset <= len and byte(data, offset) == 0
+    padding += 1
+    offset += 1
+  {type: 0x00, name: "PADDING", length: padding}, offset
 
 --- Parses a PING frame
 -- PING frames consist only of the frame type (0x01)
