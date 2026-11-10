@@ -72,6 +72,7 @@
 :bidirectional, :zero_indexed = require"ipparse.fun"
 pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
 :concat = table
+:byte = string
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
 need_bytes = (data, off, len) ->
@@ -162,13 +163,13 @@ local labels
 -- @treturn[opt] boolean `true` if the label is compressed, `nil` otherwise.
 label = (off, l7_off=1, visited=nil, depth=0) =>
   return nil, off, nil, "invalid label offset #{off}" unless need_bytes @, off, 1
-  size = su "B", @, off
+  size = byte @, off
   _off = off + 1
   if size == 0  -- End of label
     return nil, off+1
   if band(size, 0xC0) == 0xC0  -- DNS label compression pointer
     return nil, off, nil, "truncated DNS compression pointer" unless need_bytes @, off, 2
-    pos = su "B", @, off + 1
+    pos = byte @, off + 1
     ptr = lshift(band(size, 0x3F), 8) + pos
     target_off = l7_off + ptr
     return nil, _off + 1, nil, "DNS compression pointer out of bounds (#{ptr})" unless target_off >= l7_off and target_off <= #@
@@ -328,13 +329,32 @@ pack = =>
   @header.ancount = #@answers
   @header.nscount = #@authorities
   @header.arcount = #@additionals
-  questions = concat([pack_question q for q in *@questions])
-  answers = concat([pack_rr r for r in *@answers])
-  authorities = concat([pack_rr r for r in *@authorities])
-  additionals = concat([pack_rr r for r in *@additionals])
-  body = questions .. answers .. authorities .. additionals
-  @header.size = 12 + #body
-  pack_header(@header) .. body
+  parts = {}
+  n = 1
+  body_len = 0
+  for q in *@questions
+    s = pack_question q
+    n += 1
+    parts[n] = s
+    body_len += #s
+  for r in *@answers
+    s = pack_rr r
+    n += 1
+    parts[n] = s
+    body_len += #s
+  for r in *@authorities
+    s = pack_rr r
+    n += 1
+    parts[n] = s
+    body_len += #s
+  for r in *@additionals
+    s = pack_rr r
+    n += 1
+    parts[n] = s
+    body_len += #s
+  @header.size = 12 + body_len
+  parts[1] = pack_header @header
+  concat parts
 
 _mt =
   __tostring: pack
