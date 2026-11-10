@@ -52,6 +52,9 @@ ldoc .              # Generate HTML docs in doc/  (uses config.ld)
 `make coverage` runs the suite under LuaJIT and Lua 5.4 with luacov and prints
 a cumulative report. `tests/coverage_baseline` holds the reference total; the
 non-blocking CI `coverage` job warns (without failing) when it drops below it.
+OpenSSL and mbedTLS are optional: when they are loadable (e.g. add openssl
+mbedtls to the nix-shell, as `tests/ffi_libs.sh` expects) the FFI crypto
+backends run, otherwise their tests skip themselves.
 
 See `.agents/moonscript.md` for MoonScript syntax, fat-arrow, scoping pitfalls.  
 See `.agents/architecture.md` for the parse/pack/new contract and OOP pattern.
