@@ -21,7 +21,6 @@ keys_mod = nil
 load_keys_module = ->
   return keys_mod if keys_mod
   mod_name = "ipparse.l4.quic.v1.keys"
-  package.loaded[mod_name] = nil
   ok, mod_or_err = pcall require, mod_name
   return nil, "quic_keys_load_failed: #{mod_or_err}" unless ok and mod_or_err
   keys_mod = mod_or_err
@@ -46,7 +45,6 @@ load_backend = ->
     "ipparse.lib.crypto.backend.ffi_mbedtls"
     "ipparse.lib.crypto.backend.ffi_openssl"
   }
-    package.loaded[mod] = nil
     ok, backend = pcall require, mod
     return backend if ok and backend
     errs[#errs + 1] = "#{mod}: #{backend}"
