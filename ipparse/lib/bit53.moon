@@ -14,35 +14,45 @@
 -- @return table Bitwise operations table
 
 bit =
-  band: (...) ->
-    n = select "#", ...
-    return ... if n <= 1
-    a, b = ...
-    return a & b if n == 2
-    r = a
-    for i = 2, n
-      r &= (select i, ...)
-    r
-  bor: (...) ->
-    n = select "#", ...
-    return ... if n <= 1
-    a, b = ...
-    return a | b if n == 2
-    r = a
-    for i = 2, n
-      r |= (select i, ...)
-    r
+  band: (a, b, c, ...) ->
+    if c == nil
+      if b == nil
+        a
+      else
+        a & b
+    else
+      r = a & b & c
+      n = select "#", ...
+      for i = 1, n
+        r &= (select i, ...)
+      r
+  bor: (a, b, c, ...) ->
+    if c == nil
+      if b == nil
+        a
+      else
+        a | b
+    else
+      r = a | b | c
+      n = select "#", ...
+      for i = 1, n
+        r |= (select i, ...)
+      r
   -- MoonScript parses `a ~ b` ambiguously; express XOR with identities.
-  bxor: (...) ->
-    n = select "#", ...
-    return ... if n <= 1
-    a, b = ...
-    return (a | b) & (~(a & b)) if n == 2
-    r = a
-    for i = 2, n
-      v = select i, ...
-      r = (r | v) & (~(r & v))
-    r
+  bxor: (a, b, c, ...) ->
+    if c == nil
+      if b == nil
+        a
+      else
+        (a | b) & (~(a & b))
+    else
+      r = (a | b) & (~(a & b))
+      r = (r | c) & (~(r & c))
+      n = select "#", ...
+      for i = 1, n
+        v = select i, ...
+        r = (r | v) & (~(r & v))
+      r
   bnot: (a) -> ~a
   lshift: (a, n) -> a << n
   rshift: (a, n) -> a >> n
