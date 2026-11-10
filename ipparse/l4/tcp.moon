@@ -104,6 +104,7 @@ parse = (off=1) =>
 -- @treturn table The new TCP header object.
 new = =>
   @flags = bor((@flags or 0), (@urg and URG or 0), (@ack and ACK or 0), (@psh and PSH or 0), (@rst and RST or 0), (@syn and SYN or 0), (@fin and FIN or 0))
+  @urg, @ack, @psh, @rst, @syn, @fin = nil, nil, nil, nil, nil, nil
   setmetatable @, _mt
 
 :flags, :parse, :new, :pack

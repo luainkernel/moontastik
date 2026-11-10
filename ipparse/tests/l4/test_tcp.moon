@@ -102,6 +102,14 @@ test "round-trip: new -> tostring -> parse", ->
   assert parsed.dpt == 443, "round-trip dpt mismatch"
   assert parsed.SYN == true, "round-trip SYN flag mismatch"
 
+test "raw flag key does not bypass __newindex", ->
+  t = tcp.new {syn: true, ack_n: 42}
+  assert t.syn == true, "lowercase syn should read true"
+  t.syn = false
+  assert t.flags == 0, "clearing syn should update flags, got #{t.flags}"
+  assert t.SYN == false, "SYN should be false after clearing"
+  assert t.ack_n == 42, "ack_n should be untouched"
+
 test "options empty in standard header", ->
   t = mk_tcp {}
   raw = tostring t
