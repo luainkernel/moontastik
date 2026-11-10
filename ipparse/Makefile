@@ -27,6 +27,11 @@ test: all test-nobuild
 test-nobuild:
 	cd .. && LUA_PATH="./?.lua;./?/init.lua" $(LUA) ipparse/tests/run_all.lua
 
+coverage: all coverage-nobuild
+
+coverage-nobuild:
+	./tests/coverage.sh
+
 example: all
 	cd .. && LUA_PATH="./?.lua;./?/init.lua" $(LUA) ipparse/examples/parse_real_quic.lua
 
