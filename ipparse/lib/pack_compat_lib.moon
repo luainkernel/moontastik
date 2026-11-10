@@ -446,12 +446,17 @@ pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
         n = 0
       parts = append_string parts, op.emit v
 
+  -- Assign before returning: `return table.concat parts` would be a tail call,
+  -- whose return to the caller frame LuaJIT cannot record (NYI: return to
+  -- lower frame), aborting the trace that exits the loop above.
+  result = nil
   if parts
     if n > 0
       parts = append_string parts, buf_string(_buf, n)
-    table.concat parts
+    result = table.concat parts
   else
-    buf_string _buf, n
+    result = buf_string _buf, n
+  result
 
 -- ─── string.unpack ───────────────────────────────────────────────────────────
 
