@@ -35,9 +35,9 @@
 --
 -- @module l4.tcp
 
-pack: sp, unpack: su, :sub, :upper, :lower = require "ipparse.lib.pack_compat"
+pack: sp, unpack: su, :sub, :lower = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
-{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+{:band, :bor, :bnot, :rshift} = require"ipparse.lib.bit_compat"
 {:need_bytes} = require "ipparse"
 
 flags = bidirectional {

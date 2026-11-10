@@ -39,7 +39,7 @@
 
 :upper = string
 :bidirectional, :zero_indexed = require"ipparse.fun"
-{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+{:band, :bor, :bnot, :lshift} = require"ipparse.lib.bit_compat"
 
 --- QUIC version number as found in the long-header version field (0x01 for version 1).
 version = 0x01
