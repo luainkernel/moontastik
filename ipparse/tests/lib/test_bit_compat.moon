@@ -137,6 +137,14 @@ test_pure "bit_pure: IPv6 version/traffic class/flow label round-trip", ->
 -- `package.preload` and `math.floor`, so it is skipped on the integer-only
 -- kernel runtime (which the module comment in test_lunatik_kernel_portable
 -- also excludes: "no simulated package.preload").
+--
+-- Since AB1, `bit_compat` selects `ipparse.lib.bit53` first, without `pcall`,
+-- whenever the runtime has native integers (`native_int`, true under Lua 5.3+
+-- and in the kernel). The fake `bit`/`bit32`/`bit_pure` chain below is
+-- therefore only reachable, and only tested, on LuaJIT/Lua 5.1/5.2; under a
+-- native-integer runtime a fake `bit` must no longer be selected.
+
+native_int = math.floor == nil or math.type ~= nil
 
 backend_keys = {
   "bit"
@@ -186,10 +194,6 @@ fake32 = {
   blshift: (a, n) -> 111
   brshift: (a, n) -> 222
 }
-fake53 = {
-  lshift: (a, n) -> 333
-  rshift: (a, n) -> 444
-}
 fake_pure = {
   blshift: (a, n) -> 555
   brshift: (a, n) -> 666
@@ -199,7 +203,11 @@ bad_backend = -> error "backend unavailable"
 userspace_backends = package and package.loaded and package.preload and math.floor
 
 test_backends = (name, fn) ->
-  if userspace_backends
+  if userspace_backends and not native_int
+    test name, fn
+
+test_native_backends = (name, fn) ->
+  if userspace_backends and native_int
     test name, fn
 
 test_backends "bit_compat: fallback shifts when 'bit' lacks shifts", ->
@@ -226,10 +234,59 @@ test_backends "bit_compat: bit32 backend selection", ->
   assert m.rshift(1, 1) == 222, "bit32 backend not selected for rshift"
   assert m.arshift == m.rshift, "arshift should alias rshift"
 
-test_backends "bit_compat: bit53 backend selection", ->
-  m = load_bit_compat_with { ["ipparse.lib.bit53"]: fake53 }
-  assert m.lshift(1, 1) == 333, "bit53 backend not selected for lshift"
-  assert m.rshift(1, 1) == 444, "bit53 backend not selected for rshift"
+test_native_backends "bit_compat: native backend preferred over a fake 'bit'", ->
+  real53 = require "ipparse.lib.bit53"
+  saved_loaded = package.loaded["bit"]
+  saved_preload = package.preload["bit"]
+  saved_compat = package.loaded["ipparse.lib.bit_compat"]
+  m = nil
+  ok, err = pcall ->
+    package.loaded["bit"] = nil
+    package.preload["bit"] = -> {
+      lshift: (a, n) -> 999
+      rshift: (a, n) -> 999
+    }
+    package.loaded["ipparse.lib.bit_compat"] = nil
+    m = require "ipparse.lib.bit_compat"
+  package.loaded["bit"] = saved_loaded
+  package.preload["bit"] = saved_preload
+  package.loaded["ipparse.lib.bit_compat"] = saved_compat
+  error err, 0 unless ok
+  assert m == real53, "native bit53 backend not selected over a fake 'bit'"
+  assert m.band(0xFFFFFFFF, 0xFFFFFFFFFF) == 0xFFFFFFFF, "native band must cover 64 bits"
+
+test_native_backends "bit_compat: bit53 load error propagates", ->
+  saved_loaded = package.loaded["ipparse.lib.bit53"]
+  saved_preload = package.preload["ipparse.lib.bit53"]
+  saved_compat = package.loaded["ipparse.lib.bit_compat"]
+  ok = false
+  err = nil
+  ok, err = pcall ->
+    package.loaded["ipparse.lib.bit53"] = nil
+    package.preload["ipparse.lib.bit53"] = -> error "boom-stack"
+    package.loaded["ipparse.lib.bit_compat"] = nil
+    require "ipparse.lib.bit_compat"
+  package.loaded["ipparse.lib.bit53"] = saved_loaded
+  package.preload["ipparse.lib.bit53"] = saved_preload
+  package.loaded["ipparse.lib.bit_compat"] = saved_compat
+  assert not ok, "loading bit_compat must fail when bit53 fails"
+  assert (tostring(err)\find "boom-stack", 1, true), "expected the bit53 error, got: #{tostring err}"
+  assert not (tostring(err)\find "no bitwise compatibility backend", 1, true),
+    "generic error masked the bit53 failure: #{tostring err}"
+
+test_backends "bit_compat: bit53 ignored without native integers", ->
+  ok, err = pcall load_bit_compat_with, {
+    ["bit"]: bad_backend
+    ["bit32"]: bad_backend
+    ["ipparse.lib.bit53"]: {
+      lshift: (a, n) -> 777
+      rshift: (a, n) -> 888
+    }
+    ["ipparse.lib.bit_pure"]: bad_backend
+  }
+  assert not ok, "bit53 must not be consulted on a non-native-integer runtime"
+  assert (tostring(err)\match "no bitwise compatibility backend"),
+    "unexpected error: #{tostring err}"
 
 test_backends "bit_compat: bit_pure last-resort backend selection", ->
   m = load_bit_compat_with {
