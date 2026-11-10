@@ -13,37 +13,34 @@
 -- @module lib.pack_compat_lib
 -- @return table Module with pack, unpack, packsize, and inject functions
 
--- string_compat.moon
--- Implémentation de string.pack / string.unpack / string.packsize pour LuaJIT
--- Utilise FFI pour les opérations bas niveau, sans étape de compilation.
--- Compatible avec la spécification Lua 5.3+
+-- Compatible with the Lua 5.3+ specification
 
 return string if string.unpack
 
 tunpack = unpack or table.unpack
 
--- FFI est facultatif : LuaJIT le fournit, Lua 5.1 (PUC) non. Les chemins
--- rapides FFI ci-dessous restent inchangés pour LuaJIT ; les équivalents en
--- Lua pur ne servent que lorsque `require "ffi"` échoue.
+-- FFI is optional: LuaJIT provides it, PUC Lua 5.1 does not. The FFI fast
+-- paths below are unchanged for LuaJIT; the pure-Lua equivalents are only
+-- used when `require "ffi"` fails.
 ok, ffi = pcall require, "ffi"
 HAS_FFI = ok
 unless HAS_FFI
   ffi = nil
 
--- ─── Détection de l'endianness native ───────────────────────────────────────
+-- ─── Native endianness detection ────────────────────────────────────────────
 
--- Sans FFI, aucune sonde fiable n'est disponible : on suppose le
--- petit-boutiste (x86/ARM), qui couvre les runtimes sans FFI visés.
+-- Without FFI, no reliable probe is available: assume little-endian
+-- (x86/ARM), which covers the target runtimes without FFI.
 NATIVE_LE = true
 if HAS_FFI
   probe = ffi.new "uint16_t[1]", 0x0102
   pb    = ffi.cast "uint8_t *", probe
-  NATIVE_LE = pb[0] == 0x02   -- little-endian si l'octet de poids faible est en premier
+  NATIVE_LE = pb[0] == 0x02   -- little-endian if the low-order byte comes first
 
--- ─── Utilitaires ────────────────────────────────────────────────────────────
+-- ─── Utilities ──────────────────────────────────────────────────────────────
 
--- Lit un entier non signé depuis une chaîne (offset 0-based, size octets)
--- Comme string.unpack de Lua 5.3, lève une erreur explicite sur chaîne tronquée.
+-- Reads an unsigned integer from a string (0-based offset, size bytes)
+-- Like Lua 5.3's string.unpack, raises an explicit error on a truncated string.
 read_uint = (s, offset, size, le) ->
   error "data string too short" if offset + size > #s
   if size == 1
@@ -64,8 +61,8 @@ read_uint = (s, offset, size, le) ->
         val = val * 256 + string.byte(s, offset + i + 1)
     val
   else
-    -- Arithmétique en double : exacte jusqu'à 2^53, comme `tonumber` sur un
-    -- uint64_t FFI pour les valeurs plus grandes.
+    -- Double arithmetic: exact up to 2^53, like `tonumber` on a uint64_t FFI
+    -- value for larger values.
     val = 0
     if le
       for i = size - 1, 0, -1
@@ -75,17 +72,17 @@ read_uint = (s, offset, size, le) ->
         val = val * 256 + string.byte(s, offset + i + 1)
     val
 
--- Convertit un nombre en uint64_t sans conversion indéfinie pour un négatif :
--- la conversion double → int64_t est définie dans la plage représentable, puis
--- on réinterprète les mêmes bits en non signé. Certains LuaJIT saturaient la
--- conversion directe double négatif → uint64_t à 0x8000000000000000.
+-- Converts a number to uint64_t without undefined conversion for a negative
+-- value: the double → int64_t conversion is defined within the representable
+-- range, then the same bits are reinterpreted as unsigned. Some LuaJIT builds
+-- saturated the direct negative-double → uint64_t conversion to 0x8000000000000000.
 cast_uint = (val) ->
   if val < 0
     ffi.cast "uint64_t", ffi.cast("int64_t", val)
   else
     ffi.cast "uint64_t", val
 
--- Conversion unsigned → signed (complément à deux)
+-- Unsigned → signed conversion (two's complement)
 to_signed = (val, size) ->
   uval = if HAS_FFI then tonumber(ffi.cast "uint64_t", val) else val
   bits = size * 8
@@ -95,9 +92,9 @@ to_signed = (val, size) ->
   else
     uval
 
--- Lit un entier signé en complément à deux (Lua pur). Pour un octet de poids
--- fort à 1, la magnitude est calculée par inversion + 1 octet par octet, ce
--- qui garde exacts les petits négatifs même au-delà de 2^53 (ex. -2 = ff..fe).
+-- Reads a signed two's-complement integer (pure Lua). For a high-order byte
+-- of 1, the magnitude is computed by inversion + 1 byte by byte, which keeps
+-- small negatives exact even beyond 2^53 (e.g. -2 = ff..fe).
 read_int = (s, offset, size, le) ->
   u = read_uint s, offset, size, le
   limit = 2 ^ (size * 8 - 1)
@@ -115,22 +112,22 @@ read_int = (s, offset, size, le) ->
     mag += b * 2 ^ (8 * i)
   -mag
 
--- ─── Parseur de format ───────────────────────────────────────────────────────
+-- ─── Format parser ──────────────────────────────────────────────────────────
 
--- Renvoie un itérateur sur {option, count} depuis une chaîne de format.
--- option : le caractère de format
--- count  : le nombre de répétitions (nil si non applicable)
+-- Returns an iterator over {option, count} from a format string.
+-- option: the format character
+-- count : the repetition count (nil if not applicable)
 parse_format = (fmt) ->
   i     = 1
-  le    = NATIVE_LE   -- endianness courante
-  align = true        -- alignement actif ?
+  le    = NATIVE_LE   -- current endianness
+  align = true        -- alignment active?
 
   ->
     while i <= #fmt
       c = fmt\sub i, i
       i += 1
 
-      -- Modificateurs d'endianness / alignement
+      -- Endianness / alignment modifiers
       if c == ">"
         le = false
         align = false
@@ -143,8 +140,8 @@ parse_format = (fmt) ->
         le = NATIVE_LE
         align = false
         continue
-      if c == "!" then
-        -- "!n" : alignement sur n octets (on ignore la valeur ici)
+      if c == "!"
+        -- "!n": align to n bytes (value ignored here)
         if i <= #fmt and fmt\sub(i,i)\match "%d"
           i += 1   -- skip digit
         align = true
@@ -152,7 +149,7 @@ parse_format = (fmt) ->
       if c == " "
         continue
 
-      -- Lecture d'un count optionnel
+      -- Read an optional count
       count = nil
       if i <= #fmt
         nc = fmt\sub i, i
@@ -165,9 +162,9 @@ parse_format = (fmt) ->
 
       return c, count, le, align
 
-    nil  -- fin
+    nil  -- end
 
--- ─── Taille d'un élément de format ──────────────────────────────────────────
+-- ─── Element size of a format option ────────────────────────────────────────
 
 element_size = (opt, count) ->
   switch opt
@@ -179,14 +176,14 @@ element_size = (opt, count) ->
     when "T"             then 8   -- size_t
     when "f"             then 4
     when "d", "n"        then 8
-    when "e"             then 2   -- half-float (lecture seule utile)
+    when "e"             then 2   -- half-float (read-only useful)
     when "c"             then count or 1
     when "s"             then nil  -- variable
     when "z"             then nil  -- variable (null-terminated)
     when "x"             then 1   -- padding
-    when "X"             then 0   -- alignement seulement
+    when "X"             then 0   -- alignment only
     else
-      error "option de format inconnue : '#{opt}'"
+      error "unknown format option: '#{opt}'"
 
 -- ─── string.packsize ─────────────────────────────────────────────────────────
 
@@ -197,18 +194,18 @@ packsize = (fmt) ->
   while opt != nil
     sz = element_size opt, count
     if sz == nil
-      error "string.packsize : format '#{opt}' a une taille variable"
+      error "string.packsize: format '#{opt}' has variable size"
     total += sz
     opt, count, le, align = iter!
   total
 
--- ─── Cache de formats pré-parsés ────────────────────────────────────────────
+-- ─── Pre-parsed format cache ────────────────────────────────────────────────
 
--- Table de cache : fmt (string) → tableau de {opt, count, le}
+-- Cache table: fmt (string) → array of {opt, count, le}
 _fmt_cache = {}
 
--- Matérialise le résultat de parse_format en tableau et le met en cache.
--- Doit être défini après parse_format pour que la closure capture la bonne locale.
+-- Materializes the result of parse_format into an array and caches it.
+-- Must be defined after parse_format so the closure captures the right local.
 parse_format_to_ops = (fmt) ->
   ops = {}
   iter = parse_format fmt
@@ -219,9 +216,9 @@ parse_format_to_ops = (fmt) ->
   _fmt_cache[fmt] = ops
   ops
 
--- ─── Encodage IEEE 754 ──────────────────────────────────────────────────────
+-- ─── IEEE 754 encoding ──────────────────────────────────────────────────────
 
--- Arrondi au plus proche, pair en cas d'égalité (round-to-nearest-even).
+-- Round to nearest, ties to even (round-to-nearest-even).
 round_even = (x) ->
   f = math.floor x
   d = x - f
@@ -230,15 +227,15 @@ round_even = (x) ->
   else
     f
 
--- Encode un flottant binaire (expbits/fracbits/bias : 11/52/1023 pour un
--- double, 8/23/127 pour un float). Produit les octets de poids fort d'abord,
--- puis les inverse si `le`. Gère zéro, -0, infinis, NaN, normaux et dénormaux.
+-- Encodes a binary float (expbits/fracbits/bias: 11/52/1023 for a
+-- double, 8/23/127 for a float). Produces high-order bytes first,
+-- then reverses them if `le`. Handles zero, -0, infinities, NaN, normals and subnormals.
 ieee_encode = (n, expbits, fracbits, bias, le) ->
   maxexp = 2 ^ expbits - 1
   sign = 0
   exp  = 0
   frac = 0
-  if n ~= n   -- NaN (n'importe quel NaN convient)
+  if n ~= n   -- NaN (any NaN works)
     exp  = maxexp
     frac = 2 ^ (fracbits - 1)
   elseif n == math.huge or n == -math.huge
@@ -255,7 +252,7 @@ ieee_encode = (n, expbits, fracbits, bias, le) ->
     m, e = math.frexp a
     E = e - 1 + bias
     if E <= 0
-      -- dénormal : fraction = a / 2^(1-bias-fracbits)
+      -- subnormal: fraction = a / 2^(1-bias-fracbits)
       frac = round_even math.ldexp m, e + fracbits + bias - 1
       if frac >= 2 ^ fracbits
         exp = 1
@@ -295,7 +292,7 @@ ieee_encode = (n, expbits, fracbits, bias, le) ->
     bytes = out
   bytes
 
--- Décode un flottant binaire. `bytes[1]` est l'octet de poids fort.
+-- Decodes a binary float. `bytes[1]` is the high-order byte.
 ieee_decode = (s, offset, expbits, fracbits, bias, le) ->
   nbytes = (expbits + fracbits + 1) / 8
   error "data string too short" if offset + nbytes > #s
@@ -328,7 +325,7 @@ ieee_decode = (s, offset, expbits, fracbits, bias, le) ->
   else
     sign * math.ldexp (1 + frac / 2 ^ fracbits), exp - bias
 
--- Déclarés ici pour rester visibles hors des blocs `if HAS_FFI` ci-dessous.
+-- Declared here to stay visible outside the `if HAS_FFI` blocks below.
 double_to_bytes = nil
 bytes_to_double = nil
 float_to_bytes  = nil
@@ -381,22 +378,22 @@ else
 
 -- ─── string.pack ─────────────────────────────────────────────────────────────
 
--- Tampon d'octets partagé au niveau du module. `pack` n'appelle aucun callback
--- utilisateur pendant la construction : il n'est donc pas réentrant, ce qui est
--- acceptable ici. Les writers écrivent dans _buf[n+1 .. n+size] et renvoient le
--- nouvel index (0-based), sans allouer de chaîne.
+-- Byte buffer shared at module level. `pack` calls no user callback during
+-- construction, so it is not reentrant, which is acceptable here. Writers
+-- write to _buf[n+1 .. n+size] and return the new index (0-based), without
+-- allocating a string.
 _buf = {}
 
--- Tableau d'arguments réutilisé par `pack` : allouer une table de 8 entrées à
--- chaque appel dominait le coût des petits formats (`>H H`, préfixe d'en-tête).
--- Comme `_buf`, ce tableau n'est pas réentrant, mais `pack` ne cède jamais la
--- main : aucun callback utilisateur n'est appelé pendant la construction.
+-- Argument array reused by `pack`: allocating an 8-entry table on every call
+-- dominated the cost of small formats (`>H H`, header prefix). Like `_buf`,
+-- this array is not reentrant, but `pack` never yields control: no user
+-- callback is called during construction.
 _args = {}
 
--- Convertit _buf[1..n] en chaîne, par morceaux de 4096 max pour rester sous la
--- limite pratique de `unpack`/`string.char`. Fonction de module (et non closure
--- locale à pack) pour que LuaJIT puisse compiler le chemin rapide : créer une
--- closure par appel (bytecode FNEW) est NYI et annule la compilation du trace.
+-- Converts _buf[1..n] to a string, in chunks of at most 4096 to stay under
+-- the practical limit of `unpack`/`string.char`. Module function (not a closure
+-- local to pack) so LuaJIT can compile the fast path: creating a
+-- closure per call (FNEW bytecode) is NYI and cancels trace compilation.
 buf_string = (buf, n) ->
   if n <= 4096
     string.char tunpack buf, 1, n
@@ -409,16 +406,16 @@ buf_string = (buf, n) ->
       i += len
     table.concat out
 
--- Ajoute `s` à `parts` (crée la liste au besoin) et renvoie la liste.
+-- Appends `s` to `parts` (creates the list if needed) and returns the list.
 append_string = (parts, s) ->
   parts = {} unless parts
   parts[#parts+1] = s
   parts
 
--- Construit un writer d'entier non signé de `sz` octets : écrit les octets dans
--- `buf` à partir de l'index `n` et renvoie `n + sz`.
--- Les tailles 1 à 4 sont déroulées, 5-6 utilisent une petite boucle, et au-delà
--- de 6 octets on passe par uint64_t pour conserver la précision actuelle.
+-- Builds an unsigned-integer writer of `sz` bytes: writes the bytes into
+-- `buf` from index `n` and returns `n + sz`.
+-- Sizes 1 to 4 are unrolled, 5-6 use a small loop, and beyond
+-- 6 bytes we go through uint64_t to preserve current precision.
 make_uint = (sz, le) ->
   if sz == 1
     (buf, n, v) ->
@@ -488,8 +485,8 @@ make_uint = (sz, le) ->
           u = math.floor(u / 256)
         n + sz
   elseif not HAS_FFI
-    -- 7-8 octets : calcul octet par octet pour rester exact sur les petits
-    -- négatifs (2^64 - 2 n'est pas représentable en double).
+    -- 7-8 bytes: compute byte by byte to stay exact on small
+    -- negatives (2^64 - 2 is not representable as a double).
     if le
       (buf, n, v) ->
         p = 1
@@ -533,7 +530,7 @@ make_c = (sz) ->
     else
       v\sub 1, sz
 
--- Choisit l'encodeur d'une option au moment de la compilation du format.
+-- Chooses an encoder for an option when the format is compiled.
 pack_op = (opt, count, le) ->
   switch opt
 
@@ -543,7 +540,7 @@ pack_op = (opt, count, le) ->
     when "h", "H"   -- int16 / uint16
       { consume: true, write: make_uint(2, le) }
 
-    when "i", "I"   -- int/uint N octets (défaut 4)
+    when "i", "I"   -- int/uint N bytes (default 4)
       { consume: true, write: make_uint((count or 4), le) }
 
     when "l", "L", "j", "J", "T"   -- 64 bits
@@ -555,24 +552,24 @@ pack_op = (opt, count, le) ->
     when "d", "n"   -- double 64
       { consume: true, emit: make_double le }
 
-    when "c"   -- chaîne de longueur fixe
+    when "c"   -- fixed-length string
       { consume: true, emit: make_c(count or 1) }
 
-    when "s"   -- chaîne préfixée longueur (size_t = 8 octets par défaut)
+    when "s"   -- length-prefixed string (size_t = 8 bytes by default)
       { consume: true, write_len: make_uint((count or 8), le), emit: (v) -> v }
 
-    when "z"   -- chaîne null-terminated
+    when "z"   -- null-terminated string
       { consume: true, emit: (v) -> v .. "\0" }
 
-    when "x"   -- padding (un octet nul)
+    when "x"   -- padding (one null byte)
       { consume: false, write: (buf, n) ->
         buf[n + 1] = 0
         n + 1 }
 
-    else       -- "X" (alignement) et options inconnues : no-op
+    else       -- "X" (alignment) and unknown options: no-op
       { consume: false, write: (buf, n) -> n }
 
--- Cache des formats compilés en liste d'encodeurs : fmt → plan.
+-- Cache of formats compiled to an encoder list: fmt → plan.
 _pack_cache = {}
 
 compile_pack = (fmt) ->
@@ -587,10 +584,10 @@ compile_pack = (fmt) ->
     opt, count, le = iter!
   plan.count = consumed
 
-  -- Chemin rapide « une seule chaîne en dernière position » (cas de `s2` dans
-  -- pack_rr, `Hs2` de l'EDNS, ou une option `z`/`c`/`f`/`d` finale) : toutes
-  -- les options précédentes n'écrivent que des octets entiers, la dernière
-  -- produit une chaîne. On évite alors la table `parts` et `table.concat`.
+  -- Fast path "single string in last position" (the `s2` case in
+  -- pack_rr, `Hs2` in EDNS, or a trailing `z`/`c`/`f`/`d` option): all
+  -- previous options write only whole bytes, the last one
+  -- produces a string. We then avoid the `parts` table and `table.concat`.
   tail = nil
   if #plan > 0
     last = plan[#plan]
@@ -605,9 +602,9 @@ compile_pack = (fmt) ->
   _pack_cache[fmt] = plan
   plan
 
--- `a1`..`a8` couvrent la grande majorité des formats sans vararg ni `select`
--- dans la boucle ; au-delà de 8 valeurs consommées, on bascule sur le chemin
--- générique qui collecte le vararg une seule fois.
+-- `a1`..`a8` cover the vast majority of formats without vararg or `select`
+-- in the loop; beyond 8 consumed values, we fall back to the generic
+-- path which collects the vararg once.
 pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
   plan = _pack_cache[fmt] or compile_pack(fmt)
   args = nil
@@ -667,11 +664,11 @@ pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
 
 -- ─── string.unpack ───────────────────────────────────────────────────────────
 
--- Buffer de résultats réutilisé : unpack n'est pas ré-entrant, donc safe.
+-- Reused result buffer: unpack is not re-entrant, so safe.
 _results = {}
 
 unpack = (fmt, s, pos) ->
-  pos  = (pos or 1) - 1   -- on travaille en 0-based en interne
+  pos  = (pos or 1) - 1   -- work in 0-based internally
   n    = 0
   ops  = _fmt_cache[fmt] or parse_format_to_ops(fmt)
 
@@ -703,7 +700,7 @@ unpack = (fmt, s, pos) ->
         _results[n] = tonumber read_uint s, pos, 2, le
         pos += 2
 
-      when "i"   -- intN signé
+      when "i"   -- intN signed
         sz = count or 4
         n += 1
         if not HAS_FFI
@@ -715,13 +712,13 @@ unpack = (fmt, s, pos) ->
           _results[n] = to_signed uv, sz
         pos += sz
 
-      when "I"   -- uintN non signé
+      when "I"   -- uintN unsigned
         sz = count or 4
         n += 1
         _results[n] = tonumber read_uint s, pos, sz, le
         pos += sz
 
-      when "l"   -- int64 signé
+      when "l"   -- int64 signed
         n += 1
         if HAS_FFI
           _results[n] = tonumber(ffi.cast "int64_t", read_uint(s, pos, 8, le))
@@ -734,7 +731,7 @@ unpack = (fmt, s, pos) ->
         _results[n] = tonumber read_uint s, pos, 8, le
         pos += 8
 
-      when "j"   -- lua_Integer (int64 signé)
+      when "j"   -- lua_Integer (int64 signed)
         n += 1
         if HAS_FFI
           _results[n] = tonumber(ffi.cast "int64_t", read_uint(s, pos, 8, le))
@@ -752,14 +749,14 @@ unpack = (fmt, s, pos) ->
         _results[n] = bytes_to_double s, pos, le
         pos += 8
 
-      when "c"   -- chaîne de longueur fixe
+      when "c"   -- fixed-length string
         sz = count or 1
         error "data string too short" if pos + sz > #s
         n += 1
         _results[n] = s\sub pos + 1, pos + sz
         pos += sz
 
-      when "s"   -- chaîne préfixée longueur
+      when "s"   -- length-prefixed string
         sz  = count or 8
         len = tonumber read_uint s, pos, sz, le
         pos += sz
@@ -768,27 +765,27 @@ unpack = (fmt, s, pos) ->
         _results[n] = s\sub pos + 1, pos + len
         pos += len
 
-      when "z"   -- chaîne null-terminated
+      when "z"   -- null-terminated string
         nul = s\find "\0", pos + 1, true
         if not nul
-          error "string.unpack 'z' : pas de \\0 trouvé"
+          error "string.unpack 'z': no \\0 found"
         n += 1
         _results[n] = s\sub pos + 1, nul - 1
-        pos = nul   -- avance juste après le \0
+        pos = nul   -- advance just past the \0
 
-      when "x"   -- padding (ignore 1 octet)
+      when "x"   -- padding (ignore 1 byte)
         error "data string too short" if pos + 1 > #s
         pos += 1
 
-      when "X"   -- alignement (no-op simplifié)
+      when "X"   -- alignment (simplified no-op)
         nil -- no-op
 
-  -- Ajoute la position suivante (1-based) comme dernier résultat
+  -- Append the next position (1-based) as the last result
   n += 1
   _results[n] = pos + 1
   tunpack _results, 1, n
 
--- ─── Injection dans string.* ─────────────────────────────────────────────────
+-- ─── Injection into string.* ─────────────────────────────────────────────────
 
 --- Injects pack/unpack functions into the global string table.
 -- This makes string.pack, string.unpack, and string.packsize available globally.

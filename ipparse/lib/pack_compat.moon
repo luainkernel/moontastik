@@ -11,7 +11,6 @@
 -- @module lib.pack_compat
 -- @return table The string table with pack/unpack functions (native) or the pack_compat_lib module (fallback)
 
--- pack_compat.moon
 -- Parse-safe entrypoint for runtimes that reject some fallback syntax/operators.
 
 return string if string.unpack
