@@ -6,10 +6,13 @@
 # counters to an existing stats file, so the suite is run under LuaJIT then
 # under Lua 5.4 with the same statsfile, and a single report is generated.
 #
-# Run from the repository root with both interpreters carrying luacov:
+# Run from the repository root with both interpreters carrying luacov, plus
+# OpenSSL and mbedTLS so the optional FFI crypto backends are exercised
+# instead of skipped (tests/ffi_libs.sh builds the matching LD_LIBRARY_PATH):
 #
 #   nix-shell -p 'luajit.withPackages (p: [p.luacov])' \
 #             'lua5_4.withPackages (p: [p.luacov])' \
+#             openssl mbedtls \
 #             --run 'make -C ipparse coverage-nobuild'
 #
 # Note: the LuaJIT environment also provides a `lua` symlink pointing at
@@ -53,6 +56,14 @@ if [ -z "$luajit_bin" ] && [ -z "$lua54_bin" ]; then
 fi
 
 rm -f "$stats" "$report"
+
+# Make the optional FFI crypto backends loadable. ffi_libs.sh prints the
+# relevant library dirs (and warns on stderr when a library is missing); if
+# none are found we keep going and the backends' tests skip themselves.
+ffi_ld_path=$("$script_dir/ffi_libs.sh")
+if [ -n "$ffi_ld_path" ]; then
+  export LD_LIBRARY_PATH="${ffi_ld_path}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
 
 run_suite() {
   local bin=$1 name=$2
