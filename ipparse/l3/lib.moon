@@ -47,6 +47,6 @@ checksum = =>
 -- @tparam string payload Transport payload (header + data for checksum context).
 -- @treturn number 16-bit checksum.
 checksum6 = (src, dst, next_header, payload) ->
-  checksum sp(">c16c16 I4 xxx B c#{#payload}", src, dst, #payload, next_header, payload)
+  checksum sp(">c16c16 I4 xxx B", src, dst, #payload, next_header) .. payload
 
 :checksum, :checksum6

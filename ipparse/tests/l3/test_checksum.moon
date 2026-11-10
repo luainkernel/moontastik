@@ -43,4 +43,11 @@ test "checksum6 matches IPv6 pseudo-header formula", ->
   got = checksum6 src, dst, 17, payload
   expected = checksum sp(">c16c16 I4 xxx B c#{#payload}", src, dst, #payload, 17, payload)
   assert got == expected, "checksum6 mismatch: got #{got}, expected #{expected}"
+test "checksum6 stable across payload lengths (frozen values)", ->
+  src = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+  dst = string.char 0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+  assert checksum6(src, dst, 17, "abcdef") == 31302, "checksum6 (6 bytes) changed"
+  assert checksum6(src, dst, 17, "hello world!!") == 61820, "checksum6 (13 bytes) changed"
+  assert checksum6(src, dst, 17, "xyz") == 45564, "checksum6 (3 bytes, odd) changed"
+
 util.summary "l3/checksum"
