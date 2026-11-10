@@ -267,4 +267,46 @@ test "fun.map table shortcut maps an array", ->
   assert #arr == 3, "expected 3 elements, got #{#arr}"
   assert arr[1] == 2 and arr[3] == 6, "table shortcut map mismatch"
 
+test "fun.tables loads alone and exposes its functions", ->
+  t = require "ipparse.fun.tables"
+  assert type(t.bidirectional) == "function", "tables.bidirectional should be a function"
+  assert type(t.zero_indexed) == "function", "tables.zero_indexed should be a function"
+  assert type(t.opairs) == "function", "tables.opairs should be a function"
+
+test "fun.memo loads alone and exposes its functions", ->
+  m = require "ipparse.fun.memo"
+  assert type(m.memo) == "function", "memo.memo should be a function"
+  assert type(m.memoN) == "function", "memo.memoN should be a function"
+
+test "fun.iter loads alone and exposes its functions", ->
+  m = require "ipparse.fun.iter"
+  assert type(m.iter) == "table", "iter.iter should be a table"
+  assert type(m.wrap) == "function", "iter.wrap should be a function"
+  assert type(m.generate) == "function", "iter.generate should be a function"
+  assert type(m.range) == "function", "iter.range should be a function"
+
+test "fun.protected loads alone and exposes protected and leak_debug", ->
+  m = require "ipparse.fun.protected"
+  assert type(m.protected) == "function", "protected.protected should be a function"
+  assert rawget(m, "leak_debug") == nil, "protected.leak_debug should start unset"
+  m.leak_debug = true
+  assert m.leak_debug == true, "protected.leak_debug should be writable"
+  m.leak_debug = nil
+
+test "fun facade re-exports the same functions as the submodules", ->
+  tables = require "ipparse.fun.tables"
+  memo_mod = require "ipparse.fun.memo"
+  iter_mod = require "ipparse.fun.iter"
+  protected_mod = require "ipparse.fun.protected"
+  assert fun.bidirectional == tables.bidirectional, "bidirectional identity mismatch"
+  assert fun.zero_indexed == tables.zero_indexed, "zero_indexed identity mismatch"
+  assert fun.opairs == tables.opairs, "opairs identity mismatch"
+  assert fun.memo == memo_mod.memo, "memo identity mismatch"
+  assert fun.memoN == memo_mod.memoN, "memoN identity mismatch"
+  assert fun.iter == iter_mod.iter, "iter identity mismatch"
+  assert fun.wrap == iter_mod.wrap, "wrap identity mismatch"
+  assert fun.generate == iter_mod.generate, "generate identity mismatch"
+  assert fun.range == iter_mod.range, "range identity mismatch"
+  assert fun.protected == protected_mod.protected, "protected identity mismatch"
+
 util.summary "fun"
