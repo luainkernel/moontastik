@@ -34,6 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
       - name: Compile MoonScript sources
         run: nix-shell -p luajitPackages.moonscript --run "make -C ipparse all"
       - name: Run test suite
