@@ -264,6 +264,11 @@ opairs = (f=(a,b) -> if type(a) == type(b) then a < b else "#{a}" < "#{b}") =>
 
 _ = nil
 
+-- Detected once at load time: xpcall forwards extra arguments on Lua 5.2+ and
+-- LuaJIT, but not on Lua 5.1 PUC. Kept as a flat local so `protected` does not
+-- need a nested probe function.
+xpcall_passes_args = select(2, xpcall(((x) -> x), (-> true), true)) == true
+
 --- Wraps a function call in `xpcall` to catch errors.
 -- If an error occurs, it prints the error. When `leak_debug` is true, it also prints a full traceback.
 --- Calls an optional `op` function on error.
@@ -282,6 +287,11 @@ _ = nil
 -- module was loaded one `require` level deeper than the top level. Defining
 -- them at block level reduces the parser's C recursion; the API and semantics
 -- are unchanged.
+--
+-- Implementation note: when the runtime's `xpcall` forwards extra arguments
+-- (`xpcall_passes_args`, true on Lua 5.2+/LuaJIT), `fn` is passed to `xpcall`
+-- directly with its arguments, avoiding the per-call `call` closure. On Lua
+-- 5.1 PUC the closure form is kept as a fallback.
 -- @tparam function fn
 -- @tparam[opt] function op
 -- @treturn function A new, protected function (max 26 args/returns).
@@ -295,12 +305,17 @@ protected = (fn, op) ->
     print err
     print debug.traceback! if leak_debug
     op! if op
-  run = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
-    call = -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
-    ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall call, onerror
-    if ok
-      a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
-  run
+  if xpcall_passes_args
+    (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
+      ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall fn, onerror, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+      if ok
+        a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+  else
+    (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z) ->
+      call = -> fn a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+      ok, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z = xpcall call, onerror
+      if ok
+        a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
 
 
 --- The main export table for the `fun` module.
