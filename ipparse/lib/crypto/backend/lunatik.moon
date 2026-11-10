@@ -23,10 +23,6 @@
 {:aead, :skcipher} = require "crypto"
 {:validate_gcm_key, :validate_gcm_nonce, :validate_ecb_key, :validate_ecb_block, :construct_nonce} = require "ipparse.lib.crypto.backend.common"
 
-close_tfm = (tfm) ->
-  return unless tfm and tfm.__close
-  pcall tfm.__close, tfm
-
 -- EBADMSG error names produced by Lunatik's lunatik_pusherrname
 -- (lunatik_aux.c, kernel >= 6.7): errname(abs(err)) == "EBADMSG".
 -- On older kernels it formats "%pE" of ERR_PTR(-err): with
