@@ -228,67 +228,121 @@ bytes_to_float = (s, offset, le) ->
 
 -- ─── string.pack ─────────────────────────────────────────────────────────────
 
--- Construit un encodeur spécialisé pour un entier non signé de `sz` octets.
--- Les tailles courantes (1, 2, 3, 4) sont déroulées via string.char, sans
--- allocation de table ni appel FFI ; les tailles 5-6 utilisent une petite
--- boucle et au-delà de 6 octets on retombe sur write_uint (précision 64 bits).
+-- Tampon d'octets partagé au niveau du module. `pack` n'appelle aucun callback
+-- utilisateur pendant la construction : il n'est donc pas réentrant, ce qui est
+-- acceptable ici. Les writers écrivent dans _buf[n+1 .. n+size] et renvoient le
+-- nouvel index (0-based), sans allouer de chaîne.
+_buf = {}
+
+-- Convertit _buf[1..n] en chaîne, par morceaux de 4096 max pour rester sous la
+-- limite pratique de `unpack`/`string.char`. Fonction de module (et non closure
+-- locale à pack) pour que LuaJIT puisse compiler le chemin rapide : créer une
+-- closure par appel (bytecode FNEW) est NYI et annule la compilation du trace.
+buf_string = (buf, n) ->
+  if n <= 4096
+    string.char tunpack buf, 1, n
+  else
+    out = {}
+    i = 0
+    while i < n
+      len = math.min 4096, n - i
+      out[#out+1] = string.char tunpack buf, i + 1, i + len
+      i += len
+    table.concat out
+
+-- Ajoute `s` à `parts` (crée la liste au besoin) et renvoie la liste.
+append_string = (parts, s) ->
+  parts = {} unless parts
+  parts[#parts+1] = s
+  parts
+
+-- Construit un writer d'entier non signé de `sz` octets : écrit les octets dans
+-- `buf` à partir de l'index `n` et renvoie `n + sz`.
+-- Les tailles 1 à 4 sont déroulées, 5-6 utilisent une petite boucle, et au-delà
+-- de 6 octets on passe par uint64_t pour conserver la précision actuelle.
 make_uint = (sz, le) ->
   if sz == 1
-    (v) -> string.char(v % 256)
+    (buf, n, v) ->
+      buf[n + 1] = v % 256
+      n + 1
   elseif sz == 2
     if le
-      (v) ->
+      (buf, n, v) ->
         u = v % 65536
-        string.char(u % 256, math.floor(u / 256) % 256)
+        buf[n + 1] = u % 256
+        buf[n + 2] = math.floor(u / 256) % 256
+        n + 2
     else
-      (v) ->
+      (buf, n, v) ->
         u = v % 65536
-        string.char(math.floor(u / 256) % 256, u % 256)
+        buf[n + 1] = math.floor(u / 256) % 256
+        buf[n + 2] = u % 256
+        n + 2
   elseif sz == 3
     mod = 16777216
     if le
-      (v) ->
+      (buf, n, v) ->
         u = v % mod
-        string.char(u % 256, math.floor(u / 256) % 256, math.floor(u / 65536) % 256)
+        buf[n + 1] = u % 256
+        buf[n + 2] = math.floor(u / 256) % 256
+        buf[n + 3] = math.floor(u / 65536) % 256
+        n + 3
     else
-      (v) ->
+      (buf, n, v) ->
         u = v % mod
-        string.char(math.floor(u / 65536) % 256, math.floor(u / 256) % 256, u % 256)
+        buf[n + 1] = math.floor(u / 65536) % 256
+        buf[n + 2] = math.floor(u / 256) % 256
+        buf[n + 3] = u % 256
+        n + 3
   elseif sz == 4
     mod = 4294967296
     if le
-      (v) ->
+      (buf, n, v) ->
         u = v % mod
-        string.char(u % 256, math.floor(u / 256) % 256,
-          math.floor(u / 65536) % 256, math.floor(u / 16777216) % 256)
+        buf[n + 1] = u % 256
+        buf[n + 2] = math.floor(u / 256) % 256
+        buf[n + 3] = math.floor(u / 65536) % 256
+        buf[n + 4] = math.floor(u / 16777216) % 256
+        n + 4
     else
-      (v) ->
+      (buf, n, v) ->
         u = v % mod
-        string.char(math.floor(u / 16777216) % 256, math.floor(u / 65536) % 256,
-          math.floor(u / 256) % 256, u % 256)
+        buf[n + 1] = math.floor(u / 16777216) % 256
+        buf[n + 2] = math.floor(u / 65536) % 256
+        buf[n + 3] = math.floor(u / 256) % 256
+        buf[n + 4] = u % 256
+        n + 4
   elseif sz <= 6
     mod = 2 ^ (8 * sz)
     if le
-      (v) ->
+      (buf, n, v) ->
         u = v % mod
-        bytes = {}
         for k = 1, sz
-          bytes[k] = u % 256
+          buf[n + k] = u % 256
           u = math.floor(u / 256)
-        string.char tunpack bytes
+        n + sz
     else
-      (v) ->
+      (buf, n, v) ->
         u = v % mod
-        bytes = {}
         for k = sz, 1, -1
-          bytes[k] = u % 256
+          buf[n + k] = u % 256
           u = math.floor(u / 256)
-        string.char tunpack bytes
+        n + sz
   else
-    (v) ->
-      buf = ffi.new "uint8_t[?]", sz
-      write_uint buf, 0, v, sz, le
-      ffi.string buf, sz
+    if le
+      (buf, n, v) ->
+        u = ffi.cast "uint64_t", v
+        for k = 1, sz
+          buf[n + k] = tonumber(u % 256)
+          u = u / 256
+        n + sz
+    else
+      (buf, n, v) ->
+        u = ffi.cast "uint64_t", v
+        for k = sz, 1, -1
+          buf[n + k] = tonumber(u % 256)
+          u = u / 256
+        n + sz
 
 make_float = (le) ->
   (v) -> string.char(tunpack(float_to_bytes(v, le)))
@@ -303,25 +357,21 @@ make_c = (sz) ->
     else
       v\sub 1, sz
 
-make_s = (sz, le) ->
-  len_emit = make_uint sz, le
-  (v) -> len_emit(#v) .. v
-
 -- Choisit l'encodeur d'une option au moment de la compilation du format.
 pack_op = (opt, count, le) ->
   switch opt
 
     when "b", "B"   -- int8 / uint8
-      { consume: true, emit: make_uint(1, le) }
+      { consume: true, write: make_uint(1, le) }
 
     when "h", "H"   -- int16 / uint16
-      { consume: true, emit: make_uint(2, le) }
+      { consume: true, write: make_uint(2, le) }
 
     when "i", "I"   -- int/uint N octets (défaut 4)
-      { consume: true, emit: make_uint((count or 4), le) }
+      { consume: true, write: make_uint((count or 4), le) }
 
     when "l", "L", "j", "J", "T"   -- 64 bits
-      { consume: true, emit: make_uint(8, le) }
+      { consume: true, write: make_uint(8, le) }
 
     when "f"   -- float 32
       { consume: true, emit: make_float le }
@@ -333,44 +383,75 @@ pack_op = (opt, count, le) ->
       { consume: true, emit: make_c(count or 1) }
 
     when "s"   -- chaîne préfixée longueur (size_t = 8 octets par défaut)
-      { consume: true, emit: make_s((count or 8), le) }
+      { consume: true, write_len: make_uint((count or 8), le), emit: (v) -> v }
 
     when "z"   -- chaîne null-terminated
       { consume: true, emit: (v) -> v .. "\0" }
 
     when "x"   -- padding (un octet nul)
-      { consume: false, emit: -> "\0" }
+      { consume: false, write: (buf, n) ->
+        buf[n + 1] = 0
+        n + 1 }
 
     else       -- "X" (alignement) et options inconnues : no-op
-      { consume: false, emit: -> "" }
+      { consume: false, write: (buf, n) -> n }
 
 -- Cache des formats compilés en liste d'encodeurs : fmt → plan.
 _pack_cache = {}
 
 compile_pack = (fmt) ->
   plan = {}
+  consumed = 0
   iter = parse_format fmt
   opt, count, le = iter!
   while opt != nil
-    plan[#plan+1] = pack_op opt, count, le
+    op = pack_op opt, count, le
+    plan[#plan+1] = op
+    consumed += 1 if op.consume
     opt, count, le = iter!
+  plan.count = consumed
   _pack_cache[fmt] = plan
   plan
 
-pack = (fmt, ...) ->
-  plan  = _pack_cache[fmt] or compile_pack(fmt)
-  parts = {}
-  argi  = 1
+-- `a1`..`a8` couvrent la grande majorité des formats sans vararg ni `select`
+-- dans la boucle ; au-delà de 8 valeurs consommées, on bascule sur le chemin
+-- générique qui collecte le vararg une seule fois.
+pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
+  plan = _pack_cache[fmt] or compile_pack(fmt)
+  args = nil
+  if plan.count > 8
+    args = {a1, a2, a3, a4, a5, a6, a7, a8, ...}
+  else
+    args = {a1, a2, a3, a4, a5, a6, a7, a8}
 
+  n     = 0
+  parts = nil
+
+  argi = 1
   for j = 1, #plan
     op = plan[j]
-    if op.consume
-      parts[#parts+1] = op.emit(select(argi, ...))
-      argi += 1
+    if op.write
+      if op.consume
+        n = op.write _buf, n, args[argi]
+        argi += 1
+      else
+        n = op.write _buf, n
     else
-      parts[#parts+1] = op.emit!
+      v = args[argi]
+      argi += 1
+      if op.write_len
+        n = op.write_len _buf, n, #v
+      if n > 0
+        parts = append_string parts, buf_string(_buf, n)
+        n = 0
+      parts = append_string parts, op.emit v
 
-  table.concat parts
+  if parts
+    if n > 0
+      parts = append_string parts, buf_string(_buf, n)
+    table.concat parts
+  else
+    buf_string _buf, n
 
 -- ─── string.unpack ───────────────────────────────────────────────────────────
 
