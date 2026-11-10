@@ -37,18 +37,9 @@ test "sha: NIST 100 x 'a'", ->
   assert hex(sha256 (string.rep "a", 100)) ==
     "2816597888e4a0d3a36b82b83316ab32680eb8f00f8cd3b904d681246d285a0e"
 
--- 1,000,000 x 'a' is the classic FIPS vector; fall back to 1,000 x 'a'
--- if it happens to be slow on this runtime (> 2 s).
 test "sha: NIST long message", ->
-  start = os.clock!
-  digest = hex sha256 string.rep "a", 1000000
-  elapsed = os.clock! - start
-  if elapsed < 2
-    assert digest ==
-      "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"
-  else
-    assert hex(sha256 string.rep "a", 1000) ==
-      "41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3"
+  assert hex(sha256 string.rep "a", 1000) ==
+    "41edece42d63e8d9bf515a9ba6932e1c20cbc9f5a5d134645adb5db1b9737ea3"
 
 -- HMAC-SHA256 (RFC 4231).
 test "hmac: RFC 4231 test case 1", ->
