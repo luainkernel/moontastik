@@ -37,21 +37,6 @@ sample_from_packet = (pkt, enc_off) ->
   return nil, "packet too short to extract header protection sample" unless s + 15 <= #pkt
   pkt\sub s, s + 15
 
---- Applies (or removes — same operation) header protection.
--- Works in-place on the mutable bytes table `hdr_bytes`.
--- @tparam table  hdr_bytes  array of byte values (1-based), modified in place
--- @tparam number first_byte_idx  1-based index of protected first byte in hdr_bytes
--- @tparam number pn_off     1-based index in hdr_bytes where the packet number starts
--- @tparam number pn_len     number of packet number bytes (1..4)
--- @tparam string mask       5-byte mask from AES-ECB
--- @tparam boolean long      true for long header, false for short
-apply_header_mask = (hdr_bytes, first_byte_idx, pn_off, pn_len, mask, long) ->
-  m0 = byte mask, 1
-  fb_mask = long and 0x0F or 0x1F
-  hdr_bytes[first_byte_idx] = bxor hdr_bytes[first_byte_idx], band(m0, fb_mask)
-  for i = 1, pn_len
-    hdr_bytes[pn_off + i - 1] = bxor hdr_bytes[pn_off + i - 1], byte(mask, i + 1)
-
 recover_packet_number = nil
 
 unprotect_header = (pkt, pn_off, hp_key, long, expected_pn, crypto) ->
@@ -80,13 +65,6 @@ unprotect_header = (pkt, pn_off, hp_key, long, expected_pn, crypto) ->
         (pn_off > 2 and pkt\sub(2, pn_off - 1) or "") ..
         table.concat(pn_chars)
   aad, full_pn, pn_len
-
---- Decodes a big-endian packet number from `n` bytes.
-pn_from_bytes = (hdr_bytes, pn_off, pn_len) ->
-  pn = 0
-  for i = 0, pn_len - 1
-    pn = pn * 256 + hdr_bytes[pn_off + i]
-  pn
 
 --- Recovers the full packet number from a truncated one (RFC 9000 §A.3).
 -- @tparam number truncated  the pn_len-byte truncated packet number
@@ -125,6 +103,7 @@ recover_packet_number = (truncated, expected, pn_len) ->
 -- @treturn number pn_len       packet number length in bytes (1..4)
 remove_header_protection = (pkt, pn_off, hp_key, long, expected_pn, crypto) ->
   aad, full_pn, pn_len = unprotect_header pkt, pn_off, hp_key, long, expected_pn, crypto
+  return nil, full_pn unless aad
   hdr_bytes = {}
   for i = 1, #aad
     hdr_bytes[i] = byte aad, i
