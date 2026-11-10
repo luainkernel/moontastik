@@ -42,7 +42,6 @@ new = (check_complete=(-> true), opts={}) ->
         clock_hz = 1000000000
       else
         error "tcp_stream: no clock available (pass opts.clock/opts.clock_hz)"
-  clock_hz = 1 if not clock_hz
   sessions = {}
   count = 0
 
@@ -99,7 +98,7 @@ new = (check_complete=(-> true), opts={}) ->
     -- @tparam string key
     clear: (key) -> drop key
 
-    --- Drop every tracked session (vidage en place, références préservées).
+    --- Drop every tracked session (in-place clearing, references preserved).
     reset: ->
       sessions[k] = nil for k in pairs sessions
       count = 0
