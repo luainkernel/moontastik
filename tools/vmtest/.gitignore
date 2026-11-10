@@ -1,2 +1,5 @@
-build/
-.venv/
+# Leading slashes anchor to this directory and also match a symlink
+# (e.g. `build -> ../../elsewhere/tools/vmtest/build` for a shared cache),
+# which a trailing-slash pattern (`build/`) does not.
+/build
+/.venv
