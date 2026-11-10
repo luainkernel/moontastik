@@ -31,7 +31,7 @@
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
 byte = string.byte
-{:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
+{:band, :bor, :rshift} = require"ipparse.lib.bit_compat"
 
 -- True when values are native 64-bit integers (Lua 5.3+/Lunatik kernel), where
 -- bitwise shifts cover the full 64-bit range and floats/math.floor may be absent.

@@ -9,7 +9,7 @@
 --
 -- @module l7.quic.session
 
-pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+unpack: su = require "ipparse.lib.pack_compat"
 quic_mod  = require "ipparse.l4.quic"
 prot_mod  = require "ipparse.l4.quic.v1.protection"
 ch_mod    = require "ipparse.l7.tls.handshake.client_hello"
