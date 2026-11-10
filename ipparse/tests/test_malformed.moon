@@ -102,4 +102,14 @@ test "tls: valid ClientHello still parses", ->
   h = require("ipparse.l7.tls.handshake").parse msg, 1
   assert h and h.type == 0x01, "valid handshake should parse"
 
+test "quic: short header shorter than the DCID returns nil", ->
+  q, off = quic.parse "\064ab", 1, "12345678"
+  assert q == nil, "too-short packet for the expected DCID should return nil"
+
+test "quic: short header extracts the DCID and sets data_off", ->
+  q, off = quic.parse "\06412345678xyz", 1, "12345678"
+  assert q and q.dst_connection_id == "12345678",
+    "expected DCID '12345678', got: #{tostring q and q.dst_connection_id}"
+  assert q.data_off == 10, "expected data_off 10, got: #{tostring q and q.data_off}"
+
 util.summary "malformed"

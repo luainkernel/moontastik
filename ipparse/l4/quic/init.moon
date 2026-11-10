@@ -115,7 +115,9 @@ parse_long_header = (off, byte1) =>
 parse_short_header = (off, byte1, dst_id=nil, src_connection_id=nil, version=nil) =>
   local mt, dst_connection_id, _off
   if dst_id
-    dst_connection_id, _off  = su ">c#{#dst_id}", @, off
+    return nil, off unless need_bytes @, off, #dst_id
+    dst_connection_id = @\sub off, off + #dst_id - 1
+    _off = off + #dst_id
   if v = versions[version]
     mt = v.short_mt
   mt or= _mt
