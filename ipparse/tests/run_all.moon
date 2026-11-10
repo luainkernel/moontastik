@@ -32,6 +32,7 @@ mods = {
   "ipparse.tests.lib.test_bit_compat"
   "ipparse.tests.lib.test_pack_compat"
   "ipparse.tests.lib.test_pack_compat_float"
+  "ipparse.tests.lib.test_pcap"
   "ipparse.tests.lib.crypto.test_ffi_wolfssl"
   "ipparse.tests.lib.crypto.test_ffi_mbedtls"
   "ipparse.tests.l4.quic.test_varint"
