@@ -10,8 +10,9 @@ if path = (...)\match"(.*)%.[^%.]-"  -- Add subdirectory to package.path if appl
 :byte, :char, :format, :gsub, :rep, :sub = string
 unpack: su = require "ipparse.lib.pack_compat"  -- string.unpack is absent on LuaJIT/Lua 5.1
 :concat = table
-:opairs = require"ipparse.fun"
-require"ipparse.fun".leak_debug = leak_debug
+:opairs = require "ipparse.fun.tables"
+if leak_debug != nil
+  require("ipparse.fun.protected").leak_debug = leak_debug
 
 --- Returns a string representation of the table's key-value pairs.
 -- Iterates over the table and formats each key-value pair as "key: value".

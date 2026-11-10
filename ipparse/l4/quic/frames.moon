@@ -30,7 +30,7 @@
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
-:bidirectional = require"ipparse.fun"
+:bidirectional = require "ipparse.fun.tables"
 byte = string.byte
 {:band, :bor, :rshift} = require"ipparse.lib.bit_compat"
 

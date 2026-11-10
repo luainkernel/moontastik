@@ -40,7 +40,7 @@
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :concat = table
-:bidirectional,:zero_indexed = require"ipparse.fun"
+:bidirectional,:zero_indexed = require "ipparse.fun.tables"
 
 --- Packs a single ServerName entry (NameType, NameLength, NameData).
 -- @treturn string Binary string for the packed entry.

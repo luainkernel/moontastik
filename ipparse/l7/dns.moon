@@ -69,7 +69,7 @@
 --
 -- @module l7.dns
 
-:bidirectional, :zero_indexed = require"ipparse.fun"
+:bidirectional, :zero_indexed = require "ipparse.fun.tables"
 pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
 :concat = table

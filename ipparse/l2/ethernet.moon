@@ -25,7 +25,7 @@
 --
 -- @module l2.ethernet
 
-:bidirectional = require"ipparse.fun"
+:bidirectional = require "ipparse.fun.tables"
 :format, pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 {:need_bytes} = require "ipparse"
 {:band} = require "ipparse.lib.bit_compat"
