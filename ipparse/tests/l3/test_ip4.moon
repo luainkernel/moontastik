@@ -127,4 +127,22 @@ if has_data and fragmented_ip4
 else
   test "fragmented_ip4: skipped (requires Lunatik `data` module)", -> true
 
+test "DF/MF readable and writable in both all-lower and all-upper case", ->
+  hdr = ip4.new {src: ip4.s2ip4"1.2.3.4", dst: ip4.s2ip4"5.6.7.8", protocol: 6, options: ""}
+  assert hdr.df == false, "hdr.df should be false initially"
+  hdr.df = true
+  assert hdr.DF == true, "setting hdr.df should set DF"
+  assert hdr.ff == 0x4000, "ff should be 0x4000, got #{hdr.ff}"
+  hdr.DF = false
+  assert hdr.df == false, "clearing hdr.DF should clear DF"
+  assert hdr.mf == false, "hdr.mf should be false initially"
+  hdr.MF = true
+  assert hdr.mf == true, "setting hdr.MF should set MF"
+  hdr.mf = false
+  assert hdr.MF == false, "clearing hdr.mf should clear MF"
+
+test "mixed-case IPv4 flag names are no longer recognized", ->
+  hdr = ip4.new {src: ip4.s2ip4"1.2.3.4", dst: ip4.s2ip4"5.6.7.8", protocol: 6, options: "", DF: true}
+  assert hdr.Df == nil, "hdr.Df should not be recognized, got '#{hdr.Df}'"
+
 util.summary "l3/ip4"
