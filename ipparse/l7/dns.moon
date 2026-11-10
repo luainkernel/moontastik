@@ -309,7 +309,11 @@ parse_opt = (off=1) =>
     else data = {raw_data}
     data.type = typ
     data[fields[i]] = data[i] for i = 1, #fields
-    setmetatable data, __tostring: => fmt and sp(fmt, unpack [data[field] for field in *fields]) or @[1]
+    setmetatable data, __tostring: =>
+      if code == 8
+        sp(fmt, data.family, data.source_netmask, data.scope_netmask) .. data.subnet
+      else
+        @[1]
   else data = setmetatable {raw_data}, __tostring: => @[1]
   setmetatable({:code, :len, :data}, _opt_mt), _off
 
