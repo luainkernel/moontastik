@@ -60,8 +60,19 @@ test "varint: round-trip 70000", ->
 test "varint: round-trip 8-byte value", ->
   value = 4886718345 -- 0x123456789
   encoded = encode_varint value
+  assert encoded == "\xC0\x00\x00\x01\x23\x45\x67\x89", "8-byte encoding mismatch"
   v, _ = parse_varint encoded, 1
   assert v == value, "round-trip 8-byte value failed: got #{v}"
+
+-- 2^62-1 is not exactly representable as a double (LuaJIT): only run where
+-- native integers exist.
+if math.type
+  test "varint: round-trip 8-byte max value", ->
+    value = 4611686018427387903 -- 0x3FFFFFFFFFFFFFFF (2^62-1)
+    encoded = encode_varint value
+    assert encoded == "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", "max 8-byte encoding mismatch"
+    v, _ = parse_varint encoded, 1
+    assert v == value, "round-trip max 8-byte value failed: got #{v}"
 
 test "varint: truncated 8-byte returns nil", ->
   v, off = parse_varint "\xC0\x00", 1
