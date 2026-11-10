@@ -29,6 +29,7 @@
 
 pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
+{:need_bytes} = require "ipparse"
 
 --- Packs a TLS record into a binary string.
 -- Constructs the binary representation of the TLS record.
@@ -49,6 +50,7 @@ _mt =
 -- @treturn table Parsed TLS record as a table.
 -- @treturn number The next offset after parsing.
 parse = (off=1) =>
+  return nil, off unless need_bytes @, off, 5
   _type, ver, subver, len, _off = su ">B BB H", @, off
   setmetatable({
     type: _type, data_off: _off
