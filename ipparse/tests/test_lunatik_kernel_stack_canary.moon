@@ -128,8 +128,8 @@ FUN_EXEMPT = {
   ["ipparse.fun.protected"]: true
 }
 
--- Facade and heavy submodules, not loaded by protocol modules; values to be
--- measured after installing ipparse as bytecode.
+-- Facade and heavy submodules, not loaded by protocol modules. Source depth is
+-- 0–1 for the facade and `protected`; bytecode loads from depth ≥ 12.
 REQUIRED_DEPTH_OVERRIDES = {
   ["ipparse.fun"]: 0
   ["ipparse.fun.iter"]: 0

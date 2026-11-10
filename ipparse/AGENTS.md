@@ -69,6 +69,23 @@ Rules for entry modules (any module a user may `require` directly):
 - Do not add deeply nested function expressions to modules loaded
   everywhere: each nesting level counts against the loader's stack.
 
+Measured by the stack canary (maximum number of nested requires an entry
+module can be first loaded from):
+
+| Module | Source | Bytecode |
+|---|---|---|
+| `ipparse` (shared base) | 8 | ≥ 12 |
+| `l2.ethernet`, `l4.tcp`, `l7.dns`, `l4.quic.frames`, `l7.tls.handshake` | 6 | ≥ 9 |
+| `l3.ip`, `l3.ip4`, `l3.ip6`, `l4.udp` | 5 | ≥ 11 |
+| `l4.quic` | 4 | 11 |
+| `l7.quic.session` | 3 | 9 |
+| `l7.quic` | 2 | 8 |
+| `ipparse.fun` facade, `ipparse.fun.protected` | 0–1 | ≥ 12 |
+
+Before the `ipparse.fun` split, every protocol module was at 0. Bytecode is
+recommended in production, and required to load the `ipparse.fun` facade or
+`ipparse.fun.protected` anywhere below the shallowest level.
+
 `make install BYTECODE=1` installs the modules precompiled instead of as
 source, which skips the recursive Lua parser at load time. The compiler must
 be Lunatik's `lunatic` (from a Lunatik build; pass it with
