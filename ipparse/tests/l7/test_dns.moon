@@ -215,4 +215,10 @@ test "pack emits size prefix when size is preset", ->
   assert #packed == 14, "packed length should be 14, got #{#packed}"
   assert packed\sub(1, 2) == "\000\012", "prefix should be 12"
 
+test "unknown EDNS option round-trips byte-exact", ->
+  raw = "\000\010\000\002hi"
+  o = dns.parse_opt raw
+  assert o.data ~= nil, "unknown option data should not be nil"
+  assert tostring(o) == raw, "unknown option should round-trip"
+
 util.summary "l7/dns"
