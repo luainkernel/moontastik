@@ -42,13 +42,21 @@ jobs:
         run: nix-shell -p luajitPackages.moonscript --run "make -C ipparse all"
       - name: Run test suite
         run: |
+          has_ffi=""
           case "${{ matrix.lua }}" in
-            luajit) pkg=luajit; bin=luajit ;;
+            luajit) pkg=luajit; bin=luajit; has_ffi=1 ;;
             lua5.1) pkg=lua5_1; bin=lua ;;
             lua5.4) pkg=lua5_4; bin=lua ;;
             lua5.5) pkg=lua5_5; bin=lua ;;
           esac
-          nix-shell -p "$pkg" --run "make -C ipparse test-nobuild LUA=$bin"
+          if [ -n "$has_ffi" ]; then
+            # LuaJIT has FFI: make the optional crypto backends loadable so
+            # their tests run instead of being skipped.
+            nix-shell -p "$pkg" openssl mbedtls --run \
+              "export LD_LIBRARY_PATH=\"\$(ipparse/tests/ffi_libs.sh)\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}\" && make -C ipparse test-nobuild LUA=$bin"
+          else
+            nix-shell -p "$pkg" --run "make -C ipparse test-nobuild LUA=$bin"
+          fi
 
   coverage:
     runs-on: ubuntu-latest
@@ -64,6 +72,7 @@ jobs:
         run: |
           nix-shell -p 'luajit.withPackages (p: [p.luacov])' \
                     'lua5_4.withPackages (p: [p.luacov])' \
+                    openssl mbedtls \
                     --run 'make -C ipparse coverage-nobuild' > coverage.out
           total=$(grep -E '^COVERAGE_TOTAL=' coverage.out | tail -n 1 | cut -d= -f2)
           baseline=$(cat ipparse/tests/coverage_baseline)
