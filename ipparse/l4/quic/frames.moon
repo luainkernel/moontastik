@@ -32,6 +32,11 @@ pack: sp, unpack: su = require "ipparse.lib.pack_compat"
 :bidirectional = require"ipparse.fun"
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
+-- True when values are native 64-bit integers (Lua 5.3+/Lunatik kernel), where
+-- bitwise shifts cover the full 64-bit range and floats/math.floor may be absent.
+-- False on LuaJIT, where numbers are doubles and bit ops are 32-bit.
+native_int = math.floor == nil or math.type ~= nil
+
 --- QUIC Frame Types
 -- Mapping of frame type codes to their names
 frame_types = bidirectional {
@@ -126,19 +131,33 @@ encode_varint = (value) ->
       band(value, 0xFF)
     )
   else
-    high = math.floor(value / 4294967296)
-    low = value % 4294967296
-    -- Same issue: encode manually with top 2 bits = 11
-    string.char(
-      bor(0xC0, band(math.floor(high / 16777216), 0x3F))
-      band(math.floor(high / 65536), 0xFF)
-      band(math.floor(high / 256), 0xFF)
-      band(high, 0xFF)
-      band(math.floor(low / 16777216), 0xFF)
-      band(math.floor(low / 65536), 0xFF)
-      band(math.floor(low / 256), 0xFF)
-      band(low, 0xFF)
-    )
+    if native_int
+      -- Native 64-bit integers: drive the byte split with shifts/masks only
+      -- (no floats, no math.floor, no division).
+      string.char(
+        bor(0xC0, band(rshift(value, 56), 0x3F))
+        band(rshift(value, 48), 0xFF)
+        band(rshift(value, 40), 0xFF)
+        band(rshift(value, 32), 0xFF)
+        band(rshift(value, 24), 0xFF)
+        band(rshift(value, 16), 0xFF)
+        band(rshift(value, 8), 0xFF)
+        band(value, 0xFF)
+      )
+    else
+      -- LuaJIT: doubles with 32-bit bit ops, so split high/low by division.
+      high = math.floor(value / 4294967296)
+      low = value % 4294967296
+      string.char(
+        bor(0xC0, band(math.floor(high / 16777216), 0x3F))
+        band(math.floor(high / 65536), 0xFF)
+        band(math.floor(high / 256), 0xFF)
+        band(high, 0xFF)
+        band(math.floor(low / 16777216), 0xFF)
+        band(math.floor(low / 65536), 0xFF)
+        band(math.floor(low / 256), 0xFF)
+        band(low, 0xFF)
+      )
 
 --- Parses a PADDING frame
 -- PADDING frames consist only of the frame type (0x00)
