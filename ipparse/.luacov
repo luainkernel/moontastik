@@ -1,0 +1,6 @@
+return {
+  statsfile = "luacov.stats.out",
+  reportfile = "luacov.report.out",
+  include = { "ipparse/" },
+  exclude = { "ipparse/tests/", "ipparse/examples/", "sha2$", "_ports$" },
+}
