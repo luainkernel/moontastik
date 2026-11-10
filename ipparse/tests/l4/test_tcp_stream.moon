@@ -49,4 +49,18 @@ test "tcp_stream: reset drops everything", ->
   buf = s.feed "k", "123456", 0x10, 2
   assert buf == "123456", "buffer should only contain post-reset data, got #{buf}"
 
+test "tcp_stream: purge drops sessions older than max_age", ->
+  now = 0
+  s = tcp_stream.new ((buf) -> #buf >= 6), clock: -> now, clock_hz: 1000
+  s.feed "old", "abc", 0x10, 1
+  now = 5000  -- 5 s later
+  s.feed "new", "abc", 0x10, 1
+  s.purge 3   -- max_age = 3 s => 3000 ticks
+  -- The recent session survived: appending completes its buffer.
+  buf = s.feed "new", "def", 0x10, 2
+  assert buf == "abcdef", "recent session should survive purge, got #{buf}"
+  -- The old session was dropped: a new segment starts from scratch.
+  buf = s.feed "old", "def", 0x10, 2
+  assert buf == nil, "old session should have been purged, got #{buf}"
+
 util.summary "l4/tcp_stream"
