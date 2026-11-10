@@ -44,8 +44,21 @@ unless crypto_hkdf or crypto_shash
   hmac, sha256 = sha.hmac, sha.sha256
   hex_to_bin = sha.hex_to_bin if sha.hex_to_bin
 
+hkdf_tfm = nil
+shash_tfm = nil
+
+get_hkdf = ->
+  unless hkdf_tfm
+    hkdf_tfm = crypto_hkdf.new "sha256"
+  hkdf_tfm
+
+get_shash = ->
+  unless shash_tfm
+    shash_tfm = crypto_shash "hmac(sha256)"
+  shash_tfm
+
 hmac_shash_bin = (key, msg) ->
-  h = crypto_shash "hmac(sha256)"
+  h = get_shash!
   h\setkey key
   h\digest msg
 
@@ -70,7 +83,7 @@ pack: sp, :char, :rep, :sub = require "ipparse.lib.pack_compat"
 hkdf_extract = (salt="", ikm) ->
   salt = rep "\0", 64 if salt == ""
   if crypto_hkdf
-    return crypto_hkdf.new("sha256")\extract salt, ikm
+    return get_hkdf!\extract salt, ikm
   hmac_bin salt, ikm
 
 
@@ -82,7 +95,7 @@ hkdf_extract = (salt="", ikm) ->
 -- @treturn string Output keying material (OKM) as hex string.
 hkdf_expand = (prk, info="", len) ->
   if crypto_hkdf
-    return bin_to_hex crypto_hkdf.new("sha256")\expand prk, info, len
+    return bin_to_hex get_hkdf!\expand prk, info, len
   len *= 2
   i, total, t, parts = 1, 0, "", {}
   while total < len
@@ -102,7 +115,7 @@ hkdf_expand = (prk, info="", len) ->
 -- @treturn string Output keying material (OKM) as hex string.
 hkdf = (salt, ikm, info, len) ->
   if crypto_hkdf
-    return bin_to_hex crypto_hkdf.new("sha256")\hkdf salt, ikm, info, len
+    return bin_to_hex get_hkdf!\hkdf salt, ikm, info, len
   hkdf_expand hkdf_extract(salt, ikm), info, len
 
 
