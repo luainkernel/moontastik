@@ -71,13 +71,59 @@ test "need_bytes rejects negative length and bad offset", ->
   assert need_bytes("abc", 1, -1) == false, "negative length should fail"
   assert need_bytes("abc", 4, 1) == false, "offset past the end should fail"
 
+test "hexdump keeps complete line output unchanged", ->
+  result = hexdump "abcdefghijklmnop"
+  assert result == "0000: 6162636465666768 696a6b6c6d6e6f70 abcdefghijklmnop", "complete line changed: '#{result}'"
+
+test "hexdump keeps two complete lines unchanged", ->
+  result = hexdump "abcdefghijklmnopqrstuvwxyz012345"
+  expected = "0000: 6162636465666768 696a6b6c6d6e6f70 abcdefghijklmnop\n0010: 7172737475767778 797a303132333435 qrstuvwxyz012345"
+  assert result == expected, "complete lines changed: '#{result}'"
+
+test "hexdump keeps complete non-default line unchanged", ->
+  result = hexdump "abcdefghijkl", 1, 4, 3
+  assert result == "0000: 61626364 65666768 696a6b6c abcdefghijkl", "non-default complete line changed: '#{result}'"
+
 test "hexdump pads an incomplete final line", ->
   result = hexdump "abc"
-  assert result == "0000: 616263 abc", "unexpected incomplete line: '#{result}'"
+  expected = "0000: 616263" .. string.rep(" ", 27) .. " abc"
+  assert result == expected, "unexpected incomplete line: '#{result}'"
 
 test "hexdump honours offset, length, cols and format", ->
   result = hexdump "\001\002\003\004", 2, 2, 1, "%02X"
-  assert result == "0001: 0203 ..\n0003: 04 .", "unexpected hexdump: '#{result}'"
+  assert result == "0001: 0203 ..\n0003: 04   .", "unexpected hexdump: '#{result}'"
+
+test "hexdump aligns ascii on 20 bytes", ->
+  result = hexdump "abcdefghijklmnopqrst"
+  first, second = result\match "([^\n]*)\n([^\n]*)"
+  a = first\find "abcdefghijklmnop", 1, true
+  b = second\find "qrst", 1, true
+  assert a and b and a == b, "ascii columns differ: #{a} vs #{b} in '#{result}'"
+
+test "hexdump aligns a single byte", ->
+  result = hexdump "a"
+  assert result\find("a", 1, true) == 41, "ascii should start at column 41: '#{result}'"
+  assert result\sub(-1) ~= " ", "line must not end with a space: '#{result}'"
+
+test "hexdump aligns 17 bytes", ->
+  result = hexdump "abcdefghijklmnopq"
+  first, second = result\match "([^\n]*)\n([^\n]*)"
+  a = first\find "abcdefghijklmnop", 1, true
+  b = second\find "q", 1, true
+  assert a and b and a == b, "ascii columns differ: #{a} vs #{b} in '#{result}'"
+  assert second\sub(-1) ~= " ", "line must not end with a space: '#{second}'"
+
+test "hexdump aligns ascii with non-default length and cols", ->
+  result = hexdump "abcdefghij", 1, 4, 3
+  expected = "0000: 61626364 65666768 696a     abcdefghij"
+  assert result == expected, "unexpected padded line: '#{result}'"
+  assert result\sub(-1) ~= " ", "line must not end with a space: '#{result}'"
+
+test "hexdump never pads trailing spaces on incomplete lines", ->
+  for _, s in ipairs {"a", "abc", "abcdefghijklmnopq", "abcdefghijklmnopqrst"}
+    result = hexdump s
+    for line in result\gmatch "[^\n]+"
+      assert line\sub(-1) ~= " ", "line ends with a space: '#{line}'"
 
 
 util.summary "init"
