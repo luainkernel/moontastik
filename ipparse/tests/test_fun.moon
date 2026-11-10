@@ -6,6 +6,7 @@
 util = require"ipparse.lib.util"
 {:test} = util
 {:bidirectional, :memo, :memoN, :iter, :range, :opairs, :zero_indexed} = require"ipparse.fun"
+fun = require"ipparse.fun"
 
 test "bidirectional forward lookup", ->
   t = bidirectional {a: 1, b: 2}
@@ -133,4 +134,29 @@ test "bidirectional pairs only sees real entries", ->
   for k, v in pairs t
     n += 1
   assert n == 2, "pairs should see 2 entries, got #{n}"
+
+test "protected only prints a traceback when leak_debug is set", ->
+  original_print = _G.print
+  calls = 0
+  _G.print = (...) -> calls += 1
+  ok, err = pcall ->
+    assert rawget(fun, "leak_debug") == nil, "leak_debug should be unset"
+    p = fun.protected -> 1, 2
+    a, b = p!
+    assert a == 1 and b == 2, "protected should return fn values"
+    assert calls == 0, "expected no print call, got #{calls}"
+    p = fun.protected -> error "boom"
+    r = p!
+    assert r == nil, "protected should return nil on error"
+    assert calls == 1, "expected 1 print call, got #{calls}"
+    calls = 0
+    fun.leak_debug = true
+    p = fun.protected -> error "boom"
+    r = p!
+    assert r == nil, "protected should return nil on error"
+    assert calls == 2, "expected 2 print calls, got #{calls}"
+    fun.leak_debug = nil
+  _G.print = original_print
+  assert ok, err
+
 util.summary "fun"
