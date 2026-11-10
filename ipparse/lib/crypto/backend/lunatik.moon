@@ -27,6 +27,25 @@ close_tfm = (tfm) ->
   return unless tfm and tfm.__close
   pcall tfm.__close, tfm
 
+-- EBADMSG error names produced by Lunatik's lunatik_pusherrname
+-- (lunatik_aux.c, kernel >= 6.7): errname(abs(err)) == "EBADMSG".
+-- On older kernels it formats "%pE" of ERR_PTR(-err): with
+-- CONFIG_SYMBOLIC_ERRNAME this is errname(-err) == "-EBADMSG"
+-- (lib/errname.c), otherwise the signed decimal "-74" (EBADMSG == 74,
+-- include/uapi/asm-generic/errno.h), see lib/vsprintf.c err_ptr().
+ebadmsg_names = { EBADMSG: true, ["-EBADMSG"]: true, ["-74"]: true }
+
+--- Checks whether an error value denotes EBADMSG.
+-- Compares the whole string so digits embedded in other errnos (e.g. -174)
+-- are not matched. Lua's error() prepends "chunk:line: "; Lunatik's
+-- lunatik_throw() calls lua_error() directly, without such a prefix.
+-- @tparam string err Error value
+-- @treturn boolean true if the error is EBADMSG
+is_ebadmsg = (err) ->
+  s = tostring err
+  bare = (s\match "^.*:%d+: (.*)$") or s
+  ebadmsg_names[bare] == true
+
 cached_gcm_enc_tfm = nil
 cached_gcm_enc_key = nil
 cached_gcm_dec_tfm = nil
@@ -80,16 +99,13 @@ aes_128_gcm_decrypt = (key, nonce, ciphertext_with_tag, aad = "") ->
     return nil, "ciphertext_with_tag too short (need at least 16-byte tag)"
   c = get_gcm_tfm "decrypt", key
   -- Wrap decrypt call to catch EBADMSG as a handled error, not an exception
-  ok, pt_or_err, err = pcall -> c\decrypt nonce, ciphertext_with_tag, aad
+  ok, pt_or_err = pcall -> c\decrypt nonce, ciphertext_with_tag, aad
   unless ok
-    -- Decrypt failed with Lua error
-    if (tostring pt_or_err)\match "EBADMSG"
+    -- Decrypt raises on failure (luacrypto_aead_finish -> lunatik_throw)
+    if is_ebadmsg pt_or_err
       return nil, "AES-128-GCM authentication failed (tag mismatch)"
     return nil, "aead(gcm(aes)) decrypt failed: #{tostring pt_or_err}"
-  -- ok=true, pt_or_err is plaintext, err is error code
-  if pt_or_err == "EBADMSG"
-    return nil, "AES-128-GCM authentication failed (tag mismatch)"
-  -- pt_or_err is plaintext (may be empty string, which is valid)
+  -- Success always returns the plaintext (may be empty string, which is valid).
   pt_or_err, nil
 
 --- Encrypts single AES-128-ECB block.
