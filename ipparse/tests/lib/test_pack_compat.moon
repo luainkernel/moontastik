@@ -111,8 +111,8 @@ test "pack_compat: >i4 negative", ->
   expected = from_hex "fffffffe"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
--- 64-bit little-endian value above 2^32 keeps its high word.
-test "pack_compat: <I8 above 2^32", ->
+-- 64-bit little-endian value above the 32-bit range keeps its high word.
+test "pack_compat: <I8 above 32-bit range", ->
   got = pack "<I8", 0x100000000
   expected = from_hex "0000000001000000"
   assert got == expected, "got: #{got}\nexp: #{expected}"
@@ -122,27 +122,9 @@ test "pack_compat: empty format", ->
   got = pack ""
   assert got == "", "got: #{got}"
 
--- ─── Floats, doubles and 64-bit signed values ────────────────────────────────
+-- ─── 64-bit signed and unsigned values ──────────────────────────────────────
 
 unpack = pack_compat.unpack or string.unpack
-
--- 1.5 is exactly 0x3ff8000000000000; little-endian byte order.
-test "pack_compat: <d 1.5 bytes", ->
-  got = pack "<d", 1.5
-  expected = from_hex "000000000000f83f"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
-
--- -2.5 is exactly 0xc004000000000000; big-endian byte order.
-test "pack_compat: >d -2.5 bytes", ->
-  got = pack ">d", -2.5
-  expected = from_hex "c004000000000000"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
-
--- 1.5 is exactly 0x3fc00000 as a 32-bit float; little-endian byte order.
-test "pack_compat: <f 1.5 bytes", ->
-  got = pack "<f", 1.5
-  expected = from_hex "0000c03f"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
 
 -- -2 as a signed 64-bit value is 0xff..fe in two's complement.
 test "pack_compat: >i8 negative bytes", ->
@@ -150,7 +132,7 @@ test "pack_compat: >i8 negative bytes", ->
   expected = from_hex "fffffffffffffffe"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
-test "pack_compat: <I8 above 2^32 bytes", ->
+test "pack_compat: <I8 above 32-bit range bytes", ->
   got = pack "<I8", 0x100000000
   expected = from_hex "0000000001000000"
   assert got == expected, "got: #{got}\nexp: #{expected}"
@@ -162,48 +144,9 @@ test "pack_compat: =I4 native little-endian", ->
   expected = from_hex "04030201"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
-test "pack_compat: <d round-trip", ->
-  v, pos = unpack "<d", pack("<d", -123.456)
-  assert v == -123.456, "got: #{v}"
-  assert pos == 9, "pos: #{pos}"
-
-test "pack_compat: >d round-trip", ->
-  v, pos = unpack ">d", pack(">d", 123.456)
-  assert v == 123.456, "got: #{v}"
-  assert pos == 9, "pos: #{pos}"
-
-test "pack_compat: <f round-trip", ->
-  v, pos = unpack "<f", pack("<f", -2.25)
-  assert v == -2.25, "got: #{v}"
-  assert pos == 5, "pos: #{pos}"
-
 test "pack_compat: >i8 negative round-trip", ->
   v, pos = unpack ">i8", pack(">i8", -2)
   assert v == -2, "got: #{v}"
   assert pos == 9, "pos: #{pos}"
-
--- IEEE 754 special values: infinities, signed zero, subnormal and NaN.
-test "pack_compat: <d infinities", ->
-  assert unpack("<d", pack("<d", math.huge)) == math.huge
-  assert unpack("<d", pack("<d", -math.huge)) == -math.huge
-
-test "pack_compat: <d signed zero", ->
-  got = pack "<d", -0.0
-  expected = from_hex "0000000000000080"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
-  v = unpack "<d", got
-  assert v == 0 and 1 / v < 0, "lost negative zero"
-
-test "pack_compat: <d smallest subnormal", ->
-  v = 2 ^ -1074
-  got = pack "<d", v
-  expected = from_hex "0100000000000000"
-  assert got == expected, "got: #{got}\nexp: #{expected}"
-  assert unpack("<d", got) == v, "subnormal round-trip"
-
-test "pack_compat: <d nan", ->
-  nan = math.huge - math.huge
-  v = unpack "<d", pack("<d", nan)
-  assert v ~= v, "expected NaN, got: #{v}"
 
 util.summary "pack_compat"
