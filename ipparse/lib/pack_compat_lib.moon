@@ -698,12 +698,14 @@ unpack = (fmt, s, pos) ->
     switch opt
 
       when "b"   -- int8
+        error "data string too short" if pos + 1 > #s
         v = string.byte s, pos + 1
         n += 1
         _results[n] = to_signed v, 1
         pos += 1
 
       when "B"   -- uint8
+        error "data string too short" if pos + 1 > #s
         n += 1
         _results[n] = string.byte s, pos + 1
         pos += 1
@@ -770,6 +772,7 @@ unpack = (fmt, s, pos) ->
 
       when "c"   -- chaîne de longueur fixe
         sz = count or 1
+        error "data string too short" if pos + sz > #s
         n += 1
         _results[n] = s\sub pos + 1, pos + sz
         pos += sz
@@ -778,6 +781,7 @@ unpack = (fmt, s, pos) ->
         sz  = count or 8
         len = tonumber read_uint s, pos, sz, le
         pos += sz
+        error "data string too short" if pos + len > #s
         n += 1
         _results[n] = s\sub pos + 1, pos + len
         pos += len
@@ -791,6 +795,7 @@ unpack = (fmt, s, pos) ->
         pos = nul   -- avance juste après le \0
 
       when "x"   -- padding (ignore 1 octet)
+        error "data string too short" if pos + 1 > #s
         pos += 1
 
       when "X"   -- alignement (no-op simplifié)
