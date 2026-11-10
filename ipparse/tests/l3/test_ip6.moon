@@ -6,6 +6,9 @@
 util = require"ipparse.lib.util"
 {:test} = util
 ip6 = require"ipparse.l3.ip6"
+udp = require"ipparse.l4.udp"
+{:checksum6} = require"ipparse.l3.lib"
+unpack: su = require "ipparse.lib.pack_compat"
 
 test "ip62s compresses zero runs per RFC 5952", ->
   bin = ip6.s2ip6 "0:0:0:0:0:0:0:1"
@@ -113,6 +116,17 @@ test "re-packed parsed IPv6 header is byte-identical", ->
   parsed, _ = ip6.parse raw1, 1
   raw2 = tostring parsed
   assert raw2 == raw1, "re-packed parsed header should be identical"
+
+test "UDP/IPv6 pack emits 0xFFFF for a zero checksum", ->
+  src = ip6.s2ip6 "2001:db8::1"
+  dst = ip6.s2ip6 "2001:db8::2"
+  segment = udp.new {spt: 1234, dpt: 53, checksum: 0, data: "\159\094"}
+  hdr = ip6.new {src: src, dst: dst, next_header: 17, data: segment}
+  raw = tostring hdr
+  csum = su ">H", raw, 47
+  assert csum == 0xffff, "zero UDP checksum should be emitted as 0xFFFF, got #{csum}"
+  verify = checksum6 src, dst, 17, raw\sub 41
+  assert verify == 0, "UDP checksum should verify, got #{verify}"
 
 test "data_off is off+40 for IPv6 header", ->
   hdr = ip6.new {
