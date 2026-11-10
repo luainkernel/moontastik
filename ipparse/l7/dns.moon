@@ -389,7 +389,7 @@ parse = (l7_off, is_tcp) =>
     :questions, :answers, :authorities, :additionals
   }, _mt), _off
 
-classes = bidirectional {"IN", "CS", "CH", "HS", "NONE"}
+classes = bidirectional {"IN", "CS", "CH", "HS", [254]: "NONE", [255]: "ANY"}
 
 rcodes = bidirectional zero_indexed {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN", "NOTIMP", "REFUSED"}
 
