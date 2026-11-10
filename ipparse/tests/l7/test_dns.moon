@@ -197,4 +197,22 @@ test "header accessors return numeric opcode, z and rcode", ->
   h.qr = true
   assert h.qr == true, "qr should stay boolean"
 
+test "header ra accessor is writable", ->
+  h = dns.new_header {ra: true}
+  assert h.ra == true, "ra should be true"
+  assert h.ra_z_rcode == 0x80, "ra bit should be 0x80, got #{h.ra_z_rcode}"
+  h.ra = false
+  assert h.ra == false, "ra should be false"
+  assert h.ra_z_rcode == 0, "ra bit should be cleared, got #{h.ra_z_rcode}"
+
+test "header stores unknown fields instead of dropping them", ->
+  h = dns.new_header {size: 40}
+  assert rawget(h, "size") == 40, "size should be stored, got #{rawget(h, 'size')}"
+
+test "pack emits size prefix when size is preset", ->
+  msg = dns.new {header: dns.new_header {size: 0}}
+  packed = tostring msg
+  assert #packed == 14, "packed length should be 14, got #{#packed}"
+  assert packed\sub(1, 2) == "\000\012", "prefix should be 12"
+
 util.summary "l7/dns"
