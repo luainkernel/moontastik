@@ -234,6 +234,12 @@ bytes_to_float = (s, offset, le) ->
 -- nouvel index (0-based), sans allouer de chaîne.
 _buf = {}
 
+-- Tableau d'arguments réutilisé par `pack` : allouer une table de 8 entrées à
+-- chaque appel dominait le coût des petits formats (`>H H`, préfixe d'en-tête).
+-- Comme `_buf`, ce tableau n'est pas réentrant, mais `pack` ne cède jamais la
+-- main : aucun callback utilisateur n'est appelé pendant la construction.
+_args = {}
+
 -- Convertit _buf[1..n] en chaîne, par morceaux de 4096 max pour rester sous la
 -- limite pratique de `unpack`/`string.char`. Fonction de module (et non closure
 -- locale à pack) pour que LuaJIT puisse compiler le chemin rapide : créer une
@@ -438,7 +444,15 @@ pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
   if plan.count > 8
     args = {a1, a2, a3, a4, a5, a6, a7, a8, ...}
   else
-    args = {a1, a2, a3, a4, a5, a6, a7, a8}
+    args = _args
+    args[1] = a1
+    args[2] = a2
+    args[3] = a3
+    args[4] = a4
+    args[5] = a5
+    args[6] = a6
+    args[7] = a7
+    args[8] = a8
 
   n     = 0
   parts = nil
