@@ -47,7 +47,7 @@ test-lunatik-run:
 	@start=$$(dmesg | wc -l); \
 	echo "Running kernel Lunatik crypto tests..."; \
 	status=0; \
-	for test in ipparse/tests/lib/crypto/test_lunatik_kernel_quic_session_e2e ipparse/tests/lib/crypto/test_lunatik_kernel ipparse/tests/lib/crypto/test_lunatik_kernel_quic_simple ipparse/tests/lib/crypto/test_lunatik_kernel_quic_comprehensive ipparse/tests/lib/crypto/test_lunatik_kernel_integration ipparse/tests/lib/crypto/test_lunatik_kernel_crypto_pipeline ipparse/tests/lib/crypto/test_lunatik_kernel_quic_google_capture; do \
+	for test in ipparse/tests/lib/crypto/test_lunatik_kernel_quic_session_e2e ipparse/tests/lib/crypto/test_lunatik_kernel ipparse/tests/lib/crypto/test_lunatik_kernel_quic_simple ipparse/tests/lib/crypto/test_lunatik_kernel_quic_comprehensive ipparse/tests/lib/crypto/test_lunatik_kernel_integration ipparse/tests/lib/crypto/test_lunatik_kernel_crypto_pipeline ipparse/tests/lib/crypto/test_lunatik_kernel_quic_google_capture ipparse/tests/test_lunatik_kernel_portable; do \
 		echo "Running $$test..."; \
 		if lunatik run "$$test"; then \
 			: ; \
