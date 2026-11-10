@@ -221,4 +221,16 @@ test "unknown EDNS option round-trips byte-exact", ->
   assert o.data ~= nil, "unknown option data should not be nil"
   assert tostring(o) == raw, "unknown option should round-trip"
 
+test "EDNS client_subnet round-trips byte-exact", ->
+  raw = "\000\008\000\007\000\001\024\000\192\168\001"
+  o = dns.parse_opt raw
+  assert o.data.subnet == "\192\168\001", "subnet should be preserved"
+  assert tostring(o) == raw, "client_subnet option should round-trip"
+
+test "EDNS client_subnet reflects modified fields", ->
+  o = dns.parse_opt "\000\008\000\007\000\001\024\000\192\168\001"
+  o.data.source_netmask = 16
+  assert tostring(o) == "\000\008\000\007\000\001\016\000\192\168\001",
+    "modified source_netmask should be packed"
+
 util.summary "l7/dns"
