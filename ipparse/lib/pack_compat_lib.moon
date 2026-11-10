@@ -30,12 +30,6 @@ HAS_FFI = ok
 unless HAS_FFI
   ffi = nil
 
-if HAS_FFI
-  ffi.cdef [[
-    void *memcpy(void *dest, const void *src, size_t n);
-    void *memset(void *s, int c, size_t n);
-  ]]
-
 -- ─── Détection de l'endianness native ───────────────────────────────────────
 
 -- Sans FFI, aucune sonde fiable n'est disponible : on suppose le
@@ -90,18 +84,6 @@ cast_uint = (val) ->
     ffi.cast "uint64_t", ffi.cast("int64_t", val)
   else
     ffi.cast "uint64_t", val
-
--- Écrit un entier non signé vers un buffer ffi uint8_t* (offset 0-based)
-write_uint = (buf, offset, val, size, le) ->
-  v = cast_uint val
-  if le
-    for i = 0, size - 1
-      buf[offset + i] = tonumber(v % 256)
-      v = v / 256
-  else
-    for i = size - 1, 0, -1
-      buf[offset + i] = tonumber(v % 256)
-      v = v / 256
 
 -- Conversion unsigned → signed (complément à deux)
 to_signed = (val, size) ->
