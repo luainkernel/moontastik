@@ -124,4 +124,15 @@ test "header: pack long header round-trips version and CIDs", ->
   assert h2.dst_connection_id == "abcd", "dcid mismatch"
   assert h2.src_connection_id == "ef", "scid mismatch"
 
+test "header: unknown field assignment is stored via rawset", ->
+  h = quic.parse build_initial_pkt!, 1
+  h.foo = 1
+  assert h.foo == 1, "expected foo == 1, got #{h.foo}"
+
+test "header: FIXED_BIT assignment still updates byte1", ->
+  h = quic.parse build_initial_pkt!, 1
+  h.fixed_bit = false
+  assert h.byte1 == 0x80, "expected byte1 0x80, got #{h.byte1}"
+  assert h.FIXED_BIT == 0, "expected FIXED_BIT cleared"
+
 util.summary "header"
