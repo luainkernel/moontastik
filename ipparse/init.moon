@@ -47,7 +47,7 @@ lbin2hex = => concat [bin2hex sub(@, i+1, i+128) for i = 0, #@-1, 128]
 --- Converts a hexadecimal string to binary.
 -- @tparam string hex Hexadecimal string (even length).
 -- @treturn string Binary representation.
-hex2bin = => gsub @, "%x%x", => char tonumber @, 16
+hex2bin = => (gsub @, "%x%x", => char tonumber @, 16)
 
 
 --- Produces a formatted hexadecimal and ASCII dump of the input data.
