@@ -288,7 +288,7 @@ _ = nil
 -- -- @tparam ...any ... Arguments for the original `fn`.
 -- -- @treturn ...any|nil Results from `fn` or `op` (see main description for conditions).
 protected = (fn, op) ->
-  leak_debug = _ and _.leak_debug
+  leak_debug = _ and rawget(_, "leak_debug")
   onerror = (err) ->
     print err
     print debug.traceback! if leak_debug
