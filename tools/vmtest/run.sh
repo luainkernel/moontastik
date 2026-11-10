@@ -52,6 +52,7 @@ in_vm() {
     # build dir inside the (read-only) repo instead of the host's cache.
     printf 'export VMTEST_BUILD_DIR=%q\n' "$BUILD_DIR"
     printf 'export LUNATIK_SRC=%q\n' "$LUNATIK_SRC"
+    printf 'export VMTEST_BYTECODE=%q\n' "${VMTEST_BYTECODE:-1}"
     printf '( %s ) > %q/out 2>&1\n' "$*" "$RW_DIR"
     printf 'echo $? > %q/rc\n' "$RW_DIR"
   } > "$wrapper"

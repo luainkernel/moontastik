@@ -42,7 +42,10 @@ Variables utiles :
 
 - `LUNATIK_SRC=/chemin/vers/lunatik` — tester contre un checkout local au lieu
   du clone épinglé ;
-- `VMTEST_BUILD_DIR` — déplacer le cache de build.
+- `VMTEST_BUILD_DIR` — déplacer le cache de build ;
+- `VMTEST_BYTECODE=0` — ne pas rejouer la suite noyau en bytecode (par défaut,
+  la VM réinstalle ipparse avec `BYTECODE=1` après la passe source et relance
+  la suite, si `lunatic` est disponible).
 
 Les deux sont résolus en chemins absolus et transmis à l'invité, qui monte le
 système de fichiers de l'hôte en lecture seule : un cache situé hors du dépôt
