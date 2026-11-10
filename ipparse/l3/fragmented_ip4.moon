@@ -26,22 +26,27 @@ MAX_FRAGMENTS = 256
 
 fragmented = {}
 pending = 0
+seq = 0
 order, order_first, order_last = {}, 1, 0
 
--- Drop the oldest still-pending flow (entries already completed are skipped).
+-- Drop the oldest still-pending flow. Queue entries are indexed by flow
+-- sequence number; an entry whose flow is gone or has been superseded by a new
+-- flow with the same key (different `seq`) is stale and simply skipped.
 evict_oldest = ->
   while order_first <= order_last
-    key = order[order_first]
-    order[order_first] = nil
+    current = order_first
+    key = order[current]
+    order[current] = nil
     order_first += 1
-    if fragmented[key]
+    if key != nil and fragmented[key] and fragmented[key].seq == current
       fragmented[key] = nil
       pending -= 1
       return
 
--- Drop a flow by key, keeping the pending counter consistent.
+-- Drop a flow by key, keeping the pending counter and queue consistent.
 drop_flow = (key) ->
   if fragmented[key]
+    order[fragmented[key].seq] = nil
     fragmented[key] = nil
     pending -= 1
 
@@ -91,11 +96,12 @@ collect = (ip, pkt) ->
   state = fragmented[key]
   unless state
     evict_oldest! if pending >= MAX_PENDING
-    state = {chunks: {}, total: nil, first: nil, n: 0}
+    seq += 1
+    state = {chunks: {}, total: nil, first: nil, n: 0, seq: seq}
     fragmented[key] = state
     pending += 1
-    order_last += 1
-    order[order_last] = key
+    order_last = seq
+    order[seq] = key
 
   if not state.chunks[frag_off]
     if state.n >= MAX_FRAGMENTS
@@ -118,6 +124,16 @@ collect = (ip, pkt) ->
 reset = ->
   fragmented = {}
   pending = 0
+  seq = 0
   order, order_first, order_last = {}, 1, 0
 
-{:collect, :reset, :MAX_PENDING}
+--- Returns the number of pending flows and live eviction-queue entries.
+-- @treturn number Pending (incomplete) flow count.
+-- @treturn number Number of non-nil entries in the eviction queue.
+stats = ->
+  queued = 0
+  for _ in pairs order
+    queued += 1
+  pending, queued
+
+{:collect, :reset, :stats, :MAX_PENDING}
