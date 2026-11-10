@@ -92,7 +92,7 @@ _header_mt =
       when "qr"
         band(@qr_opcode_aa_tc_rd, 0x80) ~= 0
       when "opcode"
-        band(rshift(@qr_opcode_aa_tc_rd, 3), 0xf) ~= 0
+        band(rshift(@qr_opcode_aa_tc_rd, 3), 0xf)
       when "aa"
         band(@qr_opcode_aa_tc_rd, 0x04) ~= 0
       when "tc"
@@ -102,9 +102,9 @@ _header_mt =
       when "ra"
         band(@ra_z_rcode, 0x80) ~= 0
       when "z"
-        band(rshift(@ra_z_rcode, 4), 0x07) ~= 0
+        band(rshift(@ra_z_rcode, 4), 0x07)
       when "rcode"
-        band(@ra_z_rcode, 0x0f) ~= 0
+        band(@ra_z_rcode, 0x0f)
   __newindex: (flag, val) =>
     switch flag
       when "qr"

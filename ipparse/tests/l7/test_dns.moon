@@ -186,4 +186,15 @@ test "compression pointer answer decodes full name", ->
   assert msg.answers[1].name == "www.example.subdomain.test.local",
     "got '#{msg.answers[1].name}'"
 
+test "header accessors return numeric opcode, z and rcode", ->
+  h = dns.new_header {}
+  h.opcode = 5
+  h.z = 2
+  h.rcode = 3
+  assert h.opcode == 5, "opcode should be 5, got #{h.opcode}"
+  assert h.z == 2, "z should be 2, got #{h.z}"
+  assert h.rcode == 3, "rcode should be 3, got #{h.rcode}"
+  h.qr = true
+  assert h.qr == true, "qr should stay boolean"
+
 util.summary "l7/dns"
