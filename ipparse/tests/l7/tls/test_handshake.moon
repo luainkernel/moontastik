@@ -11,6 +11,7 @@ util = require"ipparse.lib.util"
 ext = require"ipparse.l7.tls.handshake.extension"
 sn = require"ipparse.l7.tls.handshake.extension.server_name"
 sv = require"ipparse.l7.tls.handshake.extension.supported_versions"
+hs = require"ipparse.l7.tls.handshake"
 sp = require("ipparse.lib.pack_compat").pack
 
 -- extension: type 0x0000 (server_name), data "abc"
@@ -67,5 +68,11 @@ test "supported_versions: truncated list returns nil", ->
 test "supported_versions: empty data returns nil", ->
   v = sv.parse "", 1
   assert v == nil, "should return nil on empty data"
+
+test "handshake: message_types matches the IANA registry", ->
+  assert hs.message_types.finished == 20, "finished should be 20"
+  assert hs.message_types[24] == "key_update", "[24] should be key_update"
+  assert hs.message_types.encrypted_extensions == 8, "encrypted_extensions should be 8"
+  assert hs.message_types[1] == "client_hello", "[1] should be client_hello"
 
 util.summary "l7/tls/handshake"
