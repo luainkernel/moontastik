@@ -91,4 +91,46 @@ test "opairs returns sorted keys", ->
 test "zero_indexed copies t[1] to t[0]", ->
   t = zero_indexed {"x", "y", "z"}
   assert t[0] == "x", "t[0] should be 'x', got '#{t[0]}'"
+
+test "bidirectional invalidates stale cache on key modification", ->
+  t = bidirectional {a: 1}
+  assert t[1] == "a", "t[1] should be 'a', got '#{t[1]}'"
+  t.a = 2
+  assert t[1] == nil, "t[1] should be nil after t.a changed, got '#{t[1]}'"
+  assert t[2] == "a", "t[2] should be 'a' after change, got '#{t[2]}'"
+
+test "bidirectional drops cache for deleted key", ->
+  t = bidirectional {a: 1}
+  assert t[1] == "a", "t[1] should be 'a', got '#{t[1]}'"
+  t.a = nil
+  assert t[1] == nil, "t[1] should be nil after key deletion, got '#{t[1]}'"
+
+test "bidirectional cache cycle after deletion", ->
+  t = bidirectional {x: "y", y: "x"}
+  assert t["y"] == "x", "t['y'] should be 'x', got '#{t['y']}'"
+  assert t["x"] == "y", "t['x'] should be 'y', got '#{t['x']}'"
+  t.x = nil
+  t.y = nil
+  assert t["y"] == nil, "t['y'] should be nil after deletion, got '#{t['y']}'"
+
+test "bidirectional non-regression forward and reverse lookup", ->
+  t = bidirectional {a: 1, b: 2}
+  assert t.a == 1, "t.a should be 1"
+  assert t.b == 2, "t.b should be 2"
+  assert t[1] == "a", "t[1] should be 'a'"
+  assert t[2] == "b", "t[2] should be 'b'"
+
+test "bidirectional reverse sees key added later", ->
+  t = bidirectional {a: 1}
+  t.b = 2
+  assert t[2] == "b", "t[2] should be 'b' after adding t.b, got '#{t[2]}'"
+
+test "bidirectional pairs only sees real entries", ->
+  t = bidirectional {a: 1, b: 2}
+  t[1]
+  t[2]
+  n = 0
+  for k, v in pairs t
+    n += 1
+  assert n == 2, "pairs should see 2 entries, got #{n}"
 util.summary "fun"
