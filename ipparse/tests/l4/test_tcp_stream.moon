@@ -63,4 +63,9 @@ test "tcp_stream: purge drops sessions older than max_age", ->
   buf = s.feed "old", "def", 0x10, 2
   assert buf == nil, "old session should have been purged, got #{buf}"
 
+test "tcp_stream: clock_hz without clock raises", ->
+  ok, err = pcall tcp_stream.new, nil, clock_hz: 1000
+  assert not ok, "expected an error when clock_hz is given without clock"
+  assert tostring(err)\find("clock_hz"), "error should mention clock_hz, got #{err}"
+
 util.summary "l4/tcp_stream"
