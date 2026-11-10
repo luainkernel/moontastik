@@ -3,6 +3,7 @@
 
 NAME = ipparse
 LUA_MODULE_DIR = /lib/modules/lua
+LUA ?= luajit
 
 
 all:
@@ -24,10 +25,10 @@ uninstall:
 test: all test-nobuild
 
 test-nobuild:
-	cd .. && LUA_PATH="./?.lua;./?/init.lua" luajit ipparse/tests/run_all.lua
+	cd .. && LUA_PATH="./?.lua;./?/init.lua" $(LUA) ipparse/tests/run_all.lua
 
 example: all
-	cd .. && LUA_PATH="./?.lua;./?/init.lua" luajit ipparse/examples/parse_real_quic.lua
+	cd .. && LUA_PATH="./?.lua;./?/init.lua" $(LUA) ipparse/examples/parse_real_quic.lua
 
 test-lunatik: all
 	@$(MAKE) install
