@@ -39,6 +39,10 @@ in_vm() {
   {
     printf '#!%s\n' "$BASH_ABS"
     printf 'export PATH=%q\n' "$PATH"
+    # The guest re-sources lib.sh, which would otherwise fall back to the
+    # build dir inside the (read-only) repo instead of the host's cache.
+    printf 'export VMTEST_BUILD_DIR=%q\n' "$BUILD_DIR"
+    printf 'export LUNATIK_SRC=%q\n' "$LUNATIK_SRC"
     printf '( %s ) > %q/out 2>&1\n' "$*" "$RW_DIR"
     printf 'echo $? > %q/rc\n' "$RW_DIR"
   } > "$wrapper"
