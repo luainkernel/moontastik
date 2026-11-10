@@ -425,15 +425,17 @@ test "pack_compat: unpack z without terminator raises", ->
 
 -- More than 4096 bytes written to the shared buffer exercise the chunked
 -- string.char path in buf_string.
-test "pack_compat: pack writes more than 4096 bytes", ->
-  fmt = string.rep ">I8 ", 600
-  values = {}
-  for i = 1, 600
-    values[i] = 1
-  got = pack fmt, tunpack values
-  assert #got == 4800, "expected 4800 bytes, got #{#got}"
-  assert got\sub(1, 8) == from_hex "0000000000000001", "first value corrupted"
-  assert got\sub(4793, 4800) == from_hex "0000000000000001", "last value corrupted"
+if is_fallback
+  -- Chunked buf_string only exists in the fallback; native string.pack is used in the kernel.
+  test "pack_compat: pack writes more than 4096 bytes", ->
+    fmt = string.rep ">I8 ", 600
+    values = {}
+    for i = 1, 600
+      values[i] = 1
+    got = pack fmt, tunpack values
+    assert #got == 4800, "expected 4800 bytes, got #{#got}"
+    assert got\sub(1, 8) == from_hex "0000000000000001", "first value corrupted"
+    assert got\sub(4793, 4800) == from_hex "0000000000000001", "last value corrupted"
 
 if is_fallback
   -- inject installs the fallback functions into the global string table.
