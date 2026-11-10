@@ -121,4 +121,69 @@ test "parse fails safely on truncated label", ->
   msg, _, err = dns.parse dns_truncated_label, 1, false
   assert msg == nil, "expected parse failure"
   assert err and err\match("truncated DNS label"), "expected truncated label error, got #{err}"
+
+-- Response with two A answers (compressed owner names) and an EDNS OPT record.
+dns_response_2a_opt = hex2bin(
+  "abcd81800001000200000001" ..
+  "076578616d706c6503636f6d00" ..
+  "00010001" ..
+  "c00c000100010000012c00045db8d822" ..
+  "c00c000100010000012c00045db8d823" ..
+  "0000291000000000000000"
+)
+
+-- Response with non-empty authority and additional sections.
+dns_response_sections = hex2bin(
+  "123481800001000100010001" ..
+  "076578616d706c6503636f6d00" ..
+  "00010001" ..
+  "c00c000100010000003c000401020304" ..
+  "c00c000200010000003c0011" ..
+  "036e7331076578616d706c6503636f6d00" ..
+  "c00c000100010000003c000405060708"
+)
+
+-- Question with several uncompressed labels.
+dns_long_name_query = hex2bin(
+  "000101000001000000000000" ..
+  "03777777076578616d706c6509737562646f6d61696e0474657374056c6f63616c00" ..
+  "00010001"
+)
+
+-- Same long question, answer owner name is a pointer to offset 12.
+dns_long_name_answer = hex2bin(
+  "000181800001000100000000" ..
+  "03777777076578616d706c6509737562646f6d61696e0474657374056c6f63616c00" ..
+  "00010001" ..
+  "c00c000100010000003c000401020304"
+)
+
+-- A simple query prefixed with its 2-byte TCP length (29 bytes).
+dns_tcp_query = hex2bin("001d" .. "123401000001000000000000076578616d706c6503636f6d0000010001")
+
+test "byte-exact round-trip: two A answers + EDNS OPT", ->
+  assert tostring(dns.parse(dns_response_2a_opt, 1)) == dns_response_2a_opt
+
+test "byte-exact round-trip: simple query", ->
+  assert tostring(dns.parse(dns_query, 1)) == dns_query
+
+test "byte-exact round-trip: authority and additional sections", ->
+  assert tostring(dns.parse(dns_response_sections, 1)) == dns_response_sections
+
+test "byte-exact round-trip: TCP message with size prefix", ->
+  assert tostring(dns.parse(dns_tcp_query, 1, true)) == dns_tcp_query
+
+test "byte-exact round-trip: long uncompressed name", ->
+  assert tostring(dns.parse(dns_long_name_query, 1)) == dns_long_name_query
+
+test "long uncompressed name decodes all labels", ->
+  msg, _ = dns.parse dns_long_name_query, 1, false
+  assert msg.question.name == "www.example.subdomain.test.local",
+    "got '#{msg.question.name}'"
+
+test "compression pointer answer decodes full name", ->
+  msg, _ = dns.parse dns_long_name_answer, 1, false
+  assert msg.answers[1].name == "www.example.subdomain.test.local",
+    "got '#{msg.answers[1].name}'"
+
 util.summary "l7/dns"
