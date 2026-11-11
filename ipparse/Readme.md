@@ -55,15 +55,26 @@ To use it in a local project, you can:
 
 ```bash
 luarocks install ipparse
+eval "$(luarocks path)"
 ```
+
+The last line is important: `ipparse` is a package whose entry point is
+`init.lua`, so LuaRocks' `?/init.lua` template must be in `LUA_PATH` for
+`require "ipparse"` to find it. You can also add the same line to your shell
+profile once and for all.
 
 To install the current sources instead, run the provided rockspec from the
 repository root:
 
 ```bash
 cd moontastik
-luarocks make ipparse-1.0-0.rockspec
+luarocks make ipparse-1.0-1.rockspec
+eval "$(luarocks path)"
 ```
+
+`luarocks make` builds the rock from the working tree, which requires the
+MoonScript compiler (`moonc`); it is declared as a build dependency only, so
+plain `luarocks install ipparse` does not pull it in.
 
 ## Tests
 
