@@ -5,8 +5,8 @@ source = {
    -- Pin an exact commit (reproducible archive) instead of the moving
    -- "master" branch. There is no release tag that contains the current
    -- sources; v1.0 predates fixes required to build and test the library.
-   url = "https://github.com/luainkernel/moontastik/archive/265876bfd616d88e874da2839c8e2a74b444a297.tar.gz",
-   md5 = "1ce279dc6ed785d92918e2f73efabfbb"
+   url = "https://github.com/luainkernel/moontastik/archive/c5529d0f4bc8e8535925e351aef87ec1a634fd31.tar.gz",
+   md5 = "93ce289f53df9cbb0dc25e750048eb82"
 }
 description = {
    summary = "Library to parse network packets",
