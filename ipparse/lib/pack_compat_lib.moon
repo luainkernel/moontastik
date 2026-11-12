@@ -534,6 +534,25 @@ make_c = (sz) ->
     else
       v\sub 1, sz
 
+-- Fixed-length string written straight into the byte buffer: the format then
+-- stays on the single-string path (no `parts` table, no intermediate
+-- substrings, no trailing concat — `>BBHHHBBH c4c4` and `>c4c4 x B s2` are
+-- exactly the two IPv4-header formats). Chosen for sizes up to 64 bytes,
+-- where copying bytes beats `sub` + allocation; larger fixed strings keep the
+-- emitting path above.
+make_c_write = (sz) ->
+  (buf, n, v) ->
+    len = #v
+    if len >= sz
+      for k = 1, sz
+        buf[n + k] = string.byte v, k
+    else
+      for k = 1, len
+        buf[n + k] = string.byte v, k
+      for k = len + 1, sz
+        buf[n + k] = 0
+    n + sz
+
 -- Chooses an encoder for an option when the format is compiled.
 pack_op = (opt, count, le) ->
   switch opt
@@ -556,8 +575,12 @@ pack_op = (opt, count, le) ->
     when "d", "n"   -- double 64
       { consume: true, emit: make_double le }
 
-    when "c"   -- fixed-length string
-      { consume: true, emit: make_c(count or 1) }
+    when "c"   -- fixed-length string (buffer write up to 64 bytes)
+      c_size = count or 1
+      if c_size <= 64
+        { consume: true, write: make_c_write(c_size) }
+      else
+        { consume: true, emit: make_c(c_size) }
 
     when "s"   -- length-prefixed string (size_t = 8 bytes by default)
       { consume: true, write_len: make_uint((count or 8), le), emit: (v) -> v }

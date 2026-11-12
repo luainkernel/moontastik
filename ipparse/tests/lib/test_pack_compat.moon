@@ -55,6 +55,29 @@ if is_fallback
     expected = from_hex "61626364"
     assert got == expected, "got: #{got}\nexp: #{expected}"
 
+-- c in last position after integer writes: whole packet in one buffer write.
+test "pack_compat: >H c4 ends with a buffer write", ->
+  got = pack ">H c4", 0x0102, "ab"
+  expected = from_hex "010261620000"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- c AFTER an emitting option (s2): the emitted part must stay first.
+test "pack_compat: >H s2 c4 mixes emit and buffer write", ->
+  got = pack ">H s2 c4", 1, "xy", "ab"
+  expected = from_hex "00010002787961620000"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- 64 bytes and below are copied into the buffer, above that they keep the
+-- emitting path: both must produce the very same bytes.
+test "pack_compat: c64/c65/c80 identical full and padded", ->
+  for sz in *{1, 2, 63, 64, 65, 80}
+    full = string.rep "A", sz
+    got = pack ">c#{sz}", full
+    assert got == full, "c#{sz} full input: got #{#got} bytes, expected #{sz}"
+    pad = pack ">c#{sz}", "A"
+    assert pad == "A" .. string.rep("\0", sz - 1),
+      "c#{sz} padded: got #{#pad} bytes, expected #{sz}"
+
 -- NUL-terminated string gets a trailing \0.
 test "pack_compat: z", ->
   got = pack "z", "hello"
