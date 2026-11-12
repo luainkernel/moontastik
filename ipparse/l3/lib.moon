@@ -19,18 +19,25 @@
 --
 -- @module l3.lib
 
-pack: sp, unpack: su = require "ipparse.lib.pack_compat"
+pack: sp = require "ipparse.lib.pack_compat"
+:byte = string
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
 --- Calculates the checksum for the given binary data.
 -- The checksum is calculated using the one's complement sum of 16-bit words.
+-- Reads the words directly with `string.byte` (no per-word `string.unpack`
+-- call, no padded copy for odd lengths); the accumulation is identical to
+-- summing `unpack ">H"` over each word.
 -- @tparam string self The binary data for which the checksum is calculated.
 -- @treturn number The calculated checksum as a 16-bit integer.
 checksum = =>
-  cksm = 0
-  @ ..= "\0" if band(#@, 1) == 1  -- Pad with a null byte if the length is odd
-  for i = 1, #@, 2
-    cksm += su ">H", @, i
+  len = #@
+  even = len - band(len, 1)   -- borne de la partie paire : le dernier octet
+  cksm = 0                    -- d'une longueur impaire vaut 0x??00
+  for i = 1, even, 2
+    a, b = byte @, i, i + 1
+    cksm += a * 256 + b
+  cksm += byte(@, len) * 256 if even < len
   -- Handle carry-over
   while true
     carry = rshift(cksm, 16)

@@ -50,4 +50,46 @@ test "checksum6 stable across payload lengths (frozen values)", ->
   assert checksum6(src, dst, 17, "hello world!!") == 61820, "checksum6 (13 bytes) changed"
   assert checksum6(src, dst, 17, "xyz") == 45564, "checksum6 (3 bytes, odd) changed"
 
+-- Référence indépendante : la formule RFC 1071 écrite à la main (somme des
+-- mots 16 bits en arithmétique pure, retenue pliée, complément à un).
+-- Sert de témoin d'équivalence à toute réécriture de `checksum`.
+ref_checksum = (s) ->
+  s = s .. "\0" if #s % 2 == 1
+  cksm = 0
+  for i = 1, #s, 2
+    a, b = string.byte s, i, i + 1
+    cksm += a * 256 + b
+  while true
+    carry = math.floor cksm / 0x10000
+    break if carry == 0
+    cksm = (cksm % 0x10000) + carry
+  0xFFFF - (cksm % 0x10000)
+
+-- Séquence d'octets déterministe couvrant les 256 valeurs (aucune arithmétique
+-- dépendante de la précision des flottants).
+_pattern_parts = {}
+for i = 0, 255
+  _pattern_parts[#_pattern_parts + 1] = string.char i
+PATTERN = table.concat _pattern_parts
+
+test "checksum matches the RFC 1071 reference on rotated buffers", ->
+  for len = 1, 67
+    rot = (len * 7) % 256 + 1
+    buf = (PATTERN .. PATTERN)\sub rot, rot + len - 1
+    got, want = checksum(buf), ref_checksum(buf)
+    assert got == want,
+      "checksum len=#{len}: got #{got}, reference #{want}"
+  -- Longueur paire de taille respectable (couvre la boucle de pli de retenue).
+  big = (string.rep PATTERN, 16)\sub 1, 4000
+  assert checksum(big) == ref_checksum(big), "checksum on 4000-byte buffer changed"
+
+test "checksum of a DNS-over-UDP payload is stable (frozen value)", ->
+  -- Octets réels d'une réponse DNS courte : garde-fou contre une réécriture
+  -- qui changerait la gestion de la longueur impaire ou le pli de retenue.
+  payload = string.char 0x12, 0x34, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x07, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
+    0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01
+  assert checksum(payload) == ref_checksum(payload), "DNS payload checksum changed"
+  assert checksum(payload) == 0x9ddc, "DNS payload checksum frozen value changed"
+
 util.summary "l3/checksum"
