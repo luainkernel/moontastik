@@ -71,6 +71,25 @@ Tests for different cryptographic backend implementations.
 - **test_lunatik.lua/moon** - Lunatik kernel crypto backend
 - **test_lunatik_kernel.lua** - Lunatik kernel-specific tests
 
+### Benchmarks (`tests/bench_hot.moon`)
+
+Micro-banc des chemins chauds (hot path DNS de custos) : coût par appel (µs,
+minimum de N passages) et allocation par appel (octets, GC arrêté) de
+`l7.dns` (`parse`, `labels`, `parse_rr`, …), `lib.pack_compat` (`sp`/`su`
+sur les formats réellement utilisés), `l3.lib.checksum`, la décapsulation
+IP/UDP et le chemin complet de duplication validateur (`ip4.pack`).
+
+```bash
+# depuis le parent du dossier ipparse (chemin d'ipparse.*)
+LUA_PATH="./?.lua;./?/init.lua" luajit ipparse/tests/bench_hot.lua
+BENCH_OUT=tmp/bench_after.txt ...        # écrit les mesures
+BENCH_BASELINE=tmp/bench_before.txt ...  # ajoute une colonne de delta
+BENCH_ONLY=sp_ ...                       # filtre par sous-chaîne
+BENCH_ITERS / BENCH_REPEATS / BENCH_WARMUP / BENCH_ALLOC_ITERS
+```
+
+Fait partie d'aucune suite (`run_all` ne l'appelle pas).
+
 ## Running Tests
 
 ### Individual Tests
