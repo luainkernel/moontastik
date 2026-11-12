@@ -307,16 +307,39 @@ labels = (off, l7_off, visited=nil, depth=0) =>
 -- with one segment table and one `table.concat` for the whole name —
 -- including names resolved through compression pointers, where `labels` +
 -- `concat` built two tables and two strings.
+--
+-- With `cache` (one table per DNS message, created by `parse`), a name that
+-- STARTS with a pointer is looked up by its target offset: every answer of a
+-- response pointing at the QNAME then costs one `string.byte` pair and no
+-- allocation at all, instead of re-walking the pointed name. Entries are
+-- keyed by the offset where the name starts — a resolution is a pure
+-- function of the message bytes, and the cache never outlives one `parse`.
 -- @tparam number off The offset to start parsing from.
 -- @tparam number l7_off The layer 7 offset for label parsing.
+-- @tparam table|nil cache Per-message name cache (see above), or nil.
 -- @treturn string|nil The dotted name, or `nil` on error.
 -- @treturn number The next offset after parsing.
 -- @treturn string|nil The error message (third value on error).
-name_string = (off, l7_off) =>
+name_string = (off, l7_off, cache) =>
+  target = nil
+  if cache
+    size = byte @, off
+    if off >= 1 and off + 1 <= #@ and band(size, 0xC0) == 0xC0
+      t = l7_off + lshift(band(size, 0x3F), 8) + byte(@, off + 1)
+      if t >= l7_off and t <= #@
+        target = t
+        hit = cache[t]
+        return hit, off + 2 if hit
   parts = {}
   next_off, err, fail_off = walk_name @, off, l7_off, parts, nil, 0, nil
   return nil, fail_off, err if err
-  concat(parts, "."), next_off
+  name = concat parts, "."
+  if cache
+    cache[off] = name
+    -- A name made of a single pointer IS the name it points at: caching the
+    -- target too is what makes the following answers hit.
+    cache[target] = name if target
+  name, next_off
 
 --- Packs a DNS question into a binary string.
 -- @tparam table self The DNS question object.
@@ -331,18 +354,26 @@ _question_mt = __tostring: pack_question
 -- @tparam number l7_off The layer 7 offset for label parsing.
 -- @treturn table Parsed DNS question as a table.
 -- @treturn number The next offset after parsing.
-parse_question = (off, l7_off) =>
+--- Parses a DNS question section from a binary string.
+-- @tparam number off The offset to start parsing from.
+-- @tparam number l7_off The layer 7 offset for label parsing.
+-- @tparam table|nil cache Per-message name cache (cf. `parse`), or nil.
+-- @treturn table Parsed DNS question as a table.
+-- @treturn number The next offset after parsing.
+parse_question = (off, l7_off, cache) =>
   lbls, _off, err = labels @, off, l7_off
   return nil, off, err unless lbls
   return nil, off, "truncated DNS question fields" unless need_bytes @, _off, 4
   qname = sub @, off, _off-1
   qtype, qclass, _off = su ">H H", @, _off
-  setmetatable({name: concat(lbls, "."), :qname, :qtype, :qclass, :off, end_off: _off-1}, _question_mt), _off
+  name = concat lbls, "."
+  cache[off] = name if cache   -- la section answer pointe sur ce nom
+  setmetatable({name: name, :qname, :qtype, :qclass, :off, end_off: _off-1}, _question_mt), _off
 
-parse_questions = (off, qdcount, l7_off) =>
+parse_questions = (off, qdcount, l7_off, cache) =>
   res = {}
   for i = 1, qdcount
-    q, off, err = parse_question @, off, l7_off
+    q, off, err = parse_question @, off, l7_off, cache
     return nil, off, err unless q
     res[i] = q
   res, off
@@ -360,10 +391,11 @@ _rr_mt = __tostring: pack_rr
 --- Parses a DNS resource record (RR) from a binary string.
 -- @tparam number off The offset to start parsing from.
 -- @tparam number l7_off The layer 7 offset for label parsing.
+-- @tparam table|nil cache Per-message name cache (cf. `parse`), or nil.
 -- @treturn table Parsed DNS resource record as a table.
 -- @treturn number The next offset after parsing.
-parse_rr = (off, l7_off) =>
-  name_str, _off, err = name_string @, off, l7_off
+parse_rr = (off, l7_off, cache) =>
+  name_str, _off, err = name_string @, off, l7_off, cache
   return nil, off, err unless name_str
   return nil, off, "truncated DNS resource record header" unless need_bytes @, _off, 10
   rname = sub @, off, _off-1
@@ -373,10 +405,10 @@ parse_rr = (off, l7_off) =>
   _off += rdlen
   setmetatable({name: name_str, :rname, :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _rr_mt), _off
 
-parse_rrs = (off, count, l7_off) =>
+parse_rrs = (off, count, l7_off, cache) =>
   res = {}
   for i = 1, count
-    r, off, err = parse_rr @, off, l7_off
+    r, off, err = parse_rr @, off, l7_off, cache
     return nil, off, err unless r
     res[i] = r
   res, off
@@ -471,6 +503,9 @@ _mt =
   __index: (k) => @header[k]
 
 --- Parses a DNS message from a binary string.
+-- Names resolved during this call are memoized in one per-message table
+-- (only when the message carries resource records), so that every answer
+-- pointing at the QNAME costs a lookup instead of a second walk.
 -- @tparam number l7_off The layer 7 offset for parsing.
 -- @tparam boolean is_tcp Whether the DNS message is over TCP.
 -- @treturn table Parsed DNS message as a table.
@@ -479,13 +514,16 @@ parse = (l7_off, is_tcp) =>
   header, _off_or_err = parse_header @, l7_off, is_tcp
   return nil, l7_off, _off_or_err or "No DNS data" if not header
   _off = _off_or_err
-  questions, _off, err = parse_questions @, _off, header.qdcount, l7_off
+  cache = nil
+  if header.ancount + header.nscount + header.arcount > 0
+    cache = {}
+  questions, _off, err = parse_questions @, _off, header.qdcount, l7_off, cache
   return nil, _off, err unless questions
-  answers, _off, err = parse_rrs @, _off, header.ancount, l7_off
+  answers, _off, err = parse_rrs @, _off, header.ancount, l7_off, cache
   return nil, _off, err unless answers
-  authorities, _off, err = parse_rrs @, _off, header.nscount, l7_off
+  authorities, _off, err = parse_rrs @, _off, header.nscount, l7_off, cache
   return nil, _off, err unless authorities
-  additionals, _off, err = parse_rrs @, _off, header.arcount, l7_off
+  additionals, _off, err = parse_rrs @, _off, header.arcount, l7_off, cache
   return nil, _off, err unless additionals
   setmetatable({
     :header, question: questions[1]  -- RFC 9619
