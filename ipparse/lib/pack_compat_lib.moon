@@ -386,10 +386,12 @@ else
 -- allocating a string.
 _buf = {}
 
--- Argument array reused by `pack`: allocating an 8-entry table on every call
--- dominated the cost of small formats (`>H H`, header prefix). Like `_buf`,
--- this array is not reentrant, but `pack` never yields control: no user
--- callback is called during construction.
+-- Argument array reused by `pack`: allocating an argument table on every call
+-- dominated the cost of small formats (`>H H`, header prefix). 16 slots cover
+-- every format consuming up to 16 values (IPv4 header, DNS header, EDNS
+-- pseudo-header); larger ones collect the vararg into a fresh table instead.
+-- Like `_buf`, this array is not reentrant, but `pack` never yields control:
+-- no user callback is called during construction.
 _args = {}
 
 -- Converts _buf[1..n] to a string, in chunks of at most 4096 to stay under
@@ -605,13 +607,34 @@ compile_pack = (fmt) ->
   plan
 
 -- `a1`..`a8` cover the vast majority of formats without vararg or `select`
--- in the loop; beyond 8 consumed values, we fall back to the generic
--- path which collects the vararg once.
-pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, ...) ->
+-- in the loop. Formats consuming 9 to 16 values (notably `>BBHHHBBH c4c4`,
+-- the IPv4 header packed twice per duplicated question) used to allocate a
+-- fresh argument table on every call: they now reuse `_args` too. Beyond 16
+-- we fall back to the generic path which collects the vararg once.
+pack = (fmt, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, ...) ->
   plan = _pack_cache[fmt] or compile_pack(fmt)
+  count = plan.count
   args = nil
-  if plan.count > 8
-    args = {a1, a2, a3, a4, a5, a6, a7, a8, ...}
+  if count > 16
+    args = {a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, ...}
+  elseif count > 8
+    args = _args
+    args[1] = a1
+    args[2] = a2
+    args[3] = a3
+    args[4] = a4
+    args[5] = a5
+    args[6] = a6
+    args[7] = a7
+    args[8] = a8
+    args[9] = a9
+    args[10] = a10
+    args[11] = a11
+    args[12] = a12
+    args[13] = a13
+    args[14] = a14
+    args[15] = a15
+    args[16] = a16
   else
     args = _args
     args[1] = a1

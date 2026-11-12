@@ -80,10 +80,26 @@ if is_fallback
     expected = from_hex "2c"
     assert got == expected, "got: #{got}\nexp: #{expected}"
 
--- More than eight arguments exercises the generic vararg path.
+-- More than eight arguments used to exercise the generic vararg path; with
+-- the shared 16-slot array they now fill it instead (9 to 16 values).
 test "pack_compat: >B x10 more than 8 args", ->
   got = pack ">B B B B B B B B B B", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
   expected = from_hex "0102030405060708090a"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- Exactly sixteen arguments: last value fitting in the shared array.
+test "pack_compat: 16 args fill the shared array", ->
+  got = pack ">B B B B B B B B B B B B B B B B",
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+  expected = from_hex "0102030405060708090a0b0c0d0e0f10"
+  assert got == expected, "got: #{got}\nexp: #{expected}"
+
+-- Seventeen arguments: one past the shared array, back to the vararg path.
+test "pack_compat: more than 16 args uses the vararg path", ->
+  fmt = ">B " .. string.rep("B ", 16)
+  got = pack fmt,
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
+  expected = from_hex "0102030405060708090a0b0c0d0e0f1011"
   assert got == expected, "got: #{got}\nexp: #{expected}"
 
 -- Padding byte between integers.
