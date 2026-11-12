@@ -26,6 +26,7 @@ mods = {
   "ipparse.tests.l4.test_udp"
   "ipparse.tests.l4.test_tcp_stream"
   "ipparse.tests.l7.test_dns"
+  "ipparse.tests.l7.test_dns_names"
   "ipparse.tests.l7.tls.test_handshake"
   "ipparse.tests.test_malformed"
   "ipparse.tests.lib.test_sha"

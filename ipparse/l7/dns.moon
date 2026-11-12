@@ -152,7 +152,118 @@ new_header = (opts) ->
       h[k] = v
   h
 
-local labels
+local labels, label_parts, walk_name
+
+--- Reads one label at `off` and reports its segment (or resolves a pointer).
+-- Internal core shared by `label`, `labels` and the single-pass name builder
+-- (`name_string`). Returns:
+--
+--   * terminator (0x00): `(next_off, nil, nil, nil, false)`;
+--   * ordinary label:    `(next_off, segment, nil, nil, false)` — the segment
+--     is RETURNED, not appended, so the common path allocates no table;
+--   * compression pointer: the pointed name is resolved into `parts` when the
+--     caller supplies one (one table, one final `table.concat` for the whole
+--     name), otherwise into a throw-away table that is joined into a single
+--     segment — exactly what the original `label` did;
+--   * error: `(nil, nil, err, err_off, false)` with the historical offsets.
+--
+-- The `seed` argument defers the allocation of the anti-loop `visited` table:
+-- for the first pointer hop of a name (the common case: an answer NAME that
+-- points at the QNAME) the target offset is remembered in `seed` instead of
+-- a table; the table is only created if a second hop needs it. Checks,
+-- limits (32 hops) and error messages are identical to the original.
+-- @tparam number off Offset (1-based) of the label inside `@`
+-- @tparam number l7_off Offset of the DNS message start inside `@`
+-- @tparam table|nil parts Segment accumulator, or nil to receive a joined
+--   segment for pointers
+-- @tparam table|nil visited Offsets already resolved (anti-loop)
+-- @tparam number depth Number of pointer hops already followed
+-- @tparam number|nil seed Target offset of the first hop (see above)
+-- @treturn number|nil Next offset, nil on error
+-- @treturn string|nil Segment (nil for a terminator or an accumulated pointer)
+-- @treturn string|nil Error message
+-- @treturn number|nil Offset reported by `label` for that error
+-- @treturn boolean `true` if the label is a compression pointer
+label_parts = (off, l7_off, parts, visited, depth, seed) =>
+  data_len = #@
+  if off < 1 or off > data_len
+    return nil, nil, "invalid label offset #{off}", off, false
+  size = byte @, off
+  _off = off + 1
+  if size == 0  -- End of label
+    return _off, nil, nil, nil, false
+  if band(size, 0xC0) == 0xC0  -- DNS label compression pointer
+    if _off > data_len
+      return nil, nil, "truncated DNS compression pointer", off, false
+    pos = byte @, _off
+    ptr = lshift(band(size, 0x3F), 8) + pos
+    target_off = l7_off + ptr
+    if target_off < l7_off or target_off > data_len
+      return nil, nil, "DNS compression pointer out of bounds (#{ptr})", _off + 1, false
+    if depth >= 32
+      return nil, nil, "DNS compression pointer recursion limit reached", _off + 1, false
+    if (visited and visited[target_off]) or seed == target_off
+      return nil, nil, "DNS compression pointer loop at #{ptr}", _off + 1, false
+    v_next, seed_next = visited, seed
+    if not v_next and seed_next
+      v_next = { [seed_next]: true }   -- second saut : la table devient nécessaire
+      seed_next = nil
+    if v_next
+      -- Keep the entry for the whole resolution: clearing it after the
+      -- recursive call would let crafted pointer chains revisit the same
+      -- offset through different paths (quadratic blow-up).
+      v_next[target_off] = true
+    else
+      seed_next = target_off          -- premier saut : reporté, sans allocation
+    -- No accumulator from the caller (`label`/`labels` want ONE joined
+    -- segment): resolve into a throw-away table and join it below.
+    target_parts = parts
+    joined = nil
+    unless target_parts
+      target_parts = {}
+      joined = true
+    n0 = #target_parts
+    _, err = walk_name @, target_off, l7_off, target_parts, v_next, depth + 1, seed_next
+    return nil, nil, err, _off + 1, false if err
+    -- The original stored the resolved name as ONE already-joined segment,
+    -- so a pointer to an empty name contributed "" — which is what makes
+    -- `concat` emit the trailing dot. Keep that exact output.
+    target_parts[#target_parts + 1] = "" if #target_parts == n0
+    if joined
+      return _off + 1, concat(target_parts, "."), nil, nil, true
+    return _off + 1, nil, nil, nil, true
+  if band(size, 0xC0) == 0  -- Normal case
+    if off + size > data_len
+      return nil, nil, "truncated DNS label (len=#{size})", off, false
+    return off + size + 1, sub(@, off + 1, off + size), nil, nil, false
+  nil, nil, "invalid DNS label prefix at offset #{off}", off, false
+
+--- Reads the whole name starting at `off`, appending every segment to `parts`.
+-- Mirrors the loop of `labels` (1024 segments maximum, stop on terminator or
+-- on the first pointer) but shares `parts` with the pointer resolution.
+-- @tparam number off Offset of the name inside `@`
+-- @tparam number l7_off Offset of the DNS message start inside `@`
+-- @tparam table parts Accumulated segments (mutated in place)
+-- @tparam table|nil visited Offsets already resolved (anti-loop)
+-- @tparam number depth Number of pointer hops already followed
+-- @tparam number|nil seed Target offset of the first hop
+-- @treturn number|nil Next offset, nil on error
+-- @treturn string|nil Error message
+-- @treturn number|nil Offset of the failing label (contract of `labels`)
+walk_name = (off, l7_off, parts, visited, depth, seed) =>
+  cur = off
+  n = #parts   -- compteur local : un seul `#` par nom, pas un par segment
+  for i = 1, 1024  -- Arbitrary large limit to avoid infinite loops
+    next_off, seg, err, _, from_ptr = label_parts @, cur, l7_off, parts, visited, depth, seed
+    return nil, err, cur if err
+    if seg
+      n += 1
+      parts[n] = seg
+    elseif not from_ptr
+      return next_off, nil, nil     -- terminateur de nom
+    cur = next_off
+    break if from_ptr
+  cur, nil, nil
 
 --- Parses a single DNS label from a binary string.
 -- Handles both normal labels and compressed labels.
@@ -162,31 +273,11 @@ local labels
 -- @treturn number The next offset after parsing.
 -- @treturn[opt] boolean `true` if the label is compressed, `nil` otherwise.
 label = (off, l7_off=1, visited=nil, depth=0) =>
-  return nil, off, nil, "invalid label offset #{off}" unless need_bytes @, off, 1
-  size = byte @, off
-  _off = off + 1
-  if size == 0  -- End of label
-    return nil, off+1
-  if band(size, 0xC0) == 0xC0  -- DNS label compression pointer
-    return nil, off, nil, "truncated DNS compression pointer" unless need_bytes @, off, 2
-    pos = byte @, off + 1
-    ptr = lshift(band(size, 0x3F), 8) + pos
-    target_off = l7_off + ptr
-    return nil, _off + 1, nil, "DNS compression pointer out of bounds (#{ptr})" unless target_off >= l7_off and target_off <= #@
-    return nil, _off + 1, nil, "DNS compression pointer recursion limit reached" if depth >= 32
-    return nil, _off + 1, nil, "DNS compression pointer loop at #{ptr}" if visited and visited[target_off]
-    visited or= {}
-    -- Keep the entry for the whole resolution: clearing it after the recursive
-    -- call would let crafted pointer chains revisit the same offset through
-    -- different paths (quadratic blow-up).
-    visited[target_off] = true
-    pointed_labels, _, err = labels @, target_off, l7_off, visited, depth + 1
-    return nil, _off + 1, nil, err unless pointed_labels
-    return concat(pointed_labels, "."), _off + 1, true
-  if band(size, 0xC0) == 0  -- Normal case
-    return nil, off, nil, "truncated DNS label (len=#{size})" unless need_bytes @, off + 1, size
-    return sub(@, off + 1, off + size), off + size + 1
-  nil, off, nil, "invalid DNS label prefix at offset #{off}"
+  next_off, seg, err, err_off, from_ptr = label_parts @, off, l7_off, nil, visited, depth, nil
+  return nil, err_off, nil, err if err
+  return nil, next_off unless seg or from_ptr   -- terminateur
+  return seg, next_off, true if from_ptr
+  seg, next_off
 
 --- Parses a sequence of DNS labels into a fully qualified domain name (FQDN).
 -- Handles both normal and compressed labels.
@@ -196,19 +287,36 @@ label = (off, l7_off=1, visited=nil, depth=0) =>
 -- @treturn number The next offset after parsing.
 labels = (off, l7_off, visited=nil, depth=0) =>
   lbls = {}
+  cur = off
   for i = 1, 1024  -- Arbitrary large limit to avoid infinite loops
-    -- off is the current absolute offset in the input string (@)
+    -- cur is the current absolute offset in the input string (@)
     -- l7_off is the absolute offset of the start of the DNS message in @
-    lbl_segment, next_parse_off, is_from_pointer, err = label @, off, l7_off, visited, depth
-    return nil, off, err if err
-    if not lbl_segment -- Indicates end of name (00 byte) or a parsing error in label()
-      off = next_parse_off -- Ensure 'off' is updated (e.g., past the 00 byte)
+    lbl_segment, next_parse_off, is_from_pointer, err = label @, cur, l7_off, visited, depth
+    return nil, cur, err if err
+    if not lbl_segment  -- fin de nom (octet 00)
+      cur = next_parse_off
       break
-    lbls[i] = lbl_segment -- Store the parsed label segment
-    off = next_parse_off   -- Update 'off' to the position after the processed segment
-    if is_from_pointer -- If the segment was resolved via a pointer, it's the complete name.
-      break
-  lbls, off
+    lbls[i] = lbl_segment
+    cur = next_parse_off
+    break if is_from_pointer  -- un pointeur résout le reste du nom
+  lbls, cur
+
+--- Builds the dotted form of the name starting at `off` in a single pass.
+-- Internal fast path of `parse_rr`: same contract as `labels` (returns the
+-- next offset, or `nil, fail_off, err`) but returns the joined name directly,
+-- with one segment table and one `table.concat` for the whole name —
+-- including names resolved through compression pointers, where `labels` +
+-- `concat` built two tables and two strings.
+-- @tparam number off The offset to start parsing from.
+-- @tparam number l7_off The layer 7 offset for label parsing.
+-- @treturn string|nil The dotted name, or `nil` on error.
+-- @treturn number The next offset after parsing.
+-- @treturn string|nil The error message (third value on error).
+name_string = (off, l7_off) =>
+  parts = {}
+  next_off, err, fail_off = walk_name @, off, l7_off, parts, nil, 0, nil
+  return nil, fail_off, err if err
+  concat(parts, "."), next_off
 
 --- Packs a DNS question into a binary string.
 -- @tparam table self The DNS question object.
@@ -255,15 +363,15 @@ _rr_mt = __tostring: pack_rr
 -- @treturn table Parsed DNS resource record as a table.
 -- @treturn number The next offset after parsing.
 parse_rr = (off, l7_off) =>
-  lbls, _off, err = labels @, off, l7_off
-  return nil, off, err unless lbls
+  name_str, _off, err = name_string @, off, l7_off
+  return nil, off, err unless name_str
   return nil, off, "truncated DNS resource record header" unless need_bytes @, _off, 10
   rname = sub @, off, _off-1
   rtype, rclass, ttl, rdlen, _off = su ">H H I4 H", @, _off
   return nil, off, "truncated DNS resource record data" unless need_bytes @, _off, rdlen
   rdata = sub @, _off, _off + rdlen - 1
   _off += rdlen
-  setmetatable({name: concat(lbls, "."), :rname, :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _rr_mt), _off
+  setmetatable({name: name_str, :rname, :rtype, :rclass, :ttl, :rdata, :off, end_off: _off-1}, _rr_mt), _off
 
 parse_rrs = (off, count, l7_off) =>
   res = {}
