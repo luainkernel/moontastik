@@ -96,6 +96,24 @@ test "answer ttl is 3600", ->
   msg, _ = dns.parse dns_response, 1, false
   assert msg.answers[1].ttl == 3600, "ttl should be 3600, got #{msg.answers[1].ttl}"
 
+-- Same answer with TTL = 0xFFFFFFFF : the fixed-width reads must return the
+-- full unsigned 32-bit value (no sign, no truncation).
+dns_response_ttl_max = hex2bin(
+  "123481800001000100000000" ..
+  "076578616d706c6503636f6d00" ..
+  "00010001" ..
+  "c00c00010001ffffffff000401020304"
+)
+
+test "answer ttl covers the unsigned 32-bit range", ->
+  msg, _ = dns.parse dns_response_ttl_max, 1, false
+  assert msg ~= nil, "parse should not return nil"
+  assert msg.answers[1].ttl == 4294967295,
+    "ttl should be 4294967295, got #{msg.answers[1].ttl}"
+  assert msg.answers[1].rtype == 1, "rtype should be A"
+  assert msg.answers[1].rclass == 1, "rclass should be IN"
+
+
 test "answer rdata is 93.184.216.34", ->
   msg, _ = dns.parse dns_response, 1, false
   assert msg.answers[1].rdata == "\093\184\216\034", "rdata mismatch"

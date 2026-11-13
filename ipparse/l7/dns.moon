@@ -76,6 +76,24 @@ pack: sp, unpack: su, :sub = require "ipparse.lib.pack_compat"
 :byte = string
 {:band, :bor, :bnot, :lshift, :rshift} = require"ipparse.lib.bit_compat"
 
+--- Reads a big-endian uint16 with `string.byte` (one call, no allocation).
+-- The generic `su`/`string.unpack` emulation dominated the profile of a
+-- response parse (one call per field, four fields per resource record).
+-- @tparam string s Binary string.
+-- @tparam number off 1-based offset of the first byte.
+-- @treturn number The unsigned 16-bit value.
+u16 = (s, off) ->
+  a, b = byte s, off, off + 1
+  a * 256 + b
+
+--- Reads a big-endian uint32 with `string.byte` (one call, no allocation).
+-- @tparam string s Binary string.
+-- @tparam number off 1-based offset of the first byte.
+-- @treturn number The unsigned 32-bit value.
+u32 = (s, off) ->
+  a, b, c, d = byte s, off, off + 3
+  a * 16777216 + b * 65536 + c * 256 + d
+
 --- Packs the DNS header into a binary string.
 -- @tparam table self The DNS header object.
 -- @treturn string Binary string representing the packed DNS header.
@@ -132,10 +150,18 @@ parse_header = (off, is_tcp) =>  -- Accepts data string, offset and boolean; ret
   local size
   if is_tcp
     return nil, "No DNS data" if len < 2
-    size, off = su ">H", @, off
+    size = u16 @, off
+    off += 2
     len -= 2
   return nil, "No DNS data" if len < 12
-  id, qr_opcode_aa_tc_rd, ra_z_rcode, qdcount, ancount, nscount, arcount, data_off = su ">H B B H H H H", @, off
+  id = u16 @, off
+  qr_opcode_aa_tc_rd = byte @, off + 2
+  ra_z_rcode = byte @, off + 3
+  qdcount = u16 @, off + 4
+  ancount = u16 @, off + 6
+  nscount = u16 @, off + 8
+  arcount = u16 @, off + 10
+  data_off = off + 12
   setmetatable({
     :id, :qr_opcode_aa_tc_rd, :ra_z_rcode
     :qdcount, :ancount, :nscount, :arcount
@@ -365,7 +391,9 @@ parse_question = (off, l7_off, cache) =>
   return nil, off, err unless lbls
   return nil, off, "truncated DNS question fields" unless need_bytes @, _off, 4
   qname = sub @, off, _off-1
-  qtype, qclass, _off = su ">H H", @, _off
+  qtype = u16 @, _off
+  qclass = u16 @, _off + 2
+  _off += 4
   name = concat lbls, "."
   cache[off] = name if cache   -- la section answer pointe sur ce nom
   setmetatable({name: name, :qname, :qtype, :qclass, :off, end_off: _off-1}, _question_mt), _off
@@ -399,7 +427,11 @@ parse_rr = (off, l7_off, cache) =>
   return nil, off, err unless name_str
   return nil, off, "truncated DNS resource record header" unless need_bytes @, _off, 10
   rname = sub @, off, _off-1
-  rtype, rclass, ttl, rdlen, _off = su ">H H I4 H", @, _off
+  rtype = u16 @, _off
+  rclass = u16 @, _off + 2
+  ttl = u32 @, _off + 4
+  rdlen = u16 @, _off + 8
+  _off += 10
   return nil, off, "truncated DNS resource record data" unless need_bytes @, _off, rdlen
   rdata = sub @, _off, _off + rdlen - 1
   _off += rdlen
