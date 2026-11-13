@@ -59,10 +59,20 @@ ref_checksum = (s) ->
   for i = 1, #s, 2
     a, b = string.byte s, i, i + 1
     cksm += a * 256 + b
+  -- Fold carry into the low 16 bits using integer arithmetic only: no
+  -- math.floor, no floating-point division, no bitwise operators, so that
+  -- this reference stays independent of the implementation (which uses rshift)
+  -- and runs on LuaJIT 5.1 as well as on Lunatik's integer-only kernel Lua.
   while true
-    carry = math.floor cksm / 0x10000
+    low = cksm % 0x10000
+    -- carry = floor(cksm / 0x10000), computed by repeated subtraction.
+    carry = 0
+    tmp = cksm - low
+    while tmp >= 0x10000
+      tmp -= 0x10000
+      carry += 1
     break if carry == 0
-    cksm = (cksm % 0x10000) + carry
+    cksm = low + carry
   0xFFFF - (cksm % 0x10000)
 
 -- Séquence d'octets déterministe couvrant les 256 valeurs (aucune arithmétique
