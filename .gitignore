@@ -4,3 +4,5 @@ vmlinux.h*
 *.zip
 luacov.stats.out
 luacov.report.out
+moontastik_lua/
+moontastik_lua.zip
