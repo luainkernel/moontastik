@@ -122,6 +122,13 @@ jobs:
           echo "rockspec=$rockspec" >> "$GITHUB_OUTPUT"
           echo "Publishing $rockspec for tag $TAG (source: $rock_url)"
 
+      # `luarocks upload` needs a JSON library to talk to the server; the
+      # LuaRocks install from apt ships none, so upload dies with
+      # "A JSON library is required for this command. Failed loading 'cjson',
+      # 'dkjson', and 'json'." dkjson is pure Lua, so no build step is needed.
+      - name: Install dkjson
+        run: sudo luarocks install dkjson
+
       - name: Publish to LuaRocks
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
