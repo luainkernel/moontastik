@@ -68,6 +68,23 @@ coverage-nobuild:
 example: all
 	cd .. && LUA_PATH="./?.lua;./?/init.lua" $(LUA) ipparse/examples/parse_real_quic.lua
 
+# API documentation. ipparse/doc/ is committed on purpose so beginners can read
+# it without installing LDoc; regenerate it with this target. LDoc is not
+# vendored: nix-shell -p luajitPackages.ldoc --run 'make -C ipparse doc'.
+# --date='' drops the "Last updated" line, and SOURCE_DATE_EPOCH is unset so
+# the output does not depend on the clock or on nix-shell's pinned epoch:
+# tools/check-doc.sh relies on this being byte-for-byte reproducible.
+LDOC ?= ldoc
+
+# `doc` is also the output directory, hence .PHONY.
+.PHONY: doc
+doc:
+	@if ! command -v "$(LDOC)" >/dev/null 2>&1; then \
+		echo "ERROR: ldoc not found: install LDoc 1.5 first (nix-shell -p luajitPackages.ldoc --run 'make -C ipparse doc')." >&2; \
+		exit 1; \
+	fi
+	env -u SOURCE_DATE_EPOCH "$(LDOC)" --date='' .
+
 test-lunatik: all
 	@$(MAKE) install
 	@$(MAKE) test-lunatik-run

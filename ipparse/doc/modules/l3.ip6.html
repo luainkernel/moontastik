@@ -45,12 +45,14 @@
   <li><strong>l3.ip6</strong></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,26 +84,26 @@
 <h1>Module <code>l3.ip6</code></h1>
 <p>IPv6 Header Parsing and Packing Module
  This module provides utilities for parsing, packing, and manipulating IPv6 headers.</p>
-<p>
- It includes functions for handling IPv6 addresses, converting between binary and readable formats,
- and managing IPv6 network addresses.
+<p> It includes functions for handling IPv6 addresses, converting between binary and readable formats,
+ and managing IPv6 network addresses.</p>
+
 <p> ### IPv6 Header Structure
  ```
  IPv6 Header {
    version (4): IP version (always 6 for IPv6).
-   traffic_class (8): Traffic Class.
-   flow_label (20): Flow Label.
-   payload_len (16): Payload Length (in bytes, excluding the header).
-   next_header (8): Next Header (e.g., TCP, UDP, or extension headers).
+   traffic<em>class (8): Traffic Class.
+   flow</em>label (20): Flow Label.
+   payload<em>len (16): Payload Length (in bytes, excluding the header).
+   next</em>header (8): Next Header (e.g., TCP, UDP, or extension headers).
    hop_limit (8): Hop Limit (similar to TTL in IPv4).
    src (128): Source IPv6 Address.
    dst (128): Destination IPv6 Address.
    payload (variable): Payload data (e.g., transport-layer data or extension headers).
  }
- ```
+ ```</p>
+
 <p> References:
- - RFC 8200: Internet Protocol, Version 6 (IPv6) Specification
-</p>
+ - RFC 8200: Internet Protocol, Version 6 (IPv6) Specification</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -148,13 +155,13 @@
     </dt>
     <dd>
     Packs the IPv6 header and payload into a binary string.
- Calculates the checksum and updates header fields like `payload_len`.
+ Calculates the checksum and updates header fields like <code>payload_len</code>.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The IPv6 header object.
         </li>
     </ul>
@@ -162,7 +169,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed IPv6 header and payload.
     </ol>
 
@@ -190,7 +197,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed IPv6 header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -207,13 +214,13 @@
     </dt>
     <dd>
     Creates a new IPv6 header object.
- Initializes the `vtf` field if not already set.
+ Initializes the <code>vtf</code> field if not already set.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The IPv6 header object.
         </li>
     </ul>
@@ -221,7 +228,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         The new IPv6 header object.
       <ul>
         </ul>
@@ -243,7 +250,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The IPv6 address string.
         </li>
     </ul>
@@ -265,12 +272,13 @@
     </dt>
     <dd>
     Converts a binary IPv6 address to a readable string.
+ Compresses consecutive zero groups with :: according to RFC 5952.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary IPv6 address.
         </li>
     </ul>
@@ -278,7 +286,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         IPv6 address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx".
     </ol>
 
@@ -297,7 +305,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The IPv6 address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx".
         </li>
     </ul>
@@ -305,7 +313,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the IPv6 address.
     </ol>
 
@@ -324,7 +332,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary IPv6 network address.
         </li>
     </ul>
@@ -332,7 +340,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         IPv6 network address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx/mask".
     </ol>
 
@@ -351,7 +359,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The IPv6 network address as a string in the format "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx/mask".
         </li>
     </ul>
@@ -359,7 +367,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the IPv6 network address.
     </ol>
 
@@ -374,7 +382,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

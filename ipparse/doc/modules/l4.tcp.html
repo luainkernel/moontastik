@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><strong>l4.tcp</strong></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,33 +84,37 @@
 <h1>Module <code>l4.tcp</code></h1>
 <p>TCP Header Parsing and Packing Module
  This module provides utilities for parsing, packing, and manipulating TCP headers.</p>
-<p>
- It includes functions for handling TCP packets, managing flags, and calculating offsets.
+<p> It includes functions for handling TCP packets, managing flags, and calculating offsets.</p>
+
 <p> ### TCP Header Structure
  ```
  TCP Header {
    spt (16): Source Port.
    dpt (16): Destination Port.
-   seq_n (32): Sequence Number.
-   ack_n (32): Acknowledgment Number.
+   seq<em>n (32): Sequence Number.
+   ack</em>n (32): Acknowledgment Number.
    header_len (4): Header Length (in 32-bit words).
-   flags (6): Flags:
-     - 0x01: FIN (Finish).
-     - 0x02: SYN (Synchronize).
-     - 0x04: RST (Reset).
-     - 0x08: PSH (Push).
-     - 0x10: ACK (Acknowledgment).
-     - 0x20: URG (Urgent).
-   window (16): Window Size.
+   flags (6): Flags:</p>
+
+<pre>
+- <span class="number">0x01</span>: <span class="function-name">FIN</span> (Finish).
+- <span class="number">0x02</span>: <span class="function-name">SYN</span> (Synchronize).
+- <span class="number">0x04</span>: <span class="function-name">RST</span> (Reset).
+- <span class="number">0x08</span>: <span class="function-name">PSH</span> (Push).
+- <span class="number">0x10</span>: <span class="function-name">ACK</span> (Acknowledgment).
+- <span class="number">0x20</span>: <span class="function-name">URG</span> (Urgent).
+</pre>
+
+<p>   window (16): Window Size.
    checksum (16): Checksum for error detection.
    urg_ptr (16): Urgent Pointer.
    options (variable): Optional fields (if any).
    payload (variable): Payload data.
  }
- ```
+ ```</p>
+
 <p> References:
- - RFC 793: Transmission Control Protocol (TCP)
-</p>
+ - RFC 793: Transmission Control Protocol (TCP)</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -149,7 +160,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The TCP header object.
         </li>
     </ul>
@@ -157,7 +168,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed TCP header and payload.
     </ol>
 
@@ -177,7 +188,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the TCP header and payload.
     </ol>
 
@@ -196,12 +207,12 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">k</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The flag name (e.g., "SYN", "ACK").
         </li>
         <li><span class="parameter">v</span>
             <span class="types"><span class="type">boolean</span></span>
-         `true` to set the flag, `false` to clear it.
+         <code>true</code> to set the flag, <code>false</code> to clear it.
         </li>
     </ul>
 
@@ -231,7 +242,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed TCP header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -254,7 +265,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The TCP header object.
         </li>
     </ul>
@@ -262,7 +273,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         The new TCP header object.
     </ol>
 
@@ -277,7 +288,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

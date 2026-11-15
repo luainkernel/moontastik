@@ -1,0 +1,236 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><strong>lib.hkdf</strong></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>lib.hkdf</code></h1>
+<p>HKDF-Extract step.</p>
+<p> Extracts a pseudorandom key (PRK) from the input keying material (IKM) and salt.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#hkdf_expand_bin">hkdf_expand_bin (prk[, info=""], len)</a></td>
+	<td class="summary">HKDF-Expand step, binary output.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hkdf_expand">hkdf_expand (prk[, info=""], len)</a></td>
+	<td class="summary">HKDF-Expand step.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#hkdf">hkdf (salt, ikm, info, len)</a></td>
+	<td class="summary">Complete HKDF operation (Extract + Expand).</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "hkdf_expand_bin"></a>
+    <strong>hkdf_expand_bin (prk[, info=""], len)</strong>
+    </dt>
+    <dd>
+    HKDF-Expand step, binary output.
+ Expands the pseudorandom key (PRK) to produce output keying material.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">prk</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Pseudorandom key from HKDF-Extract.
+        </li>
+        <li><span class="parameter">info</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Context and application specific information.
+         (<em>default</em> "")
+        </li>
+        <li><span class="parameter">len</span>
+            <span class="types"><span class="type">number</span></span>
+         Length of output keying material in bytes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        Output keying material (OKM) as binary string.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hkdf_expand"></a>
+    <strong>hkdf_expand (prk[, info=""], len)</strong>
+    </dt>
+    <dd>
+    HKDF-Expand step.
+ Expands the pseudorandom key (PRK) to produce output keying material.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">prk</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Pseudorandom key from HKDF-Extract.
+        </li>
+        <li><span class="parameter">info</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Context and application specific information.
+         (<em>default</em> "")
+        </li>
+        <li><span class="parameter">len</span>
+            <span class="types"><span class="type">number</span></span>
+         Length of output keying material in bytes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        Output keying material (OKM) as hex string.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "hkdf"></a>
+    <strong>hkdf (salt, ikm, info, len)</strong>
+    </dt>
+    <dd>
+    Complete HKDF operation (Extract + Expand).
+ Derives output keying material from input keying material using HKDF.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">salt</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Salt value (empty string becomes 64 zero bytes).
+        </li>
+        <li><span class="parameter">ikm</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Input keying material.
+        </li>
+        <li><span class="parameter">info</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Context and application specific information.
+        </li>
+        <li><span class="parameter">len</span>
+            <span class="types"><span class="type">number</span></span>
+         Length of output keying material in bytes.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        Output keying material (OKM) as hex string.
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

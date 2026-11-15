@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><strong>lib.pcap</strong></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,27 +84,27 @@
 <h1>Module <code>lib.pcap</code></h1>
 <p>PCAP/PCAPNG File Parsing Module
  This module provides utilities for parsing PCAP and PCAPNG files to extract network packets.</p>
-<p>
- It supports both the original PCAP format and the newer PCAPNG format.
+<p> It supports both the original PCAP format and the newer PCAPNG format.</p>
+
 <p> ### Features
  - Parse PCAPNG Section Header Blocks (SHB)
  - Parse Interface Description Blocks (IDB)
  - Parse Enhanced Packet Blocks (EPB)
  - Extract raw packet data with timestamps
- - Support for different link layer types (Ethernet, Raw IP)
+ - Support for different link layer types (Ethernet, Raw IP)</p>
+
 <p> ### PCAPNG Block Structure
  ```
  Block {
-   block_type (32): Type of block (SHB=0x0A0D0D0A, IDB=0x00000001, EPB=0x00000006)
-   block_total_length (32): Total length of block including headers
-   block_data (variable): Block-specific data
-   block_total_length (32): Repeated at end for validation
+   block<em>type (32): Type of block (SHB=0x0A0D0D0A, IDB=0x00000001, EPB=0x00000006)
+   block</em>total<em>length (32): Total length of block including headers
+   block</em>data (variable): Block-specific data
+   block<em>total</em>length (32): Repeated at end for validation
  }
- ```
+ ```</p>
+
 <p> References:
- - RFC 2838: Pcap File Format
- - PCAPNG Specification: https://github.com/pcapng/pcapng
-</p>
+ - PCAPNG Specification: https://github.com/pcapng/pcapng</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -122,6 +129,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#parse_epb">parse_epb (data, offset, endian)</a></td>
 	<td class="summary">Parses a PCAPNG Enhanced Packet Block (EPB)</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#parse_pcapng_data">parse_pcapng_data (data)</a></td>
+	<td class="summary">Parses in-memory PCAPNG data and extracts all packets</td>
 	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#parse_pcapng">parse_pcapng (filename)</a></td>
@@ -184,7 +195,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary data containing the SHB
         </li>
         <li><span class="parameter">offset</span>
@@ -196,7 +207,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed SHB structure</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -218,7 +229,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary data containing the IDB
         </li>
         <li><span class="parameter">offset</span>
@@ -226,15 +237,15 @@
          Starting offset in the data
         </li>
         <li><span class="parameter">endian</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Byte order (">" for big-endian, "<" for little-endian)
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Byte order (">" for big-endian, "&lt;" for little-endian)
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed IDB structure</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -256,7 +267,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary data containing the EPB
         </li>
         <li><span class="parameter">offset</span>
@@ -264,19 +275,49 @@
          Starting offset in the data
         </li>
         <li><span class="parameter">endian</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         Byte order (">" for big-endian, "<" for little-endian)
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Byte order (">" for big-endian, "&lt;" for little-endian)
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed EPB structure with packet data</li>
         <li>
            <span class="types"><span class="type">number</span></span>
         Next offset after the block</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "parse_pcapng_data"></a>
+    <strong>parse_pcapng_data (data)</strong>
+    </dt>
+    <dd>
+    Parses in-memory PCAPNG data and extracts all packets
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">data</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The whole PCAPNG file contents
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        Array of parsed packets with metadata</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        Array of all parsed blocks</li>
     </ol>
 
 
@@ -294,7 +335,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">filename</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          Path to the PCAPNG file
         </li>
     </ul>
@@ -302,7 +343,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Array of parsed packets with metadata
     </ol>
 
@@ -321,7 +362,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">packets</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          Array of parsed packets
         </li>
     </ul>
@@ -329,7 +370,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Array of QUIC packets with parsed headers
     </ol>
 
@@ -348,7 +389,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">filename</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          Path to the PCAPNG file
         </li>
     </ul>
@@ -356,7 +397,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Array of QUIC packets with full parsing
     </ol>
 
@@ -371,7 +412,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

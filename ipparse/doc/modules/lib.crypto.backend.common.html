@@ -1,0 +1,342 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+    <title>Ipparse API Documentation</title>
+    <link rel="stylesheet" href="../ldoc.css" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"></div>
+	<div id="product_name"><big><b></b></big></div>
+	<div id="product_description"></div>
+</div> <!-- id="product" -->
+
+
+<div id="main">
+
+
+<!-- Menu -->
+
+<div id="navigation">
+<br/>
+<h1>Ipparse</h1>
+
+
+<ul>
+  <li><a href="../index.html">Index</a></li>
+</ul>
+
+<h2>Contents</h2>
+<ul>
+<li><a href="#Functions">Functions</a></li>
+</ul>
+
+
+<h2>Modules</h2>
+<ul class="nowrap">
+  <li><a href="../modules/init.html">init</a></li>
+  <li><a href="../modules/l2.ethernet.html">l2.ethernet</a></li>
+  <li><a href="../modules/l3.ip4.html">l3.ip4</a></li>
+  <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
+  <li><a href="../modules/l3.ip.html">l3.ip</a></li>
+  <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
+  <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
+  <li><a href="../modules/l4.quic.html">l4.quic</a></li>
+  <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
+  <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
+  <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
+  <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
+  <li><a href="../modules/l4.udp.html">l4.udp</a></li>
+  <li><a href="../modules/l7.dns.html">l7.dns</a></li>
+  <li><a href="../modules/l7.quic.html">l7.quic</a></li>
+  <li><a href="../modules/l7.quic.session.html">l7.quic.session</a></li>
+  <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
+  <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
+  <li><a href="../modules/l7.tls.html">l7.tls</a></li>
+  <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
+  <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
+  <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><strong>lib.crypto.backend.common</strong></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
+  <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
+  <li><a href="../modules/lib.crypto.backend.lunatik.html">lib.crypto.backend.lunatik</a></li>
+  <li><a href="../modules/fun.html">fun</a></li>
+</ul>
+
+</div>
+
+<div id="content">
+
+<h1>Module <code>lib.crypto.backend.common</code></h1>
+<p>Common validation and utility functions for crypto backends.</p>
+<p> This module provides shared patterns used across different crypto backend implementations.</p>
+
+<p> The <code>validate_*</code> helpers guard against programmer errors (keys and nonces are
+ derived internally, never attacker-controlled), so they raise via <a href="https://www.lua.org/manual/5.1/manual.html#pdf-assert">assert</a>.
+ Operational failures (library errors, tag mismatches) are reported by the
+ backends as <code>nil, err</code> instead.</p>
+
+
+<h2><a href="#Functions">Functions</a></h2>
+<table class="function_list">
+	<tr>
+	<td class="name" nowrap><a href="#validate_gcm_key">validate_gcm_key (key)</a></td>
+	<td class="summary">Validates AES-128-GCM key length.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#validate_gcm_nonce">validate_gcm_nonce (nonce)</a></td>
+	<td class="summary">Validates AES-128-GCM nonce length.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#validate_ecb_key">validate_ecb_key (key)</a></td>
+	<td class="summary">Validates AES-128-ECB key length.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#validate_ecb_block">validate_ecb_block (block)</a></td>
+	<td class="summary">Validates AES-128-ECB block length.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#validate_quic_iv">validate_quic_iv (iv)</a></td>
+	<td class="summary">Validates QUIC IV length.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#construct_nonce">construct_nonce (iv, packet_number)</a></td>
+	<td class="summary">Constructs a QUIC nonce: XOR the last 8 bytes of the IV with the
+ packet number (big-endian), per RFC 9001 §5.3.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#split_ct_tag">split_ct_tag (ciphertext_with_tag)</a></td>
+	<td class="summary">Splits a ciphertext-with-tag buffer into ciphertext and 16-byte tag.</td>
+	</tr>
+</table>
+
+<br/>
+<br/>
+
+
+    <h2 class="section-header "><a name="Functions"></a>Functions</h2>
+
+    <dl class="function">
+    <dt>
+    <a name = "validate_gcm_key"></a>
+    <strong>validate_gcm_key (key)</strong>
+    </dt>
+    <dd>
+    Validates AES-128-GCM key length.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The key to validate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true if valid, error is raised otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "validate_gcm_nonce"></a>
+    <strong>validate_gcm_nonce (nonce)</strong>
+    </dt>
+    <dd>
+    Validates AES-128-GCM nonce length.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">nonce</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The nonce to validate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true if valid, error is raised otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "validate_ecb_key"></a>
+    <strong>validate_ecb_key (key)</strong>
+    </dt>
+    <dd>
+    Validates AES-128-ECB key length.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">key</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The key to validate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true if valid, error is raised otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "validate_ecb_block"></a>
+    <strong>validate_ecb_block (block)</strong>
+    </dt>
+    <dd>
+    Validates AES-128-ECB block length.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">block</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The block to validate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true if valid, error is raised otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "validate_quic_iv"></a>
+    <strong>validate_quic_iv (iv)</strong>
+    </dt>
+    <dd>
+    Validates QUIC IV length.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The IV to validate.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">boolean</span></span>
+        true if valid, error is raised otherwise.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "construct_nonce"></a>
+    <strong>construct_nonce (iv, packet_number)</strong>
+    </dt>
+    <dd>
+    Constructs a QUIC nonce: XOR the last 8 bytes of the IV with the
+ packet number (big-endian), per RFC 9001 §5.3.
+ Portable implementation shared by all backends (kernel Lua and LuaJIT).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">iv</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         12-byte IV.
+        </li>
+        <li><span class="parameter">packet_number</span>
+            <span class="types"><span class="type">number</span></span>
+         QUIC packet number.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        12-byte nonce.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "split_ct_tag"></a>
+    <strong>split_ct_tag (ciphertext_with_tag)</strong>
+    </dt>
+    <dd>
+    Splits a ciphertext-with-tag buffer into ciphertext and 16-byte tag.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">ciphertext_with_tag</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Ciphertext with the auth tag appended.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        The ciphertext, or nil if the input is too short.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+        The tag, or an error message when the first value is nil.</li>
+    </ol>
+
+
+
+
+</dd>
+</dl>
+
+
+</div> <!-- id="content" -->
+</div> <!-- id="main" -->
+<div id="about">
+<i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
+</div> <!-- id="about" -->
+</div> <!-- id="container" -->
+</body>
+</html>

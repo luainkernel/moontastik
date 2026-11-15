@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><strong>l4.quic</strong></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,28 +84,29 @@
 <h1>Module <code>l4.quic</code></h1>
 <p>QUIC Header Parsing and Packing Module
  This module provides utilities for parsing, packing, and manipulating QUIC headers.</p>
-<p>
- It supports both long and short headers, automatically determining the type and delegating to the appropriate functions.
- Additionally, it includes utilities for handling QUIC versions, connection IDs, and flags.
+<p> It supports both long and short headers, automatically determining the type and delegating to the appropriate functions.
+ Additionally, it includes utilities for handling QUIC versions, connection IDs, and flags.</p>
+
 <p> ### Features
  - Parse and pack QUIC headers (long and short).
  - Handle QUIC versions and connection IDs.
- - Manage QUIC-specific flags.
+ - Manage QUIC-specific flags.</p>
+
 <p> ### QUIC Header Structure
  ```
  QUIC Header {
    byte1 (8): First byte containing flags and header form.
    version (32): QUIC version (for long headers).
-   dst_connection_id (variable): Destination Connection ID.
-   src_connection_id (variable): Source Connection ID (for long headers).
+   dst<em>connection</em>id (variable): Destination Connection ID.
+   src<em>connection</em>id (variable): Source Connection ID (for long headers).
    payload (variable): Payload data.
  }
- ```
+ ```</p>
+
 <p> References:
  - RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport
  - RFC 8999: Version-Independent Properties of QUIC
- - RFC 9001: Using TLS to Secure QUIC
-</p>
+ - RFC 9001: Using TLS to Secure QUIC</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -123,6 +131,10 @@
 	<td class="name" nowrap><a href="#parse">parse ([off=1], ...)</a></td>
 	<td class="summary">Parses a QUIC header from a binary string.</td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#split_datagrams">split_datagrams ([off=1], ...)</a></td>
+	<td class="summary">Splits a UDP payload into QUIC datagrams when packets are coalesced.</td>
+	</tr>
 </table>
 
 <br/>
@@ -144,7 +156,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The QUIC header object.
         </li>
     </ul>
@@ -152,7 +164,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed QUIC header and payload.
     </ol>
 
@@ -171,7 +183,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The QUIC header object.
         </li>
     </ul>
@@ -179,7 +191,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the QUIC header and payload.
     </ol>
 
@@ -212,7 +224,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed QUIC header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -243,12 +255,12 @@
          The first byte of the header.
         </li>
         <li><span class="parameter">dst_id</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The destination connection ID (optional).
          (<em>optional</em>)
         </li>
         <li><span class="parameter">src_connection_id</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The source connection ID (optional).
          (<em>optional</em>)
         </li>
@@ -262,7 +274,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed QUIC header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -297,11 +309,46 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed QUIC header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
         The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "split_datagrams"></a>
+    <strong>split_datagrams ([off=1], ...)</strong>
+    </dt>
+    <dd>
+    Splits a UDP payload into QUIC datagrams when packets are coalesced.
+ Returns one item per parsed QUIC packet with bounds and raw bytes.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset to start parsing from.
+         (<em>default</em> 1)
+        </li>
+        <li><span class="parameter">...</span>
+         Additional arguments forwarded to <a href="../modules/l4.quic.html#parse">parse</a>.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">{table}</a> or <span class="type">nil</span></span>
+        Array of <code>{ header, off, packet_end, data }</code>.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        Error string on failure.</li>
     </ol>
 
 
@@ -315,7 +362,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

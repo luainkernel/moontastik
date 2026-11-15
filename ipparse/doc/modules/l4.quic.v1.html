@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><strong>l4.quic.v1</strong></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,33 +84,35 @@
 <h1>Module <code>l4.quic.v1</code></h1>
 <p>QUIC Version 1 Module
  This module provides constants, utilities, and metatables specific to QUIC version 1.</p>
-<p>
- It includes definitions for packet types, header byte masks, and the initial salt used for key derivation.
- Additionally, it provides functions to generate metatables for manipulating QUIC header fields.
+<p> It includes definitions for packet types, header byte masks, and the initial salt used for key derivation.
+ Additionally, it provides functions to generate metatables for manipulating QUIC header fields.</p>
+
 <p> ### Features
- - Constants for QUIC version 1, including `version` and `initial_salt`.
+ - Constants for QUIC version 1, including <a href="../modules/l4.quic.v1.html#version">version</a> and <code>initial_salt</code>.
  - Definitions for long and short header byte masks.
  - Bidirectional mappings for packet types and header fields.
- - Utilities for generating metatables for QUIC header manipulation.
+ - Utilities for generating metatables for QUIC header manipulation.</p>
+
 <p> ### QUIC-v1 Packet Structure
  ```
  Long Header {
    byte1 (8): First byte containing flags and header form.
    version (32): QUIC version (always 0x01 for QUIC-v1).
-   dst_connection_id (variable): Destination Connection ID.
-   src_connection_id (variable): Source Connection ID.
+   dst<em>connection</em>id (variable): Destination Connection ID.
+   src<em>connection</em>id (variable): Source Connection ID.
    payload (variable): Packet payload (e.g., frames).
- }
+ }</p>
+
 <p> Short Header {
    byte1 (8): First byte containing flags and header form.
-   dst_connection_id (variable): Destination Connection ID.
+   dst<em>connection</em>id (variable): Destination Connection ID.
    payload (variable): Packet payload (e.g., frames).
  }
- ```
+ ```</p>
+
 <p> References:
  - RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport
- - RFC 9001: Using TLS to Secure QUIC
-</p>
+ - RFC 9001: Using TLS to Secure QUIC</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -165,7 +174,7 @@
     </dt>
     <dd>
     Masks for the first byte of a long QUIC header.
- Provides bidirectional mappings for header fields such as `HEADER_FORM`, `FIXED_BIT`, and `PKT_TYPE`.
+ Provides bidirectional mappings for header fields such as <code>HEADER_FORM</code>, <code>FIXED_BIT</code>, and <code>PKT_TYPE</code>.
 
 
 
@@ -180,7 +189,7 @@
     </dt>
     <dd>
     Masks for the first byte of a short QUIC header.
- Provides bidirectional mappings for header fields such as `HEADER_FORM`, `FIXED_BIT`, and `KEY_PHASE`.
+ Provides bidirectional mappings for header fields such as <code>HEADER_FORM</code>, <code>FIXED_BIT</code>, and <code>KEY_PHASE</code>.
 
 
 
@@ -195,7 +204,7 @@
     </dt>
     <dd>
     Packet types for QUIC version 1.
- Provides bidirectional mappings for packet types such as `initial`, `zero_rtt`, `handshake`, and `retry`.
+ Provides bidirectional mappings for packet types such as <code>initial</code>, <code>zero_rtt</code>, <code>handshake</code>, and <code>retry</code>.
 
 
 
@@ -216,7 +225,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">byte1</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          A table containing bidirectional mappings for header fields.
         </li>
     </ul>
@@ -224,7 +233,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         The generated metatable.
     </ol>
 
@@ -243,8 +252,8 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">k</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The name of the header field (e.g., `HEADER_FORM`).
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The name of the header field (e.g., <code>HEADER_FORM</code>).
         </li>
     </ul>
 
@@ -270,12 +279,12 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">k</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The name of the header field (e.g., `HEADER_FORM`).
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         The name of the header field (e.g., <code>HEADER_FORM</code>).
         </li>
         <li><span class="parameter">v</span>
             <span class="types"><span class="type">boolean</span> or <span class="type">number</span></span>
-         The value to set (`true` to set the field, `false` or `nil` to clear it).
+         The value to set (<code>true</code> to set the field, <code>false</code> or <code>nil</code> to clear it).
         </li>
     </ul>
 
@@ -291,7 +300,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

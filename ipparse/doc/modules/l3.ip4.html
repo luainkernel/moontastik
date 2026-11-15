@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,9 +84,9 @@
 <h1>Module <code>l3.ip4</code></h1>
 <p>IPv4 Header Parsing and Packing Module
  This module provides utilities for parsing, packing, and manipulating IPv4 headers.</p>
-<p>
- It includes functions for handling IPv4 addresses, converting between binary and readable formats,
- and managing IPv4 network addresses.
+<p> It includes functions for handling IPv4 addresses, converting between binary and readable formats,
+ and managing IPv4 network addresses.</p>
+
 <p> ### IPv4 Header Structure
  ```
  IPv4 Header {
@@ -88,12 +95,16 @@
    tos (8): Type of Service.
    total_len (16): Total Length (header + payload).
    id (16): Identification.
-   ff (16):
-     - flags (3): Flags:
-       - 0x4000: Don't Fragment (DF).
-       - 0x2000: More Fragments (MF).
-     - frag_offset (13): Fragment Offset.
-   ttl (8): Time to Live.
+   ff (16):</p>
+
+<pre>
+- <span class="function-name">flags</span> (<span class="number">3</span>): Flags:
+  - <span class="number">0x4000</span>: <span class="function-name">Don</span>'t <span class="function-name">Fragment</span> (DF).
+  - <span class="number">0x2000</span>: More <span class="function-name">Fragments</span> (MF).
+- <span class="function-name">frag_offset</span> (<span class="number">13</span>): Fragment Offset.
+</pre>
+
+<p>   ttl (8): Time to Live.
    protocol (8): Protocol (e.g., TCP, UDP).
    checksum (16): Header Checksum.
    src (32): Source IP Address.
@@ -101,11 +112,11 @@
    options (variable): Optional fields (if any).
    payload (variable): Payload data.
  }
- ```
+ ```</p>
+
 <p> References:
  - RFC 791: Internet Protocol (IPv4)
- - RFC 1122: Requirements for Internet Hosts - Communication Layers
-</p>
+ - RFC 1122: Requirements for Internet Hosts - Communication Layers</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -161,16 +172,16 @@
     </dt>
     <dd>
     Packs the IPv4 header and payload into a binary string.
- Calculates the checksum and updates header fields like `ihl` and `total_len`.
- If `self.data` is present, it's assumed to be an object representing the L4 payload.
- Its `__tostring` method will be called (potentially twice), and its `checksum` field
+ Calculates the checksum and updates header fields like <code>ihl</code> and <code>total_len</code>.
+ If <code>self.data</code> is present, it's assumed to be an object representing the L4 payload.
+ Its <a href="../modules/l3.ip4.html#__tostring">__tostring</a> method will be called (potentially twice), and its <code>checksum</code> field
  will be set after calculating the L4 checksum using the pseudo-header.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The IPv4 header object.
         </li>
     </ul>
@@ -178,7 +189,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed IPv4 header and payload.
     </ol>
 
@@ -198,7 +209,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the IPv4 header and payload.
     </ol>
 
@@ -217,12 +228,12 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">k</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The flag name (e.g., "DF", "MF").
         </li>
         <li><span class="parameter">v</span>
             <span class="types"><span class="type">boolean</span></span>
-         `true` to set the flag, `false` to clear it.
+         <code>true</code> to set the flag, <code>false</code> to clear it.
         </li>
     </ul>
 
@@ -251,7 +262,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed IPv4 header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -268,13 +279,13 @@
     </dt>
     <dd>
     Creates a new IPv4 header object.
- Initializes the `v_ihl` field if not already set.
+ Initializes the <code>v_ihl</code> field if not already set.
 
 
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The IPv4 header object, which can contain the fields below.
         </li>
     </ul>
@@ -282,7 +293,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         The new IPv4 header object.
       <ul>
         </ul>
@@ -303,7 +314,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary IPv4 address.
         </li>
     </ul>
@@ -311,7 +322,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         IPv4 address as a string in the format "x.x.x.x".
     </ol>
 
@@ -330,7 +341,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The IPv4 address as a string in the format "x.x.x.x".
         </li>
     </ul>
@@ -338,7 +349,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the IPv4 address.
     </ol>
 
@@ -357,7 +368,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary IPv4 network address.
         </li>
     </ul>
@@ -365,7 +376,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         IPv4 network address as a string in the format "x.x.x.x/mask".
     </ol>
 
@@ -384,7 +395,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The IPv4 network address as a string in the format "x.x.x.x/mask".
         </li>
     </ul>
@@ -392,7 +403,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the IPv4 network address.
     </ol>
 
@@ -407,7 +418,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

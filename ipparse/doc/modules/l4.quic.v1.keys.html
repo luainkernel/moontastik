@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><strong>l4.quic.v1.keys</strong></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -76,19 +83,20 @@
 
 <h1>Module <code>l4.quic.v1.keys</code></h1>
 <p>QUIC v1 key derivation (RFC 9001).</p>
-<p>
 <p> Derives the initial secrets, packet protection keys, IVs, and header
- protection keys for a QUIC v1 connection from the destination Connection ID.
-<p> Uses `ipparse.lib.hkdf` (HKDF-SHA256 via crypto.hkdf/crypto.shash/pure-Lua fallback).
+ protection keys for a QUIC v1 connection from the destination Connection ID.</p>
+
+<p> Uses <code>ipparse.lib.hkdf</code> (HKDF-SHA256 via crypto.hkdf/crypto.shash/pure-Lua fallback).</p>
+
 <p> ### RFC 9001 §5.2 — Initial Secrets
- initial_secret = HKDF-Extract(QUIC_V1_SALT, client_dst_connection_id)
- client_secret  = HKDF-Expand-Label(initial_secret, "client in", "", 32)
- server_secret  = HKDF-Expand-Label(initial_secret, "server in", "", 32)
+ initial<em>secret = HKDF-Extract(QUIC</em>V1<em>SALT, client</em>dst<em>connection</em>id)
+ client<em>secret  = HKDF-Expand-Label(initial</em>secret, "client in", "", 32)
+ server<em>secret  = HKDF-Expand-Label(initial</em>secret, "server in", "", 32)</p>
+
 <p> ### RFC 9001 §5.1 — Packet Protection Keys
  key  = HKDF-Expand-Label(secret, "quic key", "", 16)
  iv   = HKDF-Expand-Label(secret, "quic iv",  "", 12)
- hp   = HKDF-Expand-Label(secret, "quic hp",  "", 16)
-</p>
+ hp   = HKDF-Expand-Label(secret, "quic hp",  "", 16)</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -139,7 +147,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">dcid</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
           Binary destination Connection ID (variable length)
         </li>
     </ul>
@@ -147,10 +155,10 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         client_secret  32-byte binary secret</li>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         server_secret  32-byte binary secret</li>
     </ol>
 
@@ -169,7 +177,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">secret</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
           32-byte binary secret (client or server)
         </li>
     </ul>
@@ -177,13 +185,13 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         key  16-byte packet protection key</li>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         iv   12-byte packet protection IV</li>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         hp   16-byte header protection key</li>
     </ol>
 
@@ -198,7 +206,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

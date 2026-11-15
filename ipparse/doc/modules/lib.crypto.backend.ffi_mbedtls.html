@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><strong>lib.crypto.backend.ffi_mbedtls</strong></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -76,28 +83,24 @@
 
 <h1>Module <code>lib.crypto.backend.ffi_mbedtls</code></h1>
 <p>LuaJIT FFI crypto backend for ipparse — mbedTLS.</p>
-<p>
 <p> Implements the ipparse crypto interface using LuaJIT FFI and libmbedcrypto
- (mbedTLS 3.x, default build config: MBEDTLS_GCM_HTABLE_SIZE = 16).
+ (mbedTLS 3.x, default build config: MBEDTLS<em>GCM</em>HTABLE_SIZE = 16).</p>
+
 <p> Context struct sizes are opaque upper bounds validated against the installed
- headers (424 bytes for gcm_context, 288 bytes for aes_context).
- If mbedTLS is compiled with MBEDTLS_GCM_LARGE_TABLE the GCM context
- grows to ~4200 bytes; in that case the GCM_CTX_SIZE constant below must
- be raised accordingly.
+ headers (424 bytes for gcm<em>context, 288 bytes for aes</em>context).
+ If mbedTLS is compiled with MBEDTLS<em>GCM</em>LARGE_TABLE the GCM context
+ grows to ~4200 bytes; in that case the <code>512</code> in the cdef below must
+ be raised accordingly.</p>
+
 <p> Implements:
-   construct_nonce(iv, packet_number)             → 12-byte nonce
-   aes_128_gcm_encrypt(key, nonce, pt, aad)       → ciphertext_with_tag
-   aes_128_gcm_decrypt(key, nonce, ct_with_tag, aad) → plaintext | nil, err
-   aes_128_ecb_block(key, block)                  → 16-byte block
-</p>
+   construct<em>nonce(iv, packet</em>number)             → 12-byte nonce
+   aes<em>128</em>gcm<em>encrypt(key, nonce, pt, aad)       → ciphertext</em>with<em>tag
+   aes</em>128<em>gcm</em>decrypt(key, nonce, ct<em>with</em>tag, aad) → plaintext | nil, err
+   aes<em>128</em>ecb_block(key, block)                  → 16-byte block</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
-	<tr>
-	<td class="name" nowrap><a href="#construct_nonce">construct_nonce (iv, packet_number)</a></td>
-	<td class="summary">Constructs a QUIC nonce: XOR last 8 bytes of iv with packet_number (big-endian).</td>
-	</tr>
 	<tr>
 	<td class="name" nowrap><a href="#aes_128_gcm_encrypt">aes_128_gcm_encrypt (key, nonce, plaintext, aad)</a></td>
 	<td class="summary">AES-128-GCM encryption.</td>
@@ -120,37 +123,6 @@
 
     <dl class="function">
     <dt>
-    <a name = "construct_nonce"></a>
-    <strong>construct_nonce (iv, packet_number)</strong>
-    </dt>
-    <dd>
-    Constructs a QUIC nonce: XOR last 8 bytes of iv with packet_number (big-endian).
-
-
-    <h3>Parameters:</h3>
-    <ul>
-        <li><span class="parameter">iv</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         12-byte IV
-        </li>
-        <li><span class="parameter">packet_number</span>
-            <span class="types"><span class="type">number</span></span>
-         QUIC packet number
-        </li>
-    </ul>
-
-    <h3>Returns:</h3>
-    <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        12-byte nonce
-    </ol>
-
-
-
-
-</dd>
-    <dt>
     <a name = "aes_128_gcm_encrypt"></a>
     <strong>aes_128_gcm_encrypt (key, nonce, plaintext, aad)</strong>
     </dt>
@@ -161,28 +133,33 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          16-byte key
         </li>
         <li><span class="parameter">nonce</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          12-byte nonce
         </li>
         <li><span class="parameter">plaintext</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+
+
 
         </li>
         <li><span class="parameter">aad</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          additional authenticated data (may be "")
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        ciphertext .. 16-byte authentication tag
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        ciphertext .. 16-byte authentication tag, or nil on failure</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        error message when the first value is nil</li>
     </ol>
 
 
@@ -200,19 +177,19 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          16-byte key
         </li>
         <li><span class="parameter">nonce</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          12-byte nonce
         </li>
         <li><span class="parameter">ciphertext_with_tag</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          ciphertext concatenated with 16-byte auth tag
         </li>
         <li><span class="parameter">aad</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          additional authenticated data (may be "")
         </li>
     </ul>
@@ -220,7 +197,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         plaintext on success</li>
         <li>
            <span class="types"><span class="type">nil,</span></span>
@@ -243,20 +220,23 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">key</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          16-byte AES key
         </li>
         <li><span class="parameter">block</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          exactly 16 bytes of input
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
-
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        exactly 16 bytes of output
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        exactly 16 bytes of output, or nil on failure</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        error message when the first value is nil</li>
     </ol>
 
 
@@ -270,7 +250,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

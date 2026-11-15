@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><strong>l7.dns</strong></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -77,58 +84,85 @@
 <h1>Module <code>l7.dns</code></h1>
 <p>DNS Parsing and Packing Module
  This module provides utilities for parsing, packing, and manipulating DNS messages.</p>
-<p>
- It supports DNS header parsing, question and resource record handling, and EDNS options.
+<p> It supports DNS header parsing, question and resource record handling, and EDNS options.</p>
+
 <p> ### Features
  - Parse and pack DNS headers, questions, and resource records.
  - Handle DNS label compression and decompression.
- - Support for EDNS options and extended DNS error codes.
+ - Support for EDNS options and extended DNS error codes.</p>
+
 <p> ### DNS Message Structure
- A DNS message consists of the following sections:
-<p> 1. **Header**:
-    - Transaction ID (16 bits): Identifies the DNS query/response pair.
-    - Flags (16 bits): Contains fields such as `qr`, `opcode`, `aa`, `tc`, `rd`, `ra`, `z`, and `rcode`.
-    - QDCOUNT (16 bits): Number of entries in the Question section.
-    - ANCOUNT (16 bits): Number of entries in the Answer section.
-    - NSCOUNT (16 bits): Number of entries in the Authority section.
-    - ARCOUNT (16 bits): Number of entries in the Additional section.
-<p> 2. **Question Section**:
-    - QNAME (variable length): Fully qualified domain name (FQDN) being queried.
-    - QTYPE (16 bits): Type of query (e.g., `A`, `AAAA`, `MX`).
-    - QCLASS (16 bits): Class of query (e.g., `IN` for Internet).
-<p> 3. **Answer, Authority, and Additional Sections**:
-    - NAME (variable length): Domain name to which the resource record pertains.
-    - TYPE (16 bits): Type of resource record (e.g., `A`, `AAAA`, `MX`).
-    - CLASS (16 bits): Class of resource record (e.g., `IN` for Internet).
-    - TTL (32 bits): Time-to-live for the resource record.
-    - RDLENGTH (16 bits): Length of the RDATA field.
-    - RDATA (variable length): Resource data (e.g., IP address for `A` records).
-<p> ### DNS Label Compression
- DNS messages use label compression to reduce message size. A label can either be:
- 1. **Normal Label**:
-    - A sequence of characters prefixed by its length.
- 2. **Compressed Label**:
-    - A pointer to a previously defined label in the message.
-    - Compressed labels are identified by the first two bits of the label length field being set to `11`.
-<p> This module provides utilities to parse and handle both normal and compressed labels. The `label` function parses a single label, while the `labels` function parses a sequence of labels into a fully qualified domain name (FQDN).
+ A DNS message consists of the following sections:</p>
+
+<ol>
+    <li><strong>Header</strong>:
+
+<pre>
+- Transaction <span class="function-name">ID</span> (<span class="number">16</span> bits): Identifies the DNS query/response pair.
+- <span class="function-name">Flags</span> (<span class="number">16</span> bits): Contains fields such as <span class="backtick"><code>qr</code></span>, <span class="backtick"><code>opcode</code></span>, <span class="backtick"><code>aa</code></span>, <span class="backtick"><code>tc</code></span>, <span class="backtick"><code>rd</code></span>, <span class="backtick"><code>ra</code></span>, <span class="backtick"><code>z</code></span>, <span class="keyword">and</span> <span class="backtick"><code>rcode</code></span>.
+- <span class="function-name">QDCOUNT</span> (<span class="number">16</span> bits): Number of entries <span class="keyword">in</span> the Question section.
+- <span class="function-name">ANCOUNT</span> (<span class="number">16</span> bits): Number of entries <span class="keyword">in</span> the Answer section.
+- <span class="function-name">NSCOUNT</span> (<span class="number">16</span> bits): Number of entries <span class="keyword">in</span> the Authority section.
+- <span class="function-name">ARCOUNT</span> (<span class="number">16</span> bits): Number of entries <span class="keyword">in</span> the Additional section.
+</pre>
+</li>
+    <li><strong>Question Section</strong>:
+
+<pre>
+- <span class="function-name">QNAME</span> (variable length): Fully qualified domain <span class="function-name">name</span> (FQDN) being queried.
+- <span class="function-name">QTYPE</span> (<span class="number">16</span> bits): Type of <span class="function-name">query</span> (e.g., <span class="backtick"><code>A</code></span>, <span class="backtick"><code>AAAA</code></span>, <span class="backtick"><code>MX</code></span>).
+- <span class="function-name">QCLASS</span> (<span class="number">16</span> bits): Class of <span class="function-name">query</span> (e.g., <span class="backtick"><code>IN</code></span> <span class="keyword">for</span> Internet).
+</pre>
+</li>
+    <li><strong>Answer, Authority, and Additional Sections</strong>:
+
+<pre>
+- <span class="function-name">NAME</span> (variable length): Domain name to which the resource record pertains.
+- <span class="function-name">TYPE</span> (<span class="number">16</span> bits): Type of resource <span class="function-name">record</span> (e.g., <span class="backtick"><code>A</code></span>, <span class="backtick"><code>AAAA</code></span>, <span class="backtick"><code>MX</code></span>).
+- <span class="function-name">CLASS</span> (<span class="number">16</span> bits): Class of resource <span class="function-name">record</span> (e.g., <span class="backtick"><code>IN</code></span> <span class="keyword">for</span> Internet).
+- <span class="function-name">TTL</span> (<span class="number">32</span> bits): Time-to-live <span class="keyword">for</span> the resource record.
+- <span class="function-name">RDLENGTH</span> (<span class="number">16</span> bits): Length of the RDATA field.
+- <span class="function-name">RDATA</span> (variable length): Resource <span class="function-name">data</span> (e.g., IP address <span class="keyword">for</span> <span class="backtick"><code>A</code></span> records).
+</pre>
+
+<h3>DNS Label Compression</h3>
+DNS messages use label compression to reduce message size. A label can either be:</li>
+    <li><strong>Normal Label</strong>:
+
+<pre>
+- A sequence of characters prefixed by its length.
+</pre>
+</li>
+    <li><strong>Compressed Label</strong>:
+
+<pre>
+- A pointer to a previously defined label <span class="keyword">in</span> the message.
+- Compressed labels are identified by the first two bits of the label length field being set to <span class="backtick"><code>11</code></span>.
+</pre>
+
+This module provides utilities to parse and handle both normal and compressed labels. The <a href="../modules/l7.dns.html#label">label</a> function parses a single label, while the <a href="../modules/l7.dns.html#labels">labels</a> function parses a sequence of labels into a fully qualified domain name (FQDN).</li>
+</ol>
+
 <p> ### EDNS Options
  EDNS (Extension Mechanisms for DNS) extends the capabilities of DNS by allowing additional options to be included in DNS messages.
- These options are encoded in OPT pseudo-resource records in the Additional section of a DNS message.
+ These options are encoded in OPT pseudo-resource records in the Additional section of a DNS message.</p>
+
 <p> Common EDNS options supported by this module:
- - **Client Subnet (Code 8)**:
-   - Fields: `family`, `source_netmask`, `scope_netmask`, `subnet`.
+ - <strong>Client Subnet (Code 8)</strong>:
+   - Fields: <code>family</code>, <code>source_netmask</code>, <code>scope_netmask</code>, <code>subnet</code>.
    - Used to specify the network of the client making the DNS query.
- - **Requestor MAC (Code 65001)**:
-   - Fields: `mac`.
+ - <strong>Requestor MAC (Code 65001)</strong>:
+   - Fields: <code>mac</code>.
    - Used to include the MAC address of the requestor.
- - **Requestor MAC String (Code 65073)**:
-   - Fields: `macstr`.
-   - Similar to `Requestor MAC`, but includes the MAC address as a string.
-<p> This module provides utilities to parse and pack EDNS options, ensuring compliance with RFC 6891.
+ - <strong>Requestor MAC String (Code 65073)</strong>:
+   - Fields: <code>macstr</code>.
+   - Similar to <code>Requestor MAC</code>, but includes the MAC address as a string.</p>
+
+<p> This module provides utilities to parse and pack EDNS options, ensuring compliance with RFC 6891.</p>
+
 <p> References:
  - RFC 1035: Domain Names - Implementation and Specification
- - RFC 6891: Extension Mechanisms for DNS (EDNS(0))
-</p>
+ - RFC 6891: Extension Mechanisms for DNS (EDNS(0))</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -142,15 +176,15 @@
 	<td class="summary">Parses a DNS header from a binary string.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#parse_compression_pointer">parse_compression_pointer (data, off, l7_off, visited, depth)</a></td>
-	<td class="summary">Parses a DNS compression pointer.</td>
+	<td class="name" nowrap><a href="#new_header">new_header ([opts])</a></td>
+	<td class="summary">Creates a new DNS header with sensible defaults and metatable attached.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#label">label (off[, l7_off=1[, visited[, depth=0]]])</a></td>
+	<td class="name" nowrap><a href="#label">label (off[, l7_off=1])</a></td>
 	<td class="summary">Parses a single DNS label from a binary string.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#labels">labels (off, l7_off[, visited[, depth=0]])</a></td>
+	<td class="name" nowrap><a href="#labels">labels (off, l7_off)</a></td>
 	<td class="summary">Parses a sequence of DNS labels into a fully qualified domain name (FQDN).</td>
 	</tr>
 	<tr>
@@ -185,6 +219,10 @@
 	<td class="name" nowrap><a href="#parse">parse (l7_off, is_tcp)</a></td>
 	<td class="summary">Parses a DNS message from a binary string.</td>
 	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#new">new (self)</a></td>
+	<td class="summary">Creates a new DNS message object.</td>
+	</tr>
 </table>
 
 <br/>
@@ -205,7 +243,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The DNS header object.
         </li>
     </ul>
@@ -213,7 +251,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed DNS header.
     </ol>
 
@@ -244,7 +282,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed DNS header as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -256,48 +294,27 @@
 
 </dd>
     <dt>
-    <a name = "parse_compression_pointer"></a>
-    <strong>parse_compression_pointer (data, off, l7_off, visited, depth)</strong>
+    <a name = "new_header"></a>
+    <strong>new_header ([opts])</strong>
     </dt>
     <dd>
-    Parses a DNS compression pointer.
+    Creates a new DNS header with sensible defaults and metatable attached.
 
 
     <h3>Parameters:</h3>
     <ul>
-        <li><span class="parameter">data</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-         The binary data buffer.
-        </li>
-        <li><span class="parameter">off</span>
-            <span class="types"><span class="type">number</span></span>
-         The offset of the pointer.
-        </li>
-        <li><span class="parameter">l7_off</span>
-            <span class="types"><span class="type">number</span></span>
-         The layer 7 offset.
-        </li>
-        <li><span class="parameter">visited</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         Table of visited offsets for loop detection.
-        </li>
-        <li><span class="parameter">depth</span>
-            <span class="types"><span class="type">number</span></span>
-         Current recursion depth.
+        <li><span class="parameter">opts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         Initial values for the header fields.
+         (<em>optional</em>)
         </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
-        <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a> or <span class="type">nil</span></span>
-        Pointed labels, or nil on error.</li>
-        <li>
-           <span class="types"><span class="type">number</span></span>
-        Next offset.</li>
-        <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">nil</span></span>
-        Error message.</li>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        A new DNS header object.
     </ol>
 
 
@@ -306,7 +323,7 @@
 </dd>
     <dt>
     <a name = "label"></a>
-    <strong>label (off[, l7_off=1[, visited[, depth=0]]])</strong>
+    <strong>label (off[, l7_off=1])</strong>
     </dt>
     <dd>
     Parses a single DNS label from a binary string.
@@ -324,32 +341,19 @@
          The layer 7 offset for label parsing (default is 1).
          (<em>default</em> 1)
         </li>
-        <li><span class="parameter">visited</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         Table tracking visited offsets for loop detection (internal use).
-         (<em>optional</em>)
-        </li>
-        <li><span class="parameter">depth</span>
-            <span class="types"><span class="type">number</span></span>
-         Current recursion depth for compression pointers (internal use).
-         (<em>default</em> 0)
-        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a> or <span class="type">nil</span></span>
-        The parsed label as a string, or `nil` if the label is empty.</li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        The parsed label as a string, or <code>nil</code> if the label is empty.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
         The next offset after parsing.</li>
         <li>
            <span class="types"><span class="type">boolean</span></span>
-        `true` if the label is compressed, `nil` otherwise.</li>
-        <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        Error message if parsing failed.</li>
+        <code>true</code> if the label is compressed, <code>nil</code> otherwise.</li>
     </ol>
 
 
@@ -358,7 +362,7 @@
 </dd>
     <dt>
     <a name = "labels"></a>
-    <strong>labels (off, l7_off[, visited[, depth=0]])</strong>
+    <strong>labels (off, l7_off)</strong>
     </dt>
     <dd>
     Parses a sequence of DNS labels into a fully qualified domain name (FQDN).
@@ -375,29 +379,16 @@
             <span class="types"><span class="type">number</span></span>
          The layer 7 offset for label parsing.
         </li>
-        <li><span class="parameter">visited</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
-         Table tracking visited offsets for loop detection (internal use).
-         (<em>optional</em>)
-        </li>
-        <li><span class="parameter">depth</span>
-            <span class="types"><span class="type">number</span></span>
-         Current recursion depth for compression pointers (internal use).
-         (<em>default</em> 0)
-        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         A table of parsed labels.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
         The next offset after parsing.</li>
-        <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
-        Error message if parsing failed.</li>
     </ol>
 
 
@@ -415,7 +406,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The DNS question object.
         </li>
     </ul>
@@ -423,7 +414,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed DNS question.
     </ol>
 
@@ -454,7 +445,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed DNS question as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -476,7 +467,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The DNS resource record object.
         </li>
     </ul>
@@ -484,7 +475,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed DNS resource record.
     </ol>
 
@@ -515,7 +506,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed DNS resource record as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -545,7 +536,7 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed EDNS option as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
@@ -567,7 +558,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary string containing the EDNS options.
         </li>
     </ul>
@@ -575,7 +566,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         A table of parsed EDNS options.
     </ol>
 
@@ -594,7 +585,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
          The DNS message object.
         </li>
     </ul>
@@ -602,7 +593,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed DNS message.
     </ol>
 
@@ -633,11 +624,39 @@
     <h3>Returns:</h3>
     <ol>
         <li>
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.6">table</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed DNS message as a table.</li>
         <li>
            <span class="types"><span class="type">number</span></span>
         The next offset after parsing.</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "new"></a>
+    <strong>new (self)</strong>
+    </dt>
+    <dd>
+    Creates a new DNS message object.
+ Initializes the DNS message object and sets its metatable.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">self</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         The DNS message object.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        The new DNS message object.
     </ol>
 
 
@@ -651,7 +670,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

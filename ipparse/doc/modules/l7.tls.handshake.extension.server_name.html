@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><a href="../modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><strong>l7.tls.handshake.extension.server_name</strong></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -79,28 +86,40 @@
  This module provides utilities for parsing and packing the TLS Server Name extension,
  specifically handling the ServerNameList structure as defined in RFC 6066.</p>
 <p>
- The extension type itself (0x0000 for server_name) is assumed to be handled
- by a general TLS extension parsing mechanism. This module parses the `extension_data`
- for the server_name extension.
-<p> ### Features
-<p> - Parse and pack the ServerNameList structure.
- - Handles multiple ServerName entries within the list.
-<p> ### TLS Server Name Extension Structure (content of extension_data)
+
+<p> The extension type itself (0x0000 for server_name) is assumed to be handled
+ by a general TLS extension parsing mechanism. This module parses the <code>extension_data</code>
+ for the server_name extension.</p>
+
+<p> ### Features</p>
+
+<ul>
+    <li>Parse and pack the ServerNameList structure.</li>
+    <li>Handles multiple ServerName entries within the list.</li>
+</ul>
+
+<p> ### TLS Server Name Extension Structure (content of extension_data)</p>
+
 <p> ```
  ServerNameList {
-   server_name_list_length (16): Total length of all ServerName entries that follow.
-   server_name_list (variable): Sequence of one or more ServerName entries.
- }
-<p> ServerNameEntry (for host_name) {
-   name_type (8): NameType (e.g., 0x00 for host_name).
-   name_length (16): Length of the following name data.
+   server<em>name</em>list<em>length (16): Total length of all ServerName entries that follow.
+   server</em>name_list (variable): Sequence of one or more ServerName entries.
+ }</p>
+
+<p> ServerNameEntry (for host<em>name) {
+   name</em>type (8): NameType (e.g., 0x00 for host<em>name).
+   name</em>length (16): Length of the following name data.
    name (variable): The actual hostname string (e.g., "example.com").
  }
  ```
- The object returned by `parse` represents the `ServerNameList` and contains a `names` field,
- which is a list of parsed `ServerNameEntry` objects. Each entry object has `type` and `name` fields.
-<p> References:
-<p> - RFC 6066: Transport Layer Security (TLS) Extensions
+ The object returned by <code>parse</code> represents the <code>ServerNameList</code> and contains a <code>names</code> field,
+ which is a list of parsed <code>ServerNameEntry</code> objects. Each entry object has <a href="https://www.lua.org/manual/5.1/manual.html#pdf-type">type</a> and <code>name</code> fields.</p>
+
+<p> References:</p>
+
+<ul>
+    <li>RFC 6066: Transport Layer Security (TLS) Extensions</li>
+</ul>
 </p>
 
 
@@ -143,7 +162,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string for the packed entry.
     </ol>
 
@@ -163,7 +182,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the entry.
     </ol>
 
@@ -184,7 +203,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the packed ServerNameList.
     </ol>
 
@@ -204,7 +223,7 @@
     <h3>Returns:</h3>
     <ol>
 
-           <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
         Binary string representing the ServerNameList.
     </ol>
 
@@ -219,7 +238,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

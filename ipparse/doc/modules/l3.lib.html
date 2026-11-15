@@ -45,12 +45,14 @@
   <li><a href="../modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="../modules/l3.ip.html">l3.ip</a></li>
   <li><strong>l3.lib</strong></li>
+  <li><a href="../modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="../modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="../modules/l4.quic.html">l4.quic</a></li>
   <li><a href="../modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="../modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="../modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="../modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="../modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="../modules/l4.udp.html">l4.udp</a></li>
   <li><a href="../modules/l7.dns.html">l7.dns</a></li>
   <li><a href="../modules/l7.quic.html">l7.quic</a></li>
@@ -58,11 +60,16 @@
   <li><a href="../modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="../modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="../modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="../modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="../modules/l7.tls.html">l7.tls</a></li>
   <li><a href="../modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="../modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="../modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="../modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="../modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="../modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="../modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="../modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -79,15 +86,16 @@
  This module provides utility functions for IP-related operations, such as checksum calculation
  and pseudo-header construction.</p>
 <p> These utilities are used in higher-level modules for handling
- IPv4, IPv6, and transport-layer protocols.
+ IPv4, IPv6, and transport-layer protocols.</p>
+
 <p> ### Functions
- - `pseudo_header`: Constructs a pseudo-header for checksum calculation.
- - `checksum`: Calculates the checksum for binary data.
+ - <code>pseudo_header</code>: Constructs a pseudo-header for checksum calculation.
+ - <a href="../modules/l3.lib.html#checksum">checksum</a>: Calculates the checksum for binary data.</p>
+
 <p> References:
  - RFC 791: Internet Protocol (IPv4)
  - RFC 8200: Internet Protocol, Version 6 (IPv6) Specification
- - RFC 1071: Computing the Internet Checksum
-</p>
+ - RFC 1071: Computing the Internet Checksum</p>
 
 
 <h2><a href="#Functions">Functions</a></h2>
@@ -95,6 +103,10 @@
 	<tr>
 	<td class="name" nowrap><a href="#checksum">checksum (self)</a></td>
 	<td class="summary">Calculates the checksum for the given binary data.</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#checksum6">checksum6 (src, dst, next_header, payload)</a></td>
+	<td class="summary">Computes a transport checksum over the IPv6 pseudo-header and payload bytes.</td>
 	</tr>
 </table>
 
@@ -117,7 +129,7 @@
     <h3>Parameters:</h3>
     <ul>
         <li><span class="parameter">self</span>
-            <span class="types"><a class="type" href="https://www.lua.org/manual/5.4/manual.html#6.4">string</a></span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
          The binary data for which the checksum is calculated.
         </li>
     </ul>
@@ -133,6 +145,46 @@
 
 
 </dd>
+    <dt>
+    <a name = "checksum6"></a>
+    <strong>checksum6 (src, dst, next_header, payload)</strong>
+    </dt>
+    <dd>
+    Computes a transport checksum over the IPv6 pseudo-header and payload bytes.
+ RFC8200 Section 8.1 (Upper-Layer Checksums).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">src</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         16-byte IPv6 source address.
+        </li>
+        <li><span class="parameter">dst</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         16-byte IPv6 destination address.
+        </li>
+        <li><span class="parameter">next_header</span>
+            <span class="types"><span class="type">number</span></span>
+         Next Header value (e.g. 17 for UDP, 6 for TCP).
+        </li>
+        <li><span class="parameter">payload</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Transport payload (header + data for checksum context).
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">number</span></span>
+        16-bit checksum.
+    </ol>
+
+
+
+
+</dd>
 </dl>
 
 
@@ -140,7 +192,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>

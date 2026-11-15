@@ -38,12 +38,14 @@
   <li><a href="modules/l3.ip6.html">l3.ip6</a></li>
   <li><a href="modules/l3.ip.html">l3.ip</a></li>
   <li><a href="modules/l3.lib.html">l3.lib</a></li>
+  <li><a href="modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></li>
   <li><a href="modules/l4.quic.frames.html">l4.quic.frames</a></li>
   <li><a href="modules/l4.quic.html">l4.quic</a></li>
   <li><a href="modules/l4.quic.v1.html">l4.quic.v1</a></li>
   <li><a href="modules/l4.quic.v1.keys.html">l4.quic.v1.keys</a></li>
   <li><a href="modules/l4.quic.v1.protection.html">l4.quic.v1.protection</a></li>
   <li><a href="modules/l4.tcp.html">l4.tcp</a></li>
+  <li><a href="modules/l4.tcp_stream.html">l4.tcp_stream</a></li>
   <li><a href="modules/l4.udp.html">l4.udp</a></li>
   <li><a href="modules/l7.dns.html">l7.dns</a></li>
   <li><a href="modules/l7.quic.html">l7.quic</a></li>
@@ -51,11 +53,16 @@
   <li><a href="modules/l7.tls.handshake.client_hello.html">l7.tls.handshake.client_hello</a></li>
   <li><a href="modules/l7.tls.handshake.extension.html">l7.tls.handshake.extension</a></li>
   <li><a href="modules/l7.tls.handshake.extension.server_name.html">l7.tls.handshake.extension.server_name</a></li>
+  <li><a href="modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></li>
   <li><a href="modules/l7.tls.handshake.html">l7.tls.handshake</a></li>
   <li><a href="modules/l7.tls.html">l7.tls</a></li>
   <li><a href="modules/lib.bit_compat.html">lib.bit_compat</a></li>
+  <li><a href="modules/lib.hkdf.html">lib.hkdf</a></li>
+  <li><a href="modules/lib.pack_compat.html">lib.pack_compat</a></li>
+  <li><a href="modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></li>
   <li><a href="modules/lib.pcap.html">lib.pcap</a></li>
   <li><a href="modules/lib.crypto.html">lib.crypto</a></li>
+  <li><a href="modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></li>
   <li><a href="modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></li>
   <li><a href="modules/lib.crypto.backend.ffi_mbedtls.html">lib.crypto.backend.ffi_mbedtls</a></li>
   <li><a href="modules/lib.crypto.backend.ffi_wolfssl.html">lib.crypto.backend.ffi_wolfssl</a></li>
@@ -103,6 +110,10 @@
  and pseudo-header construction.</td>
 	</tr>
 	<tr>
+		<td class="name"  nowrap><a href="modules/l3.fragmented_ip4.html">l3.fragmented_ip4</a></td>
+		<td class="summary">Stateful IPv4 fragment reassembly (pure Lua strings).</td>
+	</tr>
+	<tr>
 		<td class="name"  nowrap><a href="modules/l4.quic.frames.html">l4.quic.frames</a></td>
 		<td class="summary">QUIC Frame Parsing and Packing Module
  This module provides utilities for parsing and packing QUIC frames.</td>
@@ -129,6 +140,10 @@
 		<td class="name"  nowrap><a href="modules/l4.tcp.html">l4.tcp</a></td>
 		<td class="summary">TCP Header Parsing and Packing Module
  This module provides utilities for parsing, packing, and manipulating TCP headers.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/l4.tcp_stream.html">l4.tcp_stream</a></td>
+		<td class="summary">Generic TCP stream defragmenter.</td>
 	</tr>
 	<tr>
 		<td class="name"  nowrap><a href="modules/l4.udp.html">l4.udp</a></td>
@@ -166,6 +181,11 @@
  specifically handling the ServerNameList structure as defined in RFC 6066.</td>
 	</tr>
 	<tr>
+		<td class="name"  nowrap><a href="modules/l7.tls.handshake.extension.supported_versions.html">l7.tls.handshake.extension.supported_versions</a></td>
+		<td class="summary">TLS supported_versions Extension Parsing Module
+ Parses the <code>supported_versions</code> extension (RFC 8446 §4.2.1).</td>
+	</tr>
+	<tr>
 		<td class="name"  nowrap><a href="modules/l7.tls.handshake.html">l7.tls.handshake</a></td>
 		<td class="summary">TLS Handshake Parsing and Packing Module
  This module provides utilities for parsing and packing TLS handshake messages.</td>
@@ -181,6 +201,18 @@
  This module provides bitwise operations compatible with Lua 5.1 through 5.5.</td>
 	</tr>
 	<tr>
+		<td class="name"  nowrap><a href="modules/lib.hkdf.html">lib.hkdf</a></td>
+		<td class="summary">HKDF-Extract step.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/lib.pack_compat.html">lib.pack_compat</a></td>
+		<td class="summary">Binary pack/unpack compatibility layer.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/lib.pack_compat_lib.html">lib.pack_compat_lib</a></td>
+		<td class="summary">Binary pack/unpack implementation for LuaJIT (Lua 5.1 compatibility).</td>
+	</tr>
+	<tr>
 		<td class="name"  nowrap><a href="modules/lib.pcap.html">lib.pcap</a></td>
 		<td class="summary">PCAP/PCAPNG File Parsing Module
  This module provides utilities for parsing PCAP and PCAPNG files to extract network packets.</td>
@@ -188,6 +220,10 @@
 	<tr>
 		<td class="name"  nowrap><a href="modules/lib.crypto.html">lib.crypto</a></td>
 		<td class="summary">Crypto backend interface for ipparse.</td>
+	</tr>
+	<tr>
+		<td class="name"  nowrap><a href="modules/lib.crypto.backend.common.html">lib.crypto.backend.common</a></td>
+		<td class="summary">Common validation and utility functions for crypto backends.</td>
 	</tr>
 	<tr>
 		<td class="name"  nowrap><a href="modules/lib.crypto.backend.ffi_openssl.html">lib.crypto.backend.ffi_openssl</a></td>
@@ -215,7 +251,6 @@
 </div> <!-- id="main" -->
 <div id="about">
 <i>generated by <a href="http://github.com/lunarmodules/LDoc">LDoc 1.5.0</a></i>
-<i style="float:right;">Last updated 2026-05-09 15:30:28 </i>
 </div> <!-- id="about" -->
 </div> <!-- id="container" -->
 </body>
