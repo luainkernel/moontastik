@@ -34,8 +34,6 @@
             ccache
             cpio
             zstd
-            libbpf
-            pkg-config
             # virtme-ng (installed by ensure-vng.sh in a local venv) + VM
             python3
             iproute2        # virtme-ng-init runs `ip link set dev lo up`
