@@ -1,6 +1,7 @@
 # IDEs and Editors
 .vscode/
 .idea/
+.claude/
 *.swp
 *~
 .DS_Store
