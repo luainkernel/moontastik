@@ -20,3 +20,109 @@ jobs:
         with:
           files: '*.zip'
 
+  # Publish the ipparse rock for the pushed tag. The rockspec lives in the
+  # repository and is never rewritten here: the job only checks that it matches
+  # the tag, then lints and uploads it.
+  #
+  # A rockspec whose source.url points at the tag archive, e.g.
+  #   url = "https://github.com/luainkernel/moontastik/archive/refs/tags/v1.1-1.tar.gz",
+  # must NOT carry an md5: that archive only exists once the tag is pushed, so
+  # its checksum cannot be known when the rockspec is written, and a stale md5
+  # makes `luarocks upload` fail while packing the source rock. An md5 is only
+  # meaningful when source.url pins an already-published commit archive.
+  luarocks:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install LuaRocks
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+
+      - name: Resolve and verify the rockspec for this tag
+        id: rock
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # v1.1-1 -> 1.1-1 ; v1.1 -> 1.1-1
+          ref="${TAG#v}"
+          if [[ "$ref" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            version="${ref}-1"
+          elif [[ "$ref" =~ ^[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            version="$ref"
+          else
+            echo "::error::Tag '$TAG' does not map to an ipparse version:" \
+                 "expected vX.Y or vX.Y-Z (e.g. v1.1 or v1.1-1)."
+            exit 1
+          fi
+
+          rockspec="ipparse-${version}.rockspec"
+          if [[ ! -f "$rockspec" ]]; then
+            echo "::error::No $rockspec in the repository at tag $TAG." \
+                 "Add it, commit it, and only then push the tag."
+            exit 1
+          fi
+
+          # Accept both quote styles: version = "1.1-1" / version = '1.1-1'
+          rock_version="$(sed -nE \
+            's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' "$rockspec" \
+            | head -n 1 | tr -d "\"'[:space:]" | sed -E 's/,$//')"
+          if [[ -z "$rock_version" ]]; then
+            echo "::error::$rockspec has no version field."
+            exit 1
+          fi
+          if [[ "$rock_version" != "$version" ]]; then
+            echo "::error::$rockspec declares version \"$rock_version\"," \
+                 "but tag $TAG maps to \"$version\"."
+            exit 1
+          fi
+
+          # Works for `source = { url = "..." }` and for the usual multiline
+          # source table, with either quote style.
+          rock_url="$(grep -oE 'url[[:space:]]*=[[:space:]]*[^,}]+' "$rockspec" \
+            | head -n 1 | tr -d "\"'[:space:]" | sed -E 's/^url=//')"
+          # HEAD is the commit the tag points at (checkout resolves the tag).
+          sha="$(git rev-parse HEAD)"
+          tag_url="https://github.com/luainkernel/moontastik/archive/refs/tags/${TAG}.tar.gz"
+          tag_url_short="https://github.com/luainkernel/moontastik/archive/${TAG}.tar.gz"
+          sha_url="https://github.com/luainkernel/moontastik/archive/${sha}.tar.gz"
+
+          if [[ "$rock_url" == "$tag_url" || "$rock_url" == "$tag_url_short" ]]; then
+            if grep -qE '^[[:space:]]*md5[[:space:]]*=' "$rockspec"; then
+              echo "::warning file=$rockspec::source.md5 is set for the tag" \
+                   "archive. Remove it: that archive is only created when the" \
+                   "tag is pushed, so its checksum cannot be filled in" \
+                   "beforehand, and a stale md5 fails 'luarocks upload'."
+            fi
+          elif [[ "$rock_url" == "$sha_url" ]]; then
+            # Commit archives are immutable: an md5, if any, stays valid.
+            :
+          else
+            echo "::error file=$rockspec::source.url is '$rock_url';" \
+                 "expected '$tag_url' (this tag) or '$sha_url'" \
+                 "(the tagged commit $sha)."
+            exit 1
+          fi
+
+          echo "rockspec=$rockspec" >> "$GITHUB_OUTPUT"
+          echo "Publishing $rockspec for tag $TAG (source: $rock_url)"
+
+      - name: Publish to LuaRocks
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+          ROCKSPEC: ${{ steps.rock.outputs.rockspec }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${LUAROCKS_API_KEY:-}" ]]; then
+            echo "::error::Secret LUAROCKS_API_KEY is empty: add a LuaRocks API" \
+                 "key as a repository secret (Settings > Secrets and variables" \
+                 "> Actions > New repository secret)."
+            exit 1
+          fi
+          luarocks lint "$ROCKSPEC"
+          luarocks upload --api-key "$LUAROCKS_API_KEY" "$ROCKSPEC"
