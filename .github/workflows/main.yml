@@ -25,7 +25,7 @@ jobs:
   # the tag, then lints and uploads it.
   #
   # A rockspec whose source.url points at the tag archive, e.g.
-  #   url = "https://github.com/luainkernel/moontastik/archive/refs/tags/v1.1-1.tar.gz",
+  #   url = "https://github.com/luainkernel/moontastik/archive/refs/tags/v2.0.0.tar.gz",
   # must NOT carry an md5: that archive only exists once the tag is pushed, so
   # its checksum cannot be known when the rockspec is written, and a stale md5
   # makes `luarocks upload` fail while packing the source rock. An md5 is only
@@ -49,15 +49,25 @@ jobs:
         run: |
           set -euo pipefail
 
-          # v1.1-1 -> 1.1-1 ; v1.1 -> 1.1-1
+          # SemVer tags are the recommended form:
+          #   vX.Y.Z   -> X.Y.Z-1   (v2.0.0   -> 2.0.0-1)
+          #   vX.Y.Z-R -> X.Y.Z-R   (v2.0.0-2 -> 2.0.0-2)
+          # Legacy two-part tags stay accepted for older releases:
+          #   vX.Y   -> X.Y-1       (v1.1   -> 1.1-1)
+          #   vX.Y-Z -> X.Y-Z       (v1.1-1 -> 1.1-1)
           ref="${TAG#v}"
-          if [[ "$ref" =~ ^[0-9]+\.[0-9]+$ ]]; then
+          if [[ "$ref" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            version="${ref}-1"
+          elif [[ "$ref" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            version="$ref"
+          elif [[ "$ref" =~ ^[0-9]+\.[0-9]+$ ]]; then
             version="${ref}-1"
           elif [[ "$ref" =~ ^[0-9]+\.[0-9]+-[0-9]+$ ]]; then
             version="$ref"
           else
             echo "::error::Tag '$TAG' does not map to an ipparse version:" \
-                 "expected vX.Y or vX.Y-Z (e.g. v1.1 or v1.1-1)."
+                 "expected vX.Y.Z or vX.Y.Z-R (recommended), or the legacy" \
+                 "vX.Y / vX.Y-Z (e.g. v2.0.0, v2.0.0-2, v1.1, v1.1-1)."
             exit 1
           fi
 
