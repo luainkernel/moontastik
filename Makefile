@@ -1,5 +1,9 @@
+# Compile the .moon sources individually: `find` does not follow symlinks,
+# so the ipparse/ipparse -> . symlink (needed by the tests) is not walked.
+# Passing relative paths keeps the tree under moontastik_lua/ (moonc -t
+# only flattens absolute paths).
 lua_files:
-	moonc -t moontastik_lua/ .
+	find . -type f -name '*.moon' -exec moonc -t moontastik_lua/ {} +
 	find . -name install.sh -exec cp {} moontastik_lua/{} \;
 
 zip: lua_files
