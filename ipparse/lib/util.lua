@@ -3,29 +3,14 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
---- Utility functions.
+--- Test harness for the ipparse test suite.
+-- Provides the `log` printer, the `test` runner and the per-module `summary`
+-- accounting used by `tests/`. Hex conversion helpers live in `ipparse.init`.
 -- @module util
 
 local util = {}
 util._pass  = 0
 util._total = 0
-local char, format, gsub, rep, su = string.char, string.format, string.gsub, string.rep, string.unpack
-
---- Converts a binary string to its hexadecimal representation.
--- @function bin2hex
--- @tparam string str The binary string to convert.
--- @treturn string A string containing the hexadecimal representation of the input.
-function util.bin2hex(str)
-	return format(rep("%.2x", #str), su(rep("B", #str), str))
-end
-
---- Converts a hexadecimal string to its binary representation.
--- @function hex2bin
--- @tparam string hex The hexadecimal string to convert.
--- @treturn string A string containing the binary representation of the input.
-function util.hex2bin(hex)
-	return gsub(hex, "..", function(cc) return char(tonumber(cc, 16)) end)
-end
 
 --- Logs a message with a specific prefix.
 -- @function log

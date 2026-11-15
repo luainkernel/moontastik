@@ -27,15 +27,13 @@ do
 pack_compat = require "ipparse.lib.pack_compat"
 pack_compat.inject!
 
-util = require "ipparse.lib.util"
+{:bin2hex} = require "ipparse"
 eth = require "ipparse.l2.ethernet"
 ip = require "ipparse.l3.ip"
 udp = require "ipparse.l4.udp"
 quic_mod = require "ipparse.l4.quic"
 quic_session = require "ipparse.l7.quic.session"
 unpack: su = pack_compat
-
-bin2hex = util.bin2hex
 
 parse_pcap = (filename) ->
   file = io.open filename, "rb"
