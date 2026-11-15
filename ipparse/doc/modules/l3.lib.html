@@ -124,6 +124,9 @@
     <dd>
     Calculates the checksum for the given binary data.
  The checksum is calculated using the one's complement sum of 16-bit words.
+ Reads the words directly with <a href="https://www.lua.org/manual/5.1/manual.html#pdf-string.byte">string.byte</a> (no per-word <code>string.unpack</code>
+ call, no padded copy for odd lengths); the accumulation is identical to
+ summing <code>unpack &quot;&gt;H&quot;</code> over each word.
 
 
     <h3>Parameters:</h3>

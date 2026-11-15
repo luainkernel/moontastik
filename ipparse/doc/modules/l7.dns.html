@@ -168,6 +168,14 @@ This module provides utilities to parse and handle both normal and compressed la
 <h2><a href="#Functions">Functions</a></h2>
 <table class="function_list">
 	<tr>
+	<td class="name" nowrap><a href="#u16">u16 (s, off)</a></td>
+	<td class="summary">Reads a big-endian uint16 with <a href="https://www.lua.org/manual/5.1/manual.html#pdf-string.byte">string.byte</a> (one call, no allocation).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#u32">u32 (s, off)</a></td>
+	<td class="summary">Reads a big-endian uint32 with <a href="https://www.lua.org/manual/5.1/manual.html#pdf-string.byte">string.byte</a> (one call, no allocation).</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#pack_header">pack_header (self)</a></td>
 	<td class="summary">Packs the DNS header into a binary string.</td>
 	</tr>
@@ -180,6 +188,14 @@ This module provides utilities to parse and handle both normal and compressed la
 	<td class="summary">Creates a new DNS header with sensible defaults and metatable attached.</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#label_parts">label_parts (off, l7_off, parts, visited, depth, seed)</a></td>
+	<td class="summary">Reads one label at <code>off</code> and reports its segment (or resolves a pointer).</td>
+	</tr>
+	<tr>
+	<td class="name" nowrap><a href="#walk_name">walk_name (off, l7_off, parts, visited, depth, seed)</a></td>
+	<td class="summary">Reads the whole name starting at <code>off</code>, appending every segment to <code>parts</code>.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#label">label (off[, l7_off=1])</a></td>
 	<td class="summary">Parses a single DNS label from a binary string.</td>
 	</tr>
@@ -188,11 +204,15 @@ This module provides utilities to parse and handle both normal and compressed la
 	<td class="summary">Parses a sequence of DNS labels into a fully qualified domain name (FQDN).</td>
 	</tr>
 	<tr>
+	<td class="name" nowrap><a href="#name_string">name_string (off, l7_off, cache)</a></td>
+	<td class="summary">Builds the dotted form of the name starting at <code>off</code> in a single pass.</td>
+	</tr>
+	<tr>
 	<td class="name" nowrap><a href="#pack_question">pack_question (self)</a></td>
 	<td class="summary">Packs a DNS question into a binary string.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#parse_question">parse_question (off, l7_off)</a></td>
+	<td class="name" nowrap><a href="#parse_question">parse_question (off, l7_off, off, l7_off, cache)</a></td>
 	<td class="summary">Parses a DNS question section from a binary string.</td>
 	</tr>
 	<tr>
@@ -200,7 +220,7 @@ This module provides utilities to parse and handle both normal and compressed la
 	<td class="summary">Packs a DNS resource record (RR) into a binary string.</td>
 	</tr>
 	<tr>
-	<td class="name" nowrap><a href="#parse_rr">parse_rr (off, l7_off)</a></td>
+	<td class="name" nowrap><a href="#parse_rr">parse_rr (off, l7_off, cache)</a></td>
 	<td class="summary">Parses a DNS resource record (RR) from a binary string.</td>
 	</tr>
 	<tr>
@@ -232,6 +252,70 @@ This module provides utilities to parse and handle both normal and compressed la
     <h2 class="section-header "><a name="Functions"></a>Functions</h2>
 
     <dl class="function">
+    <dt>
+    <a name = "u16"></a>
+    <strong>u16 (s, off)</strong>
+    </dt>
+    <dd>
+    Reads a big-endian uint16 with <a href="https://www.lua.org/manual/5.1/manual.html#pdf-string.byte">string.byte</a> (one call, no allocation).
+ The generic <code>su</code>/<code>string.unpack</code> emulation dominated the profile of a
+ response parse (one call per field, four fields per resource record).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Binary string.
+        </li>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         1-based offset of the first byte.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">number</span></span>
+        The unsigned 16-bit value.
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "u32"></a>
+    <strong>u32 (s, off)</strong>
+    </dt>
+    <dd>
+    Reads a big-endian uint32 with <a href="https://www.lua.org/manual/5.1/manual.html#pdf-string.byte">string.byte</a> (one call, no allocation).
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">s</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a></span>
+         Binary string.
+        </li>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         1-based offset of the first byte.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+
+           <span class="types"><span class="type">number</span></span>
+        The unsigned 32-bit value.
+    </ol>
+
+
+
+
+</dd>
     <dt>
     <a name = "pack_header"></a>
     <strong>pack_header (self)</strong>
@@ -322,6 +406,140 @@ This module provides utilities to parse and handle both normal and compressed la
 
 </dd>
     <dt>
+    <a name = "label_parts"></a>
+    <strong>label_parts (off, l7_off, parts, visited, depth, seed)</strong>
+    </dt>
+    <dd>
+    Reads one label at <code>off</code> and reports its segment (or resolves a pointer).
+ Internal core shared by <a href="../modules/l7.dns.html#label">label</a>, <a href="../modules/l7.dns.html#labels">labels</a> and the single-pass name builder
+ (<a href="../modules/l7.dns.html#name_string">name_string</a>). Returns:</p>
+
+<ul>
+    <li>terminator (0x00): <code>(next_off, nil, nil, nil, false)</code>;</li>
+    <li>ordinary label:    <code>(next_off, segment, nil, nil, false)</code> — the segment
+     is RETURNED, not appended, so the common path allocates no table;</li>
+    <li>compression pointer: the pointed name is resolved into <code>parts</code> when the
+     caller supplies one (one table, one final <a href="https://www.lua.org/manual/5.1/manual.html#pdf-table.concat">table.concat</a> for the whole
+     name), otherwise into a throw-away table that is joined into a single
+     segment — exactly what the original <a href="../modules/l7.dns.html#label">label</a> did;</li>
+    <li>error: <code>(nil, nil, err, err_off, false)</code> with the historical offsets.</li>
+</ul>
+
+<p> The <code>seed</code> argument defers the allocation of the anti-loop <code>visited</code> table:
+ for the first pointer hop of a name (the common case: an answer NAME that
+ points at the QNAME) the target offset is remembered in <code>seed</code> instead of
+ a table; the table is only created if a second hop needs it. Checks,
+ limits (32 hops) and error messages are identical to the original.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset (1-based) of the label inside <code>@</code>
+        </li>
+        <li><span class="parameter">l7_off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset of the DNS message start inside <code>@</code>
+        </li>
+        <li><span class="parameter">parts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
+         Segment accumulator, or nil to receive a joined
+   segment for pointers
+        </li>
+        <li><span class="parameter">visited</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
+         Offsets already resolved (anti-loop)
+        </li>
+        <li><span class="parameter">depth</span>
+            <span class="types"><span class="type">number</span></span>
+         Number of pointer hops already followed
+        </li>
+        <li><span class="parameter">seed</span>
+            <span class="types"><span class="type">number</span> or <span class="type">nil</span></span>
+         Target offset of the first hop (see above)
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">number</span> or <span class="type">nil</span></span>
+        Next offset, nil on error</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        Segment (nil for a terminator or an accumulated pointer)</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        Error message</li>
+        <li>
+           <span class="types"><span class="type">number</span> or <span class="type">nil</span></span>
+        Offset reported by <a href="../modules/l7.dns.html#label">label</a> for that error</li>
+        <li>
+           <span class="types"><span class="type">boolean</span></span>
+        <code>true</code> if the label is a compression pointer</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
+    <a name = "walk_name"></a>
+    <strong>walk_name (off, l7_off, parts, visited, depth, seed)</strong>
+    </dt>
+    <dd>
+    Reads the whole name starting at <code>off</code>, appending every segment to <code>parts</code>.
+ Mirrors the loop of <a href="../modules/l7.dns.html#labels">labels</a> (1024 segments maximum, stop on terminator or
+ on the first pointer) but shares <code>parts</code> with the pointer resolution.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset of the name inside <code>@</code>
+        </li>
+        <li><span class="parameter">l7_off</span>
+            <span class="types"><span class="type">number</span></span>
+         Offset of the DNS message start inside <code>@</code>
+        </li>
+        <li><span class="parameter">parts</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+         Accumulated segments (mutated in place)
+        </li>
+        <li><span class="parameter">visited</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
+         Offsets already resolved (anti-loop)
+        </li>
+        <li><span class="parameter">depth</span>
+            <span class="types"><span class="type">number</span></span>
+         Number of pointer hops already followed
+        </li>
+        <li><span class="parameter">seed</span>
+            <span class="types"><span class="type">number</span> or <span class="type">nil</span></span>
+         Target offset of the first hop
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><span class="type">number</span> or <span class="type">nil</span></span>
+        Next offset, nil on error</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        Error message</li>
+        <li>
+           <span class="types"><span class="type">number</span> or <span class="type">nil</span></span>
+        Offset of the failing label (contract of <a href="../modules/l7.dns.html#labels">labels</a>)</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "label"></a>
     <strong>label (off[, l7_off=1])</strong>
     </dt>
@@ -396,6 +614,59 @@ This module provides utilities to parse and handle both normal and compressed la
 
 </dd>
     <dt>
+    <a name = "name_string"></a>
+    <strong>name_string (off, l7_off, cache)</strong>
+    </dt>
+    <dd>
+    Builds the dotted form of the name starting at <code>off</code> in a single pass.
+ Internal fast path of <a href="../modules/l7.dns.html#parse_rr">parse_rr</a>: same contract as <a href="../modules/l7.dns.html#labels">labels</a> (returns the
+ next offset, or <code>nil, fail_off, err</code>) but returns the joined name directly,
+ with one segment table and one <a href="https://www.lua.org/manual/5.1/manual.html#pdf-table.concat">table.concat</a> for the whole name —
+ including names resolved through compression pointers, where <a href="../modules/l7.dns.html#labels">labels</a> +
+ <code>concat</code> built two tables and two strings.</p>
+
+<p> With <code>cache</code> (one table per DNS message, created by <a href="../modules/l7.dns.html#parse">parse</a>), a name that
+ STARTS with a pointer is looked up by its target offset: every answer of a
+ response pointing at the QNAME then costs one <a href="https://www.lua.org/manual/5.1/manual.html#pdf-string.byte">string.byte</a> pair and no
+ allocation at all, instead of re-walking the pointed name. Entries are
+ keyed by the offset where the name starts — a resolution is a pure
+ function of the message bytes, and the cache never outlives one <a href="../modules/l7.dns.html#parse">parse</a>.
+
+
+    <h3>Parameters:</h3>
+    <ul>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         The offset to start parsing from.
+        </li>
+        <li><span class="parameter">l7_off</span>
+            <span class="types"><span class="type">number</span></span>
+         The layer 7 offset for label parsing.
+        </li>
+        <li><span class="parameter">cache</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
+         Per-message name cache (see above), or nil.
+        </li>
+    </ul>
+
+    <h3>Returns:</h3>
+    <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        The dotted name, or <code>nil</code> on error.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.</li>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.4">string</a> or <span class="type">nil</span></span>
+        The error message (third value on error).</li>
+    </ol>
+
+
+
+
+</dd>
+    <dt>
     <a name = "pack_question"></a>
     <strong>pack_question (self)</strong>
     </dt>
@@ -424,7 +695,7 @@ This module provides utilities to parse and handle both normal and compressed la
 </dd>
     <dt>
     <a name = "parse_question"></a>
-    <strong>parse_question (off, l7_off)</strong>
+    <strong>parse_question (off, l7_off, off, l7_off, cache)</strong>
     </dt>
     <dd>
     Parses a DNS question section from a binary string.
@@ -440,10 +711,29 @@ This module provides utilities to parse and handle both normal and compressed la
             <span class="types"><span class="type">number</span></span>
          The layer 7 offset for label parsing.
         </li>
+        <li><span class="parameter">off</span>
+            <span class="types"><span class="type">number</span></span>
+         The offset to start parsing from.
+        </li>
+        <li><span class="parameter">l7_off</span>
+            <span class="types"><span class="type">number</span></span>
+         The layer 7 offset for label parsing.
+        </li>
+        <li><span class="parameter">cache</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
+         Per-message name cache (cf. <a href="../modules/l7.dns.html#parse">parse</a>), or nil.
+        </li>
     </ul>
 
     <h3>Returns:</h3>
     <ol>
+        <li>
+           <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
+        Parsed DNS question as a table.</li>
+        <li>
+           <span class="types"><span class="type">number</span></span>
+        The next offset after parsing.
+ Parses a DNS question section from a binary string.</li>
         <li>
            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a></span>
         Parsed DNS question as a table.</li>
@@ -485,7 +775,7 @@ This module provides utilities to parse and handle both normal and compressed la
 </dd>
     <dt>
     <a name = "parse_rr"></a>
-    <strong>parse_rr (off, l7_off)</strong>
+    <strong>parse_rr (off, l7_off, cache)</strong>
     </dt>
     <dd>
     Parses a DNS resource record (RR) from a binary string.
@@ -500,6 +790,10 @@ This module provides utilities to parse and handle both normal and compressed la
         <li><span class="parameter">l7_off</span>
             <span class="types"><span class="type">number</span></span>
          The layer 7 offset for label parsing.
+        </li>
+        <li><span class="parameter">cache</span>
+            <span class="types"><a class="type" href="https://www.lua.org/manual/5.1/manual.html#5.5">table</a> or <span class="type">nil</span></span>
+         Per-message name cache (cf. <a href="../modules/l7.dns.html#parse">parse</a>), or nil.
         </li>
     </ul>
 
@@ -607,6 +901,9 @@ This module provides utilities to parse and handle both normal and compressed la
     </dt>
     <dd>
     Parses a DNS message from a binary string.
+ Names resolved during this call are memoized in one per-message table
+ (only when the message carries resource records), so that every answer
+ pointing at the QNAME costs a lookup instead of a second walk.
 
 
     <h3>Parameters:</h3>
