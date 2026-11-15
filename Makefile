@@ -5,6 +5,11 @@ lua_files:
 zip: lua_files
 	zip -r moontastik_lua.zip moontastik_lua && rm -r moontastik_lua
 
+# Enable the versioned hooks: the pre-commit one regenerates/checks
+# ipparse/doc/ before a rockspec bump (see tools/check-doc.sh).
+hooks:
+	git config core.hooksPath .githooks
+
 all:
 	$(MAKE) -C ipparse all
 

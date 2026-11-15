@@ -1,0 +1,10 @@
+#!/bin/sh
+# A version bump must ship the regenerated ipparse/doc/. Only rockspec bumps
+# are inspected, so ordinary commits stay instant.
+if git diff --cached --name-only --diff-filter=AM |
+	grep -q '^ipparse-[^/]*\.rockspec$'; then
+	repo=$(git rev-parse --show-toplevel) || exit 1
+	exec "$repo/tools/check-doc.sh"
+fi
+
+exit 0
