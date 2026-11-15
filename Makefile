@@ -5,6 +5,11 @@
 lua_files:
 	find . -type f -name '*.moon' -exec moonc -t moontastik_lua/ {} +
 	find . -name install.sh -exec cp {} moontastik_lua/{} \;
+# sha.lua/sha2.lua are tracked sources, not moonc output: hkdf.moon falls
+# back to requiring them (load_sha), so they must ship as well. util.lua is
+# the test harness and intentionally stays out.
+	find . \( -path './ipparse/lib/sha.lua' -o -path './ipparse/lib/sha2.lua' \) \
+		-exec cp {} moontastik_lua/{} \;
 
 zip: lua_files
 	zip -r moontastik_lua.zip moontastik_lua && rm -r moontastik_lua
